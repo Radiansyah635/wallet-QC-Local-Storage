@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Kas QC Shift B - Solana Style</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+    }
+    .solana-card {
+      @apply bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] rounded-2xl p-6 shadow-xl text-white;
+    }
+    .neon-text {
+      text-shadow: 0 0 5px #00f5ff, 0 0 10px #00f5ff, 0 0 20px #00f5ff;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-black text-white min-h-screen">
+
+  <header class="p-6 border-b border-gray-800 flex justify-between items-center bg-black sticky top-0 z-50">
+    <h1 class="text-2xl font-bold text-cyan-400 neon-text">Kas QC Shift B</h1>
+    <nav class="flex gap-4">
+      <button onclick="showSection('dashboard')" class="hover:text-cyan-300">Dashboard</button>
+      <button onclick="showSection('agenda')" class="hover:text-cyan-300">Agenda</button>
+      <button onclick="showSection('team')" class="hover:text-cyan-300">Tim</button>
+      <button onclick="showSection('aturan')" class="hover:text-cyan-300">Aturan</button>
+      <button id="adminNav" onclick="showSection('admin')" class="hidden text-sm bg-red-600 hover:bg-red-700 px-3 py-1 rounded">Admin</button>
+      <button onclick="logout()" class="text-sm bg-cyan-600 hover:bg-cyan-700 px-3 py-1 rounded">Logout</button>
+    </nav>
+  </header>
+
+  <main id="dashboard" class="p-6 hidden">
+    <h2 class="text-xl mb-6 neon-text">Dashboard Kas</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="solana-card text-center">
+        <p>Total Kas</p>
+        <p id="totalKas" class="text-2xl font-bold">Rp 0</p>
+      </div>
+      <div class="solana-card text-center">
+        <p>Kas Masuk</p>
+        <p id="kasMasuk" class="text-2xl font-bold">Rp 0</p>
+      </div>
+      <div class="solana-card text-center">
+        <p>Kas Keluar</p>
+        <p id="kasKeluar" class="text-2xl font-bold">Rp 0</p>
+      </div>
+    </div>
+    <div class="mt-8 solana-card">
+      <h3 class="mb-4 font-bold">Grafik Kas Bulan Ini</h3>
+      <canvas id="kasChart"></canvas>
+    </div>
+  </main>
+
+  <section id="agenda" class="p-6 hidden">
+    <h2 class="text-xl mb-4 neon-text">Agenda Meeting</h2>
+    <ul id="agendaList" class="space-y-4"></ul>
+  </section>
+
+  <section id="team" class="p-6 hidden">
+    <h2 class="text-xl mb-4 neon-text">Tim QC Shift B</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <!-- Contoh anggota -->
+      <div class="solana-card text-center">
+        <img src="images/ramdhani[1].png" alt="Ramdhani" class="mx-auto w-24 h-24 rounded-full object-cover border-4 border-cyan-400">
+        <p class="mt-2 text-lg font-bold text-cyan-300">Ramdhani</p>
+        <p class="text-sm text-gray-300">Bendahara</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="aturan" class="p-6 hidden">
+    <h2 class="text-xl mb-4 neon-text">Aturan Kas</h2>
+    <div class="solana-card">
+      <ul class="list-disc pl-6 space-y-2">
+        <li>Iuran minimal Rp 10.000 per bulan</li>
+        <li>Digunakan untuk kegiatan tim</li>
+        <li>Transaksi dicatat dan diaudit tiap bulan</li>
+        <li>Pengeluaran besar harus disetujui 2 orang</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="admin" class="p-6 hidden">
+    <h2 class="text-xl mb-4 neon-text">Admin Panel</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="solana-card">
+        <form id="formKas" class="space-y-4">
+          <input type="hidden" id="editTransaksiId">
+          <input type="date" id="tgl" class="bg-black text-white border border-gray-600 rounded w-full p-2" required>
+          <input type="text" id="ket" placeholder="Keterangan" class="bg-black text-white border border-gray-600 rounded w-full p-2" required>
+          <select id="tipe" class="bg-black text-white border border-gray-600 rounded w-full p-2" required>
+            <option value="">-- Pilih --</option>
+            <option value="Masuk">Masuk</option>
+            <option value="Keluar">Keluar</option>
+          </select>
+          <input type="number" id="jml" placeholder="Jumlah" class="bg-black text-white border border-gray-600 rounded w-full p-2" required>
+          <div class="flex gap-2">
+            <button type="submit" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded w-full">Simpan</button>
+            <button type="button" id="cancelEditTransaksi" onclick="cancelEditTransaksi()" class="hidden bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded">Batal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section id="loginSection" class="min-h-screen flex items-center justify-center bg-black">
+    <div class="solana-card max-w-sm w-full">
+      <h2 class="text-2xl font-bold mb-4 neon-text text-center">Login</h2>
+      <input id="passwordInput" type="password" placeholder="Masukkan Kata Sandi" class="w-full p-3 rounded bg-black border border-gray-600 mb-4">
+      <button onclick="checkPassword()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded w-full">Masuk</button>
+      <p id="loginError" class="text-red-400 text-center mt-2"></p>
+    </div>
+  </section>
+
+  <!-- Firebase & App Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="firebaseApp.js"></script>
+  <script src="appLogic.js"></script>
+
+</body>
+</html>
