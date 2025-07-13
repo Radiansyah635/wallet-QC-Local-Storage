@@ -7,7 +7,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
       --primary-purple: #8B5CF6;
@@ -110,6 +112,95 @@
       border-radius: 50%;
       font-weight: bold;
     }
+    
+    .section-hidden {
+      display: none;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(139, 92, 246, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary-purple);
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .post-card {
+      background: rgba(40, 40, 40, 0.7);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+    
+    .post-card:hover {
+      transform: translateY(-3px);
+    }
+    
+    .attachment-preview {
+      max-height: 300px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+    
+    .agenda-card {
+      background: rgba(45, 45, 45, 0.7);
+      border-left: 4px solid var(--primary-green);
+      border-radius: 8px;
+    }
+    
+    .admin-badge {
+      background: linear-gradient(to right, #f59e0b, #ef4444);
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      margin-left: 8px;
+      font-weight: bold;
+    }
+    
+    .attachment-link {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(139, 92, 246, 0.1);
+      padding: 6px 12px;
+      border-radius: 8px;
+      margin-top: 8px;
+      transition: all 0.2s;
+    }
+    
+    .attachment-link:hover {
+      background: rgba(139, 92, 246, 0.3);
+    }
+    
+    .admin-only {
+      display: none;
+    }
+    
+    .admin-visible {
+      display: block;
+    }
+    
+    .role-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      margin-left: 8px;
+    }
+    
+    .admin-badge {
+      background: linear-gradient(to right, #f59e0b, #ef4444);
+    }
+    
+    .member-badge {
+      background: linear-gradient(to right, #3b82f6, #8b5cf6);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -119,6 +210,7 @@
       <h1 class="text-2xl font-bold gradient-text">Wallet QC Local Storage</h1>
       <div id="auth-section" class="flex items-center space-x-4">
         <span id="user-email" class="text-sm text-gray-300 hidden"></span>
+        <span id="user-role" class="text-xs px-2 py-1 rounded-full bg-purple-600/50 hidden">Member</span>
         <button id="logout-btn" class="px-4 py-2 bg-red-600/80 hover:bg-red-500/90 rounded-lg text-sm hidden">
           Logout
         </button>
@@ -208,6 +300,15 @@
               placeholder="••••••••"
             >
           </div>
+          <div class="hidden" id="admin-code-container">
+            <label for="admin-code" class="block text-sm mb-2 text-gray-300">Kode Admin</label>
+            <input 
+              type="password" 
+              id="admin-code" 
+              class="input-field"
+              placeholder="Masukkan kode admin"
+            >
+          </div>
           <button type="submit" class="btn-primary w-full bg-gradient-to-r from-green-600 to-cyan-500">
             Daftar
           </button>
@@ -230,8 +331,11 @@
                 <span id="user-initial">U</span>
               </div>
               <div>
-                <h3 id="user-name" class="font-medium text-lg">User Name</h3>
-                <p id="user-role" class="text-sm text-gray-400">QC Team</p>
+                <div class="flex items-center">
+                  <h3 id="user-name" class="font-medium text-lg">User Name</h3>
+                  <span id="role-badge" class="role-badge member-badge">Member</span>
+                </div>
+                <p id="user-email-display" class="text-sm text-gray-400">user@email.com</p>
               </div>
             </div>
           </div>
@@ -241,17 +345,17 @@
             <h3 class="font-medium mb-4 text-purple-400">Menu Cepat</h3>
             <ul class="space-y-3">
               <li>
-                <button class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
+                <button id="show-kas" class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
                   <span class="mr-3">💰</span> Kas & Transaksi
                 </button>
               </li>
               <li>
-                <button class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
+                <button id="show-agenda" class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
                   <span class="mr-3">📅</span> Agenda QC
                 </button>
               </li>
               <li>
-                <button class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
+                <button id="show-sosial" class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
                   <span class="mr-3">💬</span> Sosial Media
                 </button>
               </li>
@@ -265,11 +369,11 @@
             <div class="mt-4 bg-black/20 rounded-lg p-3">
               <div class="flex justify-between mb-2">
                 <span>Pemasukan</span>
-                <span class="text-green-400">+ Rp 2.500.000</span>
+                <span id="income-amount" class="text-green-400">+ Rp 0</span>
               </div>
               <div class="flex justify-between">
                 <span>Pengeluaran</span>
-                <span class="text-red-400">- Rp 750.000</span>
+                <span id="expense-amount" class="text-red-400">- Rp 0</span>
               </div>
             </div>
           </div>
@@ -278,81 +382,138 @@
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-6">
           <!-- Kas Section -->
-          <div class="solana-card p-6">
+          <section id="kas-section" class="solana-card p-6">
             <div class="flex justify-between items-center mb-6">
               <h2 class="text-xl font-semibold">Kas & Transaksi</h2>
-              <button class="btn-primary">
-                + Tambah Transaksi
+              <button id="add-transaction-btn" class="btn-primary admin-only">
+                <i class="fas fa-plus mr-2"></i> Tambah Transaksi
               </button>
             </div>
             
+            <!-- Transaction Form -->
+            <form id="transaction-form" class="hidden space-y-4 mb-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm mb-2">Jenis Transaksi</label>
+                  <select id="transaction-type" class="input-field">
+                    <option value="masuk">Kas Masuk</option>
+                    <option value="keluar">Kas Keluar</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm mb-2">Jumlah (Rp)</label>
+                  <input type="number" id="transaction-amount" class="input-field" placeholder="1000000">
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm mb-2">Keterangan</label>
+                <input type="text" id="transaction-desc" class="input-field" placeholder="Deskripsi transaksi">
+              </div>
+              <div class="flex justify-end space-x-3">
+                <button type="button" id="cancel-transaction-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
+                  Batal
+                </button>
+                <button type="submit" class="btn-primary">
+                  Simpan Transaksi
+                </button>
+              </div>
+            </form>
+
             <!-- Transactions List -->
-            <div class="space-y-4">
-              <div class="p-4 bg-gray-800/30 rounded-lg flex justify-between items-center transaction-in">
-                <div>
-                  <p class="font-medium">Iuran Anggota - Januari</p>
-                  <p class="text-sm text-gray-400">10 Jan 2025</p>
-                </div>
-                <p class="text-green-400 font-mono">
-                  +Rp 1.250.000
-                </p>
-              </div>
-              
-              <div class="p-4 bg-gray-800/30 rounded-lg flex justify-between items-center transaction-out">
-                <div>
-                  <p class="font-medium">Acara Akhir Tahun</p>
-                  <p class="text-sm text-gray-400">15 Jan 2025</p>
-                </div>
-                <p class="text-red-400 font-mono">
-                  -Rp 500.000
-                </p>
-              </div>
-              
-              <div class="p-4 bg-gray-800/30 rounded-lg flex justify-between items-center transaction-in">
-                <div>
-                  <p class="font-medium">Iuran Anggota - Februari</p>
-                  <p class="text-sm text-gray-400">5 Feb 2025</p>
-                </div>
-                <p class="text-green-400 font-mono">
-                  +Rp 1.250.000
-                </p>
+            <div id="transactions-list" class="space-y-4">
+              <div class="text-center py-10">
+                <div class="loading mx-auto"></div>
+                <p class="mt-3 text-gray-400">Memuat data transaksi...</p>
               </div>
             </div>
-          </div>
+          </section>
           
-          <!-- Recent Activity -->
-          <div class="solana-card p-6">
-            <h2 class="text-xl font-semibold mb-4">Aktivitas Terkini</h2>
-            <div class="space-y-3">
-              <div class="flex items-start">
-                <div class="bg-purple-500/10 p-2 rounded-full mr-3">
-                  <span>📝</span>
+          <!-- Agenda Section -->
+          <section id="agenda-section" class="solana-card p-6 hidden">
+            <div class="flex justify-between items-center mb-6">
+              <h2 class="text-xl font-semibold">Agenda QC</h2>
+              <button id="add-agenda-btn" class="btn-primary admin-only">
+                <i class="fas fa-plus mr-2"></i> Tambah Agenda
+              </button>
+            </div>
+
+            <!-- Agenda Form -->
+            <form id="agenda-form" class="hidden space-y-4 mb-6">
+              <div>
+                <label class="block text-sm mb-2">Judul Agenda</label>
+                <input type="text" id="agenda-title" class="input-field" placeholder="Meeting QC">
+              </div>
+              <div>
+                <label class="block text-sm mb-2">Deskripsi</label>
+                <textarea id="agenda-desc" rows="3" class="input-field" placeholder="Detail agenda"></textarea>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm mb-2">Tanggal</label>
+                  <input type="date" id="agenda-date" class="input-field">
                 </div>
                 <div>
-                  <p class="font-medium">Andi menambahkan transaksi baru</p>
-                  <p class="text-sm text-gray-400">2 jam yang lalu</p>
+                  <label class="block text-sm mb-2">Lampiran</label>
+                  <button type="button" id="upload-agenda-file" class="input-field text-left flex justify-between items-center">
+                    <span>Pilih file...</span>
+                    <i class="fas fa-paperclip"></i>
+                  </button>
+                  <input type="file" id="agenda-file" class="hidden">
+                  <div id="file-name" class="text-sm text-gray-400 mt-1 hidden"></div>
                 </div>
               </div>
-              <div class="flex items-start">
-                <div class="bg-green-500/10 p-2 rounded-full mr-3">
-                  <span>💬</span>
-                </div>
-                <div>
-                  <p class="font-medium">Budi mengirim pesan di grup</p>
-                  <p class="text-sm text-gray-400">5 jam yang lalu</p>
-                </div>
+              <div class="flex justify-end space-x-3">
+                <button type="button" id="cancel-agenda-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
+                  Batal
+                </button>
+                <button type="submit" class="btn-primary">
+                  Simpan Agenda
+                </button>
               </div>
-              <div class="flex items-start">
-                <div class="bg-blue-500/10 p-2 rounded-full mr-3">
-                  <span>📅</span>
-                </div>
-                <div>
-                  <p class="font-medium">Rapat tim QC dijadwalkan ulang</p>
-                  <p class="text-sm text-gray-400">Kemarin</p>
-                </div>
+            </form>
+
+            <!-- Agenda List -->
+            <div id="agenda-list" class="space-y-4">
+              <div class="text-center py-10">
+                <div class="loading mx-auto"></div>
+                <p class="mt-3 text-gray-400">Memuat data agenda...</p>
               </div>
             </div>
-          </div>
+          </section>
+          
+          <!-- Sosial Media Section -->
+          <section id="sosial-section" class="solana-card p-6 hidden">
+            <div class="flex justify-between items-center mb-6">
+              <h2 class="text-xl font-semibold">Sosial Media QC</h2>
+            </div>
+
+            <!-- Post Form -->
+            <form id="post-form" class="space-y-4 mb-6">
+              <div>
+                <textarea id="post-content" rows="3" class="input-field" placeholder="Apa yang ingin Anda bagikan hari ini?"></textarea>
+              </div>
+              <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                  <button type="button" id="upload-image-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg mr-3">
+                    <i class="fas fa-image mr-2"></i> Lampirkan Gambar
+                  </button>
+                  <input type="file" id="post-image" accept="image/*" class="hidden">
+                  <span id="image-name" class="text-sm text-gray-400 hidden"></span>
+                </div>
+                <button type="submit" class="btn-primary">
+                  <i class="fas fa-paper-plane mr-2"></i> Posting
+                </button>
+              </div>
+            </form>
+
+            <!-- Posts List -->
+            <div id="posts-list" class="space-y-6">
+              <div class="text-center py-10">
+                <div class="loading mx-auto"></div>
+                <p class="mt-3 text-gray-400">Memuat postingan...</p>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </section>
@@ -373,7 +534,7 @@
       apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
       authDomain: "wallet-qc-local-storage.firebaseapp.com",
       projectId: "wallet-qc-local-storage",
-      storageBucket: "wallet-qc-local-storage.firebasestorage.app",
+      storageBucket: "wallet-qc-local-storage.appspot.com",
       messagingSenderId: "443546801664",
       appId: "1:443546801664:web:d520fd8d2f311edd20aae5",
       measurementId: "G-KVKSD7ES9P"
@@ -383,6 +544,7 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
+    const storage = firebase.storage();
 
     // DOM Elements
     const authContainer = document.getElementById('auth-container');
@@ -397,114 +559,5 @@
     const loginTab = document.getElementById('login-tab');
     const registerTab = document.getElementById('register-tab');
     const errorMessage = document.getElementById('error-message');
-
-    // Tab Switching
-    loginTab.addEventListener('click', () => {
-      loginForm.classList.remove('hidden');
-      registerForm.classList.add('hidden');
-      loginTab.classList.add('tab-active');
-      loginTab.classList.remove('text-gray-400');
-      registerTab.classList.add('text-gray-400');
-      registerTab.classList.remove('tab-active');
-    });
-
-    registerTab.addEventListener('click', () => {
-      registerForm.classList.remove('hidden');
-      loginForm.classList.add('hidden');
-      registerTab.classList.add('tab-active');
-      registerTab.classList.remove('text-gray-400');
-      loginTab.classList.add('text-gray-400');
-      loginTab.classList.remove('tab-active');
-    });
-
-    // Login Function
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-
-      try {
-        const userCredential = await auth.signInWithEmailAndPassword(email, password);
-        showDashboard(userCredential.user);
-      } catch (error) {
-        showError(error.message);
-      }
-    });
-
-    // Register Function
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('register-name').value;
-      const email = document.getElementById('register-email').value;
-      const password = document.getElementById('register-password').value;
-
-      try {
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        await db.collection('users').doc(userCredential.user.uid).set({
-          name,
-          email,
-          role: 'qc',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        showDashboard(userCredential.user);
-      } catch (error) {
-        showError(error.message);
-      }
-    });
-
-    // Logout Function
-    logoutBtn.addEventListener('click', async () => {
-      try {
-        await auth.signOut();
-        showAuth();
-      } catch (error) {
-        showError(error.message);
-      }
-    });
-
-    // Show Dashboard
-    function showDashboard(user) {
-      authContainer.classList.add('hidden');
-      dashboard.classList.remove('hidden');
-      loginBtn.classList.add('hidden');
-      logoutBtn.classList.remove('hidden');
-      userEmail.classList.remove('hidden');
-      
-      userEmail.textContent = user.email;
-      userName.textContent = user.email.split('@')[0];
-      userInitial.textContent = user.email.charAt(0).toUpperCase();
-    }
-
-    // Show Auth
-    function showAuth() {
-      authContainer.classList.remove('hidden');
-      dashboard.classList.add('hidden');
-      loginBtn.classList.remove('hidden');
-      logoutBtn.classList.add('hidden');
-      userEmail.classList.add('hidden');
-      
-      // Reset forms
-      loginForm.reset();
-      registerForm.reset();
-    }
-
-    // Show Error
-    function showError(message) {
-      errorMessage.textContent = message;
-      errorMessage.classList.remove('hidden');
-      setTimeout(() => {
-        errorMessage.classList.add('hidden');
-      }, 5000);
-    }
-
-    // Check Auth State
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        showDashboard(user);
-      } else {
-        showAuth();
-      }
-    });
-  </script>
-</body>
-          </html>
+    const showKasBtn = document.getElementById('show-kas');
+    const showAgendaBtn = document.getEle
