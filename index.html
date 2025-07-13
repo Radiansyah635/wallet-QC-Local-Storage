@@ -1,17 +1,374 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Wallet QC Firebase App</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallet QC Local Storage</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --primary-purple: #8B5CF6;
+      --primary-green: #10B981;
+      --dark-bg: #0f0f0f;
+      --card-bg: rgba(31, 31, 31, 0.7);
+    }
+    
+    body {
+      background: linear-gradient(to bottom, #000000, var(--dark-bg));
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #f3f4f6;
+    }
+    
+    .solana-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      transition: all 0.3s ease;
+    }
+    
+    .solana-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(139, 92, 246, 0.2);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(to right, var(--primary-purple), var(--primary-green));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(to right, var(--primary-purple), var(--primary-green));
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    }
+    
+    .input-field {
+      background: rgba(55, 55, 55, 0.5);
+      border: 1px solid rgba(107, 114, 128, 0.3);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: white;
+      width: 100%;
+      transition: border 0.3s ease;
+    }
+    
+    .input-field:focus {
+      outline: none;
+      border-color: var(--primary-purple);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+    
+    .tab-active {
+      background: rgba(139, 92, 246, 0.2);
+      color: var(--primary-purple);
+      font-weight: 600;
+    }
+    
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(139, 92, 246, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+    }
+    
+    .transaction-in {
+      border-left: 4px solid var(--primary-green);
+    }
+    
+    .transaction-out {
+      border-left: 4px solid #EF4444;
+    }
+    
+    .user-avatar {
+      background: linear-gradient(to right, var(--primary-purple), var(--primary-green));
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Header -->
+  <header class="bg-black/80 py-4 px-6 border-b border-purple-900/50 sticky top-0 z-50">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold gradient-text">Wallet QC Local Storage</h1>
+      <div id="auth-section" class="flex items-center space-x-4">
+        <span id="user-email" class="text-sm text-gray-300 hidden"></span>
+        <button id="logout-btn" class="px-4 py-2 bg-red-600/80 hover:bg-red-500/90 rounded-lg text-sm hidden">
+          Logout
+        </button>
+        <button id="login-btn" class="btn-primary">Login</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <!-- Auth Section -->
+    <section id="auth-container" class="max-w-md mx-auto solana-card p-8">
+      <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold gradient-text mb-2">Selamat Datang</h2>
+        <p class="text-gray-400">Kelola kas tim QC dengan mudah dan aman</p>
+      </div>
+
+      <!-- Login/Register Tabs -->
+      <div class="flex border-b border-gray-800 mb-6">
+        <button id="login-tab" class="flex-1 py-4 font-medium tab-active">
+          Login
+        </button>
+        <button id="register-tab" class="flex-1 py-4 font-medium text-gray-400">
+          Register
+        </button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form">
+        <div class="space-y-4">
+          <div>
+            <label for="login-email" class="block text-sm mb-2 text-gray-300">Email</label>
+            <input 
+              type="email" 
+              id="login-email" 
+              required
+              class="input-field"
+              placeholder="email@contoh.com"
+            >
+          </div>
+          <div>
+            <label for="login-password" class="block text-sm mb-2 text-gray-300">Password</label>
+            <input 
+              type="password" 
+              id="login-password" 
+              required
+              class="input-field"
+              placeholder="••••••••"
+            >
+          </div>
+          <button type="submit" class="btn-primary w-full">
+            Masuk
+          </button>
+        </div>
+      </form>
+
+      <!-- Register Form -->
+      <form id="register-form" class="hidden">
+        <div class="space-y-4">
+          <div>
+            <label for="register-name" class="block text-sm mb-2 text-gray-300">Nama Lengkap</label>
+            <input 
+              type="text" 
+              id="register-name" 
+              required
+              class="input-field"
+              placeholder="Nama Anda"
+            >
+          </div>
+          <div>
+            <label for="register-email" class="block text-sm mb-2 text-gray-300">Email</label>
+            <input 
+              type="email" 
+              id="register-email" 
+              required
+              class="input-field"
+              placeholder="email@contoh.com"
+            >
+          </div>
+          <div>
+            <label for="register-password" class="block text-sm mb-2 text-gray-300">Password</label>
+            <input 
+              type="password" 
+              id="register-password" 
+              required
+              class="input-field"
+              placeholder="••••••••"
+            >
+          </div>
+          <button type="submit" class="btn-primary w-full bg-gradient-to-r from-green-600 to-cyan-500">
+            Daftar
+          </button>
+        </div>
+      </form>
+      
+      <!-- Error Message -->
+      <div id="error-message" class="mt-4 text-center text-red-400 text-sm hidden"></div>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section id="dashboard" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Sidebar -->
+        <div class="lg:col-span-1 space-y-6">
+          <!-- User Profile -->
+          <div class="solana-card p-6">
+            <div class="flex items-center space-x-4">
+              <div class="user-avatar w-16 h-16 text-xl">
+                <span id="user-initial">U</span>
+              </div>
+              <div>
+                <h3 id="user-name" class="font-medium text-lg">User Name</h3>
+                <p id="user-role" class="text-sm text-gray-400">QC Team</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="solana-card p-6">
+            <h3 class="font-medium mb-4 text-purple-400">Menu Cepat</h3>
+            <ul class="space-y-3">
+              <li>
+                <button class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
+                  <span class="mr-3">💰</span> Kas & Transaksi
+                </button>
+              </li>
+              <li>
+                <button class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
+                  <span class="mr-3">📅</span> Agenda QC
+                </button>
+              </li>
+              <li>
+                <button class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
+                  <span class="mr-3">💬</span> Sosial Media
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Balance Summary -->
+          <div class="solana-card bg-gradient-to-br from-purple-900/30 to-green-900/20 p-6">
+            <h3 class="font-medium mb-2">Total Saldo</h3>
+            <p id="total-saldo" class="text-3xl font-bold font-mono">Rp 0</p>
+            <div class="mt-4 bg-black/20 rounded-lg p-3">
+              <div class="flex justify-between mb-2">
+                <span>Pemasukan</span>
+                <span class="text-green-400">+ Rp 2.500.000</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Pengeluaran</span>
+                <span class="text-red-400">- Rp 750.000</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Kas Section -->
+          <div class="solana-card p-6">
+            <div class="flex justify-between items-center mb-6">
+              <h2 class="text-xl font-semibold">Kas & Transaksi</h2>
+              <button class="btn-primary">
+                + Tambah Transaksi
+              </button>
+            </div>
+            
+            <!-- Transactions List -->
+            <div class="space-y-4">
+              <div class="p-4 bg-gray-800/30 rounded-lg flex justify-between items-center transaction-in">
+                <div>
+                  <p class="font-medium">Iuran Anggota - Januari</p>
+                  <p class="text-sm text-gray-400">10 Jan 2025</p>
+                </div>
+                <p class="text-green-400 font-mono">
+                  +Rp 1.250.000
+                </p>
+              </div>
+              
+              <div class="p-4 bg-gray-800/30 rounded-lg flex justify-between items-center transaction-out">
+                <div>
+                  <p class="font-medium">Acara Akhir Tahun</p>
+                  <p class="text-sm text-gray-400">15 Jan 2025</p>
+                </div>
+                <p class="text-red-400 font-mono">
+                  -Rp 500.000
+                </p>
+              </div>
+              
+              <div class="p-4 bg-gray-800/30 rounded-lg flex justify-between items-center transaction-in">
+                <div>
+                  <p class="font-medium">Iuran Anggota - Februari</p>
+                  <p class="text-sm text-gray-400">5 Feb 2025</p>
+                </div>
+                <p class="text-green-400 font-mono">
+                  +Rp 1.250.000
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Recent Activity -->
+          <div class="solana-card p-6">
+            <h2 class="text-xl font-semibold mb-4">Aktivitas Terkini</h2>
+            <div class="space-y-3">
+              <div class="flex items-start">
+                <div class="bg-purple-500/10 p-2 rounded-full mr-3">
+                  <span>📝</span>
+                </div>
+                <div>
+                  <p class="font-medium">Andi menambahkan transaksi baru</p>
+                  <p class="text-sm text-gray-400">2 jam yang lalu</p>
+                </div>
+              </div>
+              <div class="flex items-start">
+                <div class="bg-green-500/10 p-2 rounded-full mr-3">
+                  <span>💬</span>
+                </div>
+                <div>
+                  <p class="font-medium">Budi mengirim pesan di grup</p>
+                  <p class="text-sm text-gray-400">5 jam yang lalu</p>
+                </div>
+              </div>
+              <div class="flex items-start">
+                <div class="bg-blue-500/10 p-2 rounded-full mr-3">
+                  <span>📅</span>
+                </div>
+                <div>
+                  <p class="font-medium">Rapat tim QC dijadwalkan ulang</p>
+                  <p class="text-sm text-gray-400">Kemarin</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="py-6 border-t border-gray-800/50 mt-auto">
+    <div class="container mx-auto text-center">
+      <p class="text-gray-500">
+        © 2025 Wallet QC Local Storage - Powered by Firebase
+      </p>
+    </div>
+  </footer>
 
   <script>
+    // Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
       authDomain: "wallet-qc-local-storage.firebaseapp.com",
@@ -21,205 +378,133 @@
       appId: "1:443546801664:web:d520fd8d2f311edd20aae5",
       measurementId: "G-KVKSD7ES9P"
     };
+
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    const storage = firebase.storage();
-    let currentUserId = null;
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        currentUserId = user.uid;
-        document.getElementById("loginSection").classList.add("hidden");
-        document.getElementById("dashboardSection").classList.remove("hidden");
-        loadUserData(user.uid);
-        loadMessages();
-        loadTasks();
-        loadReports();
-      } else {
-        document.getElementById("loginSection").classList.remove("hidden");
-        document.getElementById("dashboardSection").classList.add("hidden");
+    // DOM Elements
+    const authContainer = document.getElementById('auth-container');
+    const dashboard = document.getElementById('dashboard');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const userEmail = document.getElementById('user-email');
+    const userName = document.getElementById('user-name');
+    const userInitial = document.getElementById('user-initial');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const loginTab = document.getElementById('login-tab');
+    const registerTab = document.getElementById('register-tab');
+    const errorMessage = document.getElementById('error-message');
+
+    // Tab Switching
+    loginTab.addEventListener('click', () => {
+      loginForm.classList.remove('hidden');
+      registerForm.classList.add('hidden');
+      loginTab.classList.add('tab-active');
+      loginTab.classList.remove('text-gray-400');
+      registerTab.classList.add('text-gray-400');
+      registerTab.classList.remove('tab-active');
+    });
+
+    registerTab.addEventListener('click', () => {
+      registerForm.classList.remove('hidden');
+      loginForm.classList.add('hidden');
+      registerTab.classList.add('tab-active');
+      registerTab.classList.remove('text-gray-400');
+      loginTab.classList.add('text-gray-400');
+      loginTab.classList.remove('tab-active');
+    });
+
+    // Login Function
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        showDashboard(userCredential.user);
+      } catch (error) {
+        showError(error.message);
       }
     });
 
-    function loginUser() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      auth.signInWithEmailAndPassword(email, password)
-        .catch(e => alert("Login gagal: " + e.message));
-    }
+    // Register Function
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('register-name').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
 
-    function registerUser() {
-      const name = document.getElementById("regName").value;
-      const email = document.getElementById("regEmail").value;
-      const password = document.getElementById("regPassword").value;
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(cred => db.collection("users").doc(cred.user.uid).set({ name, email }))
-        .then(() => alert("Registrasi berhasil!"))
-        .catch(e => alert("Gagal daftar: " + e.message));
-    }
-
-    function logoutUser() {
-      auth.signOut();
-    }
-
-    function loadUserData(uid) {
-      db.collection("users").doc(uid).get().then(doc => {
-        if (doc.exists) {
-          document.getElementById("userName").textContent = doc.data().name;
-        }
-      });
-    }
-
-    function sendMessage() {
-      const content = document.getElementById("messageInput").value;
-      if (!content.trim()) return;
-      const name = document.getElementById("userName").textContent;
-      db.collection("messages").add({
-        sender: name,
-        content,
-        timestamp: new Date()
-      }).then(() => {
-        document.getElementById("messageInput").value = "";
-        loadMessages();
-      });
-    }
-
-    function loadMessages() {
-      db.collection("messages").orderBy("timestamp", "desc").limit(10).get().then(snapshot => {
-        const container = document.getElementById("messageList");
-        container.innerHTML = "";
-        snapshot.forEach(doc => {
-          const d = doc.data();
-          container.innerHTML += `<div class="p-2 border-b"><strong>${d.sender}:</strong> ${d.content}</div>`;
+      try {
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        await db.collection('users').doc(userCredential.user.uid).set({
+          name,
+          email,
+          role: 'qc',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-      });
+        showDashboard(userCredential.user);
+      } catch (error) {
+        showError(error.message);
+      }
+    });
+
+    // Logout Function
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        await auth.signOut();
+        showAuth();
+      } catch (error) {
+        showError(error.message);
+      }
+    });
+
+    // Show Dashboard
+    function showDashboard(user) {
+      authContainer.classList.add('hidden');
+      dashboard.classList.remove('hidden');
+      loginBtn.classList.add('hidden');
+      logoutBtn.classList.remove('hidden');
+      userEmail.classList.remove('hidden');
+      
+      userEmail.textContent = user.email;
+      userName.textContent = user.email.split('@')[0];
+      userInitial.textContent = user.email.charAt(0).toUpperCase();
     }
 
-    function addTask() {
-      const task = document.getElementById("taskInput").value;
-      if (!task.trim()) return;
-      db.collection("tasks").add({ task, completed: false, createdAt: new Date() })
-        .then(() => {
-          document.getElementById("taskInput").value = "";
-          loadTasks();
-        });
+    // Show Auth
+    function showAuth() {
+      authContainer.classList.remove('hidden');
+      dashboard.classList.add('hidden');
+      loginBtn.classList.remove('hidden');
+      logoutBtn.classList.add('hidden');
+      userEmail.classList.add('hidden');
+      
+      // Reset forms
+      loginForm.reset();
+      registerForm.reset();
     }
 
-    function loadTasks() {
-      db.collection("tasks").orderBy("createdAt", "desc").get().then(snapshot => {
-        const list = document.getElementById("taskList");
-        list.innerHTML = "";
-        snapshot.forEach(doc => {
-          list.innerHTML += `<li>${doc.data().task}</li>`;
-        });
-      });
+    // Show Error
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.remove('hidden');
+      setTimeout(() => {
+        errorMessage.classList.add('hidden');
+      }, 5000);
     }
 
-    function submitReport() {
-      const tanggal = document.getElementById("tanggalLaporan").value;
-      const file = document.getElementById("fotoLaporan").files[0];
-      if (!file || !tanggal) return alert("Isi tanggal dan pilih foto.");
-      const ref = storage.ref(`laporan/${Date.now()}_${file.name}`);
-      ref.put(file).then(snap => snap.ref.getDownloadURL())
-        .then(url => db.collection("laporan").add({
-          tanggal, fotoURL: url, uploadedAt: new Date(), user: currentUserId
-        }))
-        .then(() => {
-          document.getElementById("fotoLaporan").value = "";
-          loadReports();
-        });
-    }
-
-    function loadReports() {
-      const tanggal = document.getElementById("filterTanggal").value;
-      let query = db.collection("laporan").where("user", "==", currentUserId);
-      if (tanggal) query = query.where("tanggal", "==", tanggal);
-      query.orderBy("uploadedAt", "desc").get().then(snapshot => {
-        const div = document.getElementById("laporanList");
-        div.innerHTML = "";
-        snapshot.forEach(doc => {
-          const d = doc.data();
-          div.innerHTML += `<div class="border p-2 mb-2"><strong>${d.tanggal}</strong><br><img src="${d.fotoURL}" class="w-32"/></div>`;
-        });
-      });
-    }
-
-    function exportPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const laporan = document.querySelectorAll("#laporanList div");
-      let y = 10;
-      laporan.forEach((lap, i) => {
-        const tgl = lap.querySelector("strong").innerText;
-        doc.text(`${i + 1}. Tanggal: ${tgl}`, 10, y);
-        y += 10;
-      });
-      doc.save("laporan-qc.pdf");
-    }
+    // Check Auth State
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        showDashboard(user);
+      } else {
+        showAuth();
+      }
+    });
   </script>
-</head>
-<body class="bg-gray-100 p-4 text-gray-900">
-
-  <!-- Login -->
-  <section id="loginSection" class="max-w-sm mx-auto">
-    <h2 class="text-2xl font-bold mb-4">Login</h2>
-    <input id="email" type="email" placeholder="Email" class="border p-2 w-full mb-2"/>
-    <input id="password" type="password" placeholder="Password" class="border p-2 w-full mb-2"/>
-    <button onclick="loginUser()" class="bg-blue-600 text-white px-4 py-2 w-full">Login</button>
-    <p class="mt-4 text-sm">Belum punya akun? <a href="#" onclick="document.getElementById('registerModal').classList.remove('hidden')" class="text-blue-500">Daftar di sini</a></p>
-  </section>
-
-  <!-- Register Modal -->
-  <div id="registerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-    <div class="bg-white p-6 rounded shadow-md w-full max-w-md">
-      <h2 class="text-xl font-bold mb-4">Daftar</h2>
-      <input id="regName" type="text" placeholder="Nama" class="border p-2 w-full mb-2"/>
-      <input id="regEmail" type="email" placeholder="Email" class="border p-2 w-full mb-2"/>
-      <input id="regPassword" type="password" placeholder="Password" class="border p-2 w-full mb-2"/>
-      <button onclick="registerUser()" class="bg-green-600 text-white px-4 py-2 w-full">Daftar</button>
-      <button onclick="document.getElementById('registerModal').classList.add('hidden')" class="text-red-500 text-sm mt-2 w-full">Tutup</button>
-    </div>
-  </div>
-
-  <!-- Dashboard -->
-  <section id="dashboardSection" class="hidden max-w-4xl mx-auto space-y-6">
-    <div class="flex justify-between items-center">
-      <h2 class="text-2xl font-bold">Halo, <span id="userName"></span> 👋</h2>
-      <button onclick="logoutUser()" class="bg-red-600 text-white px-4 py-2">Logout</button>
-    </div>
-
-    <!-- Pesan -->
-    <div>
-      <h3 class="text-xl font-semibold mb-2">💬 Pesan Tim</h3>
-      <input id="messageInput" type="text" class="border p-2 w-full mb-2" placeholder="Tulis pesan..." />
-      <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2">Kirim</button>
-      <div id="messageList" class="bg-white rounded shadow p-4 mt-2"></div>
-    </div>
-
-    <!-- Tugas -->
-    <div>
-      <h3 class="text-xl font-semibold mb-2">✅ Tugas QC</h3>
-      <input id="taskInput" type="text" class="border p-2 w-full mb-2" placeholder="Tambah tugas..." />
-      <button onclick="addTask()" class="bg-green-600 text-white px-4 py-2">Tambah</button>
-      <ul id="taskList" class="bg-white rounded shadow p-4 list-disc list-inside mt-2"></ul>
-    </div>
-
-    <!-- Laporan -->
-    <div>
-      <h3 class="text-xl font-semibold mb-2">📅 Laporan & Foto</h3>
-      <input id="tanggalLaporan" type="date" class="border p-2 w-full mb-2" />
-      <input id="fotoLaporan" type="file" accept="image/*" class="border p-2 w-full mb-2"/>
-      <button onclick="submitReport()" class="bg-purple-600 text-white px-4 py-2 mb-2">Upload Laporan</button>
-
-      <div class="flex gap-2 mb-4">
-        <input id="filterTanggal" type="date" class="border p-2"/>
-        <button onclick="loadReports()" class="bg-gray-600 text-white px-3 py-2">Filter</button>
-        <button onclick="exportPDF()" class="bg-indigo-600 text-white px-3 py-2">Export ke PDF</button>
-      </div>
-
-      <div id="laporanList" class="bg-white rounded shadow p-4"></div>
-    </div>
-  </section>
 </body>
-        </html>
+          </html>
