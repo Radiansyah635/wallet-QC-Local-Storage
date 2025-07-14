@@ -714,9 +714,6 @@
     // Chart Variables
     let financeChart = null;
 
-    // Admin Configuration
-    const ADMIN_CODE = "admin123"; // Kode admin yang harus dirahasiakan
-    
     // Tab Switching
     loginTab.addEventListener('click', () => {
       loginForm.classList.remove('hidden');
@@ -801,34 +798,31 @@
     });
 
     // Register
-    registerForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const name = document.getElementById('register-name').value;
-      const email = document.getElementById('register-email').value;
-      const password = document.getElementById('register-password').value;
-      const adminCode = adminCodeInput.value;
-      
-      // Cek kode admin
-      const isAdmin = adminCode === ADMIN_CODE;
-      
-      auth.createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          // Simpan data pengguna tambahan
-          return db.collection('users').doc(userCredential.user.uid).set({
-            name: name,
-            email: email,
-            isAdmin: isAdmin,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        })
-        .then(() => {
-          errorMessage.classList.add('hidden');
-        })
-        .catch((error) => {
-          errorMessage.textContent = error.message;
-          errorMessage.classList.remove('hidden');
-        });
+registerForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  const name = document.getElementById('register-name').value;
+  const email = document.getElementById('register-email').value;
+  const password = document.getElementById('register-password').value;
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      // Simpan data pengguna tambahan ke Firestore
+      return db.collection('users').doc(userCredential.user.uid).set({
+        name: name,
+        email: email,
+        role: 'member', // langsung default member
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    })
+    .then(() => {
+      errorMessage.classList.add('hidden');
+    })
+    .catch((error) => {
+      errorMessage.textContent = error.message;
+      errorMessage.classList.remove('hidden');
     });
+});
 
     // Logout
     logoutBtn.addEventListener('click', () => {
@@ -837,53 +831,53 @@
 
     // Auth state observer
     auth.onAuthStateChanged(user => {
-      if (user) {
-        // User is signed in
-        authContainer.classList.add('hidden');
-        dashboard.classList.remove('hidden');
-        loginBtn.classList.add('hidden');
-        logoutBtn.classList.remove('hidden');
-        userEmail.textContent = user.email;
-        userEmail.classList.remove('hidden');
-        
-        // Ambil data user dari Firestore
-        db.collection('users').doc(user.uid).get()
-          .then(doc => {
-            if (doc.exists) {
-              const userData = doc.data();
-              userName.textContent = userData.name;
-              userInitial.textContent = userData.name.charAt(0).toUpperCase();
-              userEmailDisplay.textContent = userData.email;
-              
-              // Tampilkan badge role
-              if (userData.isAdmin) {
-                roleBadge.textContent = 'Admin';
-                roleBadge.className = 'role-badge admin-badge';
-                
-                // Tampilkan fitur admin
-                document.querySelectorAll('.admin-only').forEach(el => {
-                  el.classList.add('admin-visible');
-                });
-              } else {
-                roleBadge.textContent = 'Member';
-                roleBadge.className = 'role-badge member-badge';
-              }
-            }
-          });
-        
-        // Load data awal
-        loadTransactions();
-        loadAgendas();
-        loadPosts();
-      } else {
-        // User is signed out
-        authContainer.classList.remove('hidden');
-        dashboard.classList.add('hidden');
-        loginBtn.classList.remove('hidden');
-        logoutBtn.classList.add('hidden');
-        userEmail.classList.add('hidden');
-      }
-    });
+  if (user) {
+    // User is signed in
+    authContainer.classList.add('hidden');
+    dashboard.classList.remove('hidden');
+    loginBtn.classList.add('hidden');
+    logoutBtn.classList.remove('hidden');
+    userEmail.textContent = user.email;
+    userEmail.classList.remove('hidden');
+
+    // Ambil data user dari Firestore
+    db.collection('users').doc(user.uid).get()
+      .then(doc => {
+        if (doc.exists) {
+          const userData = doc.data();
+          userName.textContent = userData.name;
+          userInitial.textContent = userData.name.charAt(0).toUpperCase();
+          userEmailDisplay.textContent = userData.email;
+
+          // Tampilkan badge role berdasarkan nilai "role"
+          if (userData.role === 'admin') {
+            roleBadge.textContent = 'Admin';
+            roleBadge.className = 'role-badge admin-badge';
+
+            // Tampilkan elemen khusus admin
+            document.querySelectorAll('.admin-only').forEach(el => {
+              el.classList.add('admin-visible');
+            });
+          } else {
+            roleBadge.textContent = 'Member';
+            roleBadge.className = 'role-badge member-badge';
+          }
+        }
+      });
+
+    // Load data awal
+    loadTransactions();
+    loadAgendas();
+    loadPosts();
+  } else {
+    // User is signed out
+    authContainer.classList.remove('hidden');
+    dashboard.classList.add('hidden');
+    loginBtn.classList.remove('hidden');
+    logoutBtn.classList.add('hidden');
+    userEmail.classList.add('hidden');
+  }
+});
 
     // ======================= KAS & TRANSAKSI =======================
     // Tampilkan form transaksi
@@ -1367,41 +1361,46 @@
 
     // ======================= ADMIN PANEL =======================
     function loadAdminData() {
-      // Load users
-      usersList.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-400"><div class="loading mx-auto"></div>Memuat data pengguna...</td></tr>';
-      
-      db.collection('users')
-        .orderBy('createdAt', 'desc')
-        .get()
-        .then(querySnapshot => {
-          usersList.innerHTML = '';
-          
-          if (querySnapshot.empty) {
-            usersList.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-400">Tidak ada pengguna</td></tr>';
-          } else {
-            querySnapshot.forEach(doc => {
-              const user = doc.data();
-              const userEl = document.createElement('tr');
-              userEl.className = 'border-b border-gray-700';
-              
-              userEl.innerHTML = `
-                <td class="py-3">${user.name}</td>
-                <td class="py-3">${user.email}</td>
-                <td class="py-3">
-                  <span class="${user.isAdmin ? 'admin-badge' : 'member-badge'}">
-                    ${user.isAdmin ? 'Admin' : 'Member'}
-                  </span>
-                </td>
-                <td class="py-3">
-                  <button class="px-2 py-1 bg-gray-700/50 hover:bg-gray-600/50 rounded text-xs" onclick="promoteUser('${doc.id}', ${!user.isAdmin})">
-                    ${user.isAdmin ? 'Demote' : 'Promote'}
-                  </button>
-                </td>
-              `;
-              
-              usersList.appendChild(userEl);
-            });
-          }
+  // Load users
+  usersList.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-400"><div class="loading mx-auto"></div>Memuat data pengguna...</td></tr>';
+
+  db.collection('users')
+    .orderBy('createdAt', 'desc')
+    .get()
+    .then(querySnapshot => {
+      usersList.innerHTML = '';
+
+      if (querySnapshot.empty) {
+        usersList.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-400">Tidak ada pengguna</td></tr>';
+      } else {
+        querySnapshot.forEach(doc => {
+          const user = doc.data();
+          const userEl = document.createElement('tr');
+          userEl.className = 'border-b border-gray-700';
+
+          const isAdmin = user.role === 'admin';
+
+          userEl.innerHTML = `
+            <td class="py-3">${user.name}</td>
+            <td class="py-3">${user.email}</td>
+            <td class="py-3">
+              <span class="${isAdmin ? 'admin-badge' : 'member-badge'}">
+                ${isAdmin ? 'Admin' : 'Member'}
+              </span>
+            </td>
+            <td class="py-3">
+              <button class="px-2 py-1 bg-gray-700/50 hover:bg-gray-600/50 rounded text-xs"
+                onclick="promoteUser('${doc.id}', '${isAdmin ? 'member' : 'admin'}')">
+                ${isAdmin ? 'Demote' : 'Promote'}
+              </button>
+            </td>
+          `;
+
+          usersList.appendChild(userEl);
+        });
+      }
+    });
+    }
           
           // Update stats
           totalUsersEl.textContent = querySnapshot.size;
@@ -1433,22 +1432,23 @@
         });
     }
 
-    // Promote/Demote user
-    window.promoteUser = function(userId, promote) {
-      if (confirm(`Anda yakin ingin ${promote ? 'promote' : 'demote'} pengguna ini?`)) {
-        db.collection('users').doc(userId).update({
-          isAdmin: promote
-        })
-        .then(() => {
-          alert(`Pengguna berhasil di-${promote ? 'promote' : 'demote'}`);
-          loadAdminData();
-        })
-        .catch(error => {
-          console.error("Error updating user role: ", error);
-          alert("Gagal mengupdate role pengguna");
-        });
-      }
-    };
+    // Promote/Demote user berdasarkan role
+window.promoteUser = function(userId, newRole) {
+  const actionText = newRole === 'admin' ? 'promote' : 'demote';
+  if (confirm(`Anda yakin ingin ${actionText} pengguna ini menjadi ${newRole}?`)) {
+    db.collection('users').doc(userId).update({
+      role: newRole
+    })
+    .then(() => {
+      alert(`Pengguna berhasil di-${actionText}`);
+      loadAdminData(); // Refresh tampilan
+    })
+    .catch(error => {
+      console.error("Gagal update role pengguna:", error);
+      alert("Gagal mengupdate role pengguna");
+    });
+  }
+};
 
     // Export data
     exportDataBtn.addEventListener('click', () => {
