@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wallet QC - Admin System</title>
+  <title>Wallet QC Local Storage</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
@@ -138,44 +139,13 @@
       object-fit: cover;
       border-radius: 8px;
       margin-top: 10px;
+      background-color: #000;
     }
     
     .agenda-card {
       background: rgba(45, 45, 45, 0.7);
       border-left: 4px solid var(--primary-green);
       border-radius: 8px;
-    }
-    
-    .admin-badge {
-      background: linear-gradient(to right, #f59e0b, #ef4444);
-      color: white;
-      font-size: 0.7rem;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      margin-left: 8px;
-      font-weight: bold;
-    }
-    
-    .attachment-link {
-      display: inline-flex;
-      align-items: center;
-      background: rgba(139, 92, 246, 0.1);
-      padding: 6px 12px;
-      border-radius: 8px;
-      margin-top: 8px;
-      transition: all 0.2s;
-    }
-    
-    .attachment-link:hover {
-      background: rgba(139, 92, 246, 0.3);
-    }
-    
-    .admin-only {
-      display: none;
-    }
-    
-    .admin-visible {
-      display: block;
     }
     
     .role-badge {
@@ -193,14 +163,12 @@
       background: linear-gradient(to right, #3b82f6, #8b5cf6);
     }
     
-    /* Chart container styling */
     .chart-container {
       position: relative;
       height: 300px;
       width: 100%;
     }
     
-    /* Custom scrollbar */
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;
@@ -215,7 +183,6 @@
       border-radius: 4px;
     }
     
-    /* File upload styling */
     .file-upload-label {
       display: flex;
       align-items: center;
@@ -265,13 +232,56 @@
       font-size: 20px;
       line-height: 1;
     }
+    
+    .comment-box {
+      background: rgba(50, 50, 50, 0.5);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .action-button {
+      background: rgba(70, 70, 70, 0.5);
+      border: none;
+      border-radius: 8px;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .action-button:hover {
+      background: rgba(90, 90, 90, 0.7);
+    }
+    
+    .like-button.active {
+      color: #EF4444;
+    }
+    
+    .user-list-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid rgba(70, 70, 70, 0.5);
+    }
+    
+    .user-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 10px;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
   <!-- Header -->
   <header class="bg-black/80 py-4 px-6 border-b border-purple-900/50 sticky top-0 z-50">
     <div class="container mx-auto flex justify-between items-center">
-      <h1 class="text-2xl font-bold gradient-text">Wallet QC</h1>
+      <h1 class="text-2xl font-bold gradient-text">Wallet QC Local Storage</h1>
       <div id="auth-section" class="flex items-center space-x-4">
         <span id="user-email" class="text-sm text-gray-300 hidden"></span>
         <span id="user-role" class="text-xs px-2 py-1 rounded-full bg-purple-600/50 hidden">Member</span>
@@ -299,6 +309,9 @@
         </button>
         <button id="register-tab" class="flex-1 py-4 font-medium text-gray-400">
           Register
+        </button>
+        <button id="reset-tab" class="flex-1 py-4 font-medium text-gray-400">
+          Reset Password
         </button>
       </div>
 
@@ -377,8 +390,27 @@
             <input type="checkbox" id="is-admin" class="mr-2">
             <label for="is-admin" class="text-sm">Daftar sebagai Admin</label>
           </div>
-          <button type="submit" class="btn-primary w-full bg-gradient-to-r from-green-600 to-cyan-500">
+          <button type="submit" class="btn-primary w-full">
             Daftar
+          </button>
+        </div>
+      </form>
+      
+      <!-- Reset Password Form -->
+      <form id="reset-form" class="hidden">
+        <div class="space-y-4">
+          <div>
+            <label for="reset-email" class="block text-sm mb-2 text-gray-300">Email</label>
+            <input 
+              type="email" 
+              id="reset-email" 
+              required
+              class="input-field"
+              placeholder="email@contoh.com"
+            >
+          </div>
+          <button type="submit" class="btn-primary w-full">
+            Kirim Link Reset Password
           </button>
         </div>
       </form>
@@ -395,6 +427,8 @@
       
       <!-- Error Message -->
       <div id="error-message" class="mt-4 text-center text-red-400 text-sm hidden"></div>
+      <!-- Success Message -->
+      <div id="success-message" class="mt-4 text-center text-green-400 text-sm hidden"></div>
     </section>
 
     <!-- Dashboard Section -->
@@ -405,8 +439,11 @@
           <!-- User Profile -->
           <div class="solana-card p-6">
             <div class="flex items-center space-x-4">
-              <div class="user-avatar w-16 h-16 text-xl">
-                <span id="user-initial">U</span>
+              <div class="relative">
+                <div id="profile-avatar" class="user-avatar w-16 h-16 text-xl">
+                  <span id="user-initial">U</span>
+                </div>
+                <img id="profile-image" class="absolute inset-0 w-16 h-16 rounded-full object-cover hidden" alt="Profile">
               </div>
               <div>
                 <div class="flex items-center">
@@ -414,6 +451,10 @@
                   <span id="role-badge" class="role-badge member-badge">Member</span>
                 </div>
                 <p id="user-email-display" class="text-sm text-gray-400">user@email.com</p>
+                <div class="mt-2 text-sm">
+                  <p>Kas Masuk: <span id="user-income" class="text-green-400">Rp 0</span></p>
+                  <p>Kas Keluar: <span id="user-expense" class="text-red-400">Rp 0</span></p>
+                </div>
               </div>
             </div>
           </div>
@@ -442,6 +483,11 @@
                   <span class="mr-3">🔒</span> Admin Panel
                 </button>
               </li>
+              <li>
+                <button id="show-setting" class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
+                  <span class="mr-3">⚙️</span> Pengaturan
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -468,9 +514,14 @@
           <section id="kas-section" class="solana-card p-6">
             <div class="flex justify-between items-center mb-6">
               <h2 class="text-xl font-semibold">Kas & Transaksi</h2>
-              <button id="add-transaction-btn" class="btn-primary admin-only">
-                <i class="fas fa-plus mr-2"></i> Tambah Transaksi
-              </button>
+              <div>
+                <button id="print-transactions" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg mr-2">
+                  <i class="fas fa-print mr-1"></i> Cetak PDF
+                </button>
+                <button id="add-transaction-btn" class="btn-primary admin-only">
+                  <i class="fas fa-plus mr-2"></i> Tambah Transaksi
+                </button>
+              </div>
             </div>
             
             <!-- Chart Section -->
@@ -586,18 +637,26 @@
                 <div class="flex items-center">
                   <label for="post-image" class="file-upload-label mr-3">
                     <span id="image-name-display">Lampirkan Gambar/Video</span>
-                     <i class="fas fa-image"></i>
+                    <i class="fas fa-image"></i>
                   </label>
                   <input type="file" id="post-image" accept="image/*,video/*" class="hidden">
                 </div>
                 <button type="submit" class="btn-primary">
-                  <i class="fas fa-paper-plane mr-2"></i> Posting
+                  Posting
                 </button>
               </div>
             </form>
-
-            <!-- Posts List -->
-            <div id="posts-list" class="space-y-6 max-h-[600px] overflow-y-auto">
+            
+            <!-- Attachment Preview -->
+            <div id="attachment-preview" class="hidden mt-4">
+              <img id="preview-image" class="attachment-preview w-full" alt="Preview lampiran">
+              <button id="remove-attachment" class="mt-2 text-red-400 text-sm">
+                <i class="fas fa-times mr-1"></i> Hapus lampiran
+              </button>
+            </div>
+            
+            <!-- Feed Container -->
+            <div id="social-feed" class="mt-8 space-y-6 max-h-[600px] overflow-y-auto">
               <div class="text-center py-10">
                 <div class="loading mx-auto"></div>
                 <p class="mt-3 text-gray-400">Memuat postingan...</p>
@@ -605,102 +664,120 @@
             </div>
           </section>
           
-          <!-- Admin Section -->
+          <!-- Admin Panel Section -->
           <section id="admin-section" class="solana-card p-6 hidden">
-            <div class="flex justify-between items-center mb-6">
-              <h2 class="text-xl font-semibold">Admin Panel</h2>
-              <span class="text-sm text-purple-400"><i class="fas fa-crown mr-2"></i>Admin Privileges</span>
+            <h2 class="text-xl font-semibold mb-6">Admin Panel</h2>
+            
+            <!-- Admin Tabs -->
+            <div class="flex border-b border-gray-800 mb-6">
+              <button id="users-tab" class="py-3 px-4 font-medium tab-active">Users</button>
+              <button id="transactions-admin-tab" class="py-3 px-4 font-medium text-gray-400">Transaksi</button>
+              <button id="agendas-admin-tab" class="py-3 px-4 font-medium text-gray-400">Agenda</button>
             </div>
             
-            <div class="space-y-6">
-              <!-- User Management -->
-              <div class="solana-card p-4">
-                <h3 class="font-medium mb-4">Manajemen Pengguna</h3>
-                <div class="overflow-x-auto">
-                  <table class="w-full">
-                    <thead>
-                      <tr class="text-left border-b border-gray-700">
-                        <th class="pb-2">Nama</th>
-                        <th class="pb-2">Email</th>
-                        <th class="pb-2">Role</th>
-                        <th class="pb-2">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody id="users-list">
-                      <tr>
-                        <td colspan="4" class="py-4 text-center text-gray-400">
-                          <div class="loading mx-auto"></div>
-                          Memuat data pengguna...
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+            <!-- Users Management -->
+            <div id="users-admin">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">Manajemen Pengguna</h3>
+              </div>
+              
+              <div id="users-list" class="space-y-3 max-h-[500px] overflow-y-auto">
+                <div class="text-center py-10">
+                  <div class="loading mx-auto"></div>
+                  <p class="mt-3 text-gray-400">Memuat data pengguna...</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Transactions Management -->
+            <div id="transactions-admin" class="hidden">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">Manajemen Transaksi</h3>
+              </div>
+              
+              <div id="admin-transactions-list" class="space-y-4 max-h-[500px] overflow-y-auto">
+                <div class="text-center py-10">
+                  <div class="loading mx-auto"></div>
+                  <p class="mt-3 text-gray-400">Memuat data transaksi...</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Agendas Management -->
+            <div id="agendas-admin" class="hidden">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">Manajemen Agenda</h3>
+              </div>
+              
+              <div id="admin-agendas-list" class="space-y-4 max-h-[500px] overflow-y-auto">
+                <div class="text-center py-10">
+                  <div class="loading mx-auto"></div>
+                  <p class="mt-3 text-gray-400">Memuat data agenda...</p>
+                </div>
+              </div>
+            </div>
+          </section>
+          
+          <!-- Setting Section -->
+          <section id="setting-section" class="solana-card p-6 hidden">
+            <h2 class="text-xl font-semibold mb-6">Pengaturan Akun</h2>
+            <form id="setting-form" class="space-y-6">
+              <div class="flex items-center space-x-6">
+                <div class="relative">
+                  <div id="profile-avatar-setting" class="user-avatar w-24 h-24 text-2xl">
+                    <span id="user-initial-setting">U</span>
+                  </div>
+                  <img id="profile-image-setting" class="absolute inset-0 w-24 h-24 rounded-full object-cover hidden" alt="Profile">
+                  <label for="profile-image-input" class="absolute bottom-0 right-0 bg-purple-600 rounded-full p-2 cursor-pointer">
+                    <i class="fas fa-camera text-white"></i>
+                  </label>
+                  <input type="file" id="profile-image-input" accept="image/*" class="hidden">
+                </div>
+                <div>
+                  <h3 class="text-lg font-medium">Foto Profil</h3>
+                  <p class="text-gray-400 text-sm">Ukuran maks. 5MB (JPG, PNG)</p>
                 </div>
               </div>
               
-              <!-- System Stats -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="solana-card p-4">
-                  <h3 class="font-medium mb-4">Statistik Sistem</h3>
-                  <div class="space-y-2">
-                    <div class="flex justify-between">
-                      <span>Total Pengguna</span>
-                      <span id="total-users" class="font-mono">0</span>
-                    </div>
-                    <div class="flex justify-between">
-                      <span>Total Transaksi</span>
-                      <span id="total-transactions" class="font-mono">0</span>
-                    </div>
-                    <div class="flex justify-between">
-                      <span>Total Agenda</span>
-                      <span id="total-agendas" class="font-mono">0</span>
-                    </div>
-                    <div class="flex justify-between">
-                      <span>Total Postingan</span>
-                      <span id="total-posts" class="font-mono">0</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Quick Admin Actions -->
-                <div class="solana-card p-4">
-                  <h3 class="font-medium mb-4">Aksi Cepat</h3>
-                  <div class="space-y-3">
-                    <button id="export-data-btn" class="w-full text-left p-3 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg flex items-center">
-                      <i class="fas fa-file-export mr-3"></i> Ekspor Data
-                    </button>
-                    <button id="backup-data-btn" class="w-full text-left p-3 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg flex items-center">
-                      <i class="fas fa-database mr-3"></i> Backup Database
-                    </button>
-                  </div>
-                </div>
+              <div>
+                <label class="block text-sm mb-2">Nama Lengkap</label>
+                <input type="text" id="setting-name" class="input-field" placeholder="Nama Anda">
               </div>
-            </div>
+              
+              <div>
+                <label class="block text-sm mb-2">Email</label>
+                <input type="email" id="setting-email" class="input-field" disabled>
+              </div>
+              
+              <div>
+                <label class="block text-sm mb-2">Password Baru (biarkan kosong jika tidak ingin mengubah)</label>
+                <input type="password" id="setting-password" class="input-field" placeholder="••••••••">
+              </div>
+              
+              <div class="pt-4">
+                <button type="submit" class="btn-primary mr-3">
+                  Simpan Perubahan
+                </button>
+                <button type="button" id="delete-account-btn" class="px-4 py-2 bg-red-600/80 hover:bg-red-700 rounded-lg">
+                  Hapus Akun
+                </button>
+              </div>
+            </form>
           </section>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
-  <footer class="py-6 border-t border-gray-800/50 mt-auto">
-    <div class="container mx-auto text-center">
-      <p class="text-gray-500">
-        © 2025 Wallet QC - Powered by Firebase
-      </p>
-    </div>
-  </footer>
-
   <script>
-    // Firebase Configuration
+    // Firebase configuration (ganti dengan konfigurasi proyek Anda)
     const firebaseConfig = {
-      apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
-      authDomain: "wallet-qc-local-storage.firebaseapp.com",
-      projectId: "wallet-qc-local-storage",
-      storageBucket: "wallet-qc-local-storage.appspot.com",
-      messagingSenderId: "443546801664",
-      appId: "1:443546801664:web:d520fd8d2f311edd20aae5",
-      measurementId: "G-KVKSD7ES9P"
+      apiKey: "AIzaSyC8Wx0Qo3q6X1q8q9Qw0e5qJ0q0e5qJ0q0",
+      authDomain: "wallet-qc.firebaseapp.com",
+      projectId: "wallet-qc",
+      storageBucket: "wallet-qc.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:abc123def456"
     };
 
     // Initialize Firebase
@@ -709,814 +786,451 @@
     const db = firebase.firestore();
     const storage = firebase.storage();
 
-    // DOM Elements
-    const authContainer = document.getElementById('auth-container');
-    const dashboard = document.getElementById('dashboard');
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    const userEmail = document.getElementById('user-email');
-    const userName = document.getElementById('user-name');
-    const userInitial = document.getElementById('user-initial');
-    const loginForm = document.getElementById('login-form');
-    const registerForm = document.getElementById('register-form');
-    const loginTab = document.getElementById('login-tab');
-    const registerTab = document.getElementById('register-tab');
-    const errorMessage = document.getElementById('error-message');
-    const showKasBtn = document.getElementById('show-kas');
-    const showAgendaBtn = document.getElementById('show-agenda');
-    const showSosialBtn = document.getElementById('show-sosial');
-    const showAdminBtn = document.getElementById('show-admin');
-    const kasSection = document.getElementById('kas-section');
-    const agendaSection = document.getElementById('agenda-section');
-    const sosialSection = document.getElementById('sosial-section');
-    const adminSection = document.getElementById('admin-section');
-    const addTransactionBtn = document.getElementById('add-transaction-btn');
-    const transactionForm = document.getElementById('transaction-form');
-    const cancelTransactionBtn = document.getElementById('cancel-transaction-btn');
-    const addAgendaBtn = document.getElementById('add-agenda-btn');
-    const agendaForm = document.getElementById('agenda-form');
-    const cancelAgendaBtn = document.getElementById('cancel-agenda-btn');
-    const postForm = document.getElementById('post-form');
-    const transactionsList = document.getElementById('transactions-list');
-    const agendaList = document.getElementById('agenda-list');
-    const postsList = document.getElementById('posts-list');
-    const totalSaldo = document.getElementById('total-saldo');
-    const incomeAmount = document.getElementById('income-amount');
-    const expenseAmount = document.getElementById('expense-amount');
-    const roleBadge = document.getElementById('role-badge');
-    const userEmailDisplay = document.getElementById('user-email-display');
-    const adminCodeContainer = document.getElementById('admin-code-container');
-    const adminCodeInput = document.getElementById('admin-code');
-    const agendaFileInput = document.getElementById('agenda-file');
-    const fileNameDisplay = document.getElementById('file-name-display');
-    const postImageInput = document.getElementById('post-image');
-    const imageNameDisplay = document.getElementById('image-name-display');
-    const usersList = document.getElementById('users-list');
-    const totalUsersEl = document.getElementById('total-users');
-    const totalTransactionsEl = document.getElementById('total-transactions');
-    const totalAgendasEl = document.getElementById('total-agendas');
-    const totalPostsEl = document.getElementById('total-posts');
-    const exportDataBtn = document.getElementById('export-data-btn');
-    const backupDataBtn = document.getElementById('backup-data-btn');
-    const isAdminCheckbox = document.getElementById('is-admin');
-      // Chart Variables
+    // Referensi koleksi
+    const usersRef = db.collection("users");
+    const transactionsRef = db.collection("transactions");
+    const agendasRef = db.collection("agendas");
+    const postsRef = db.collection("posts");
+    const commentsRef = db.collection("comments");
+    const likesRef = db.collection("likes");
+
+    // Variabel global
+    let currentUser = null;
     let financeChart = null;
+    let selectedFile = null;
+    let profileImageFile = null;
+    let editingTransactionId = null;
+    let editingAgendaId = null;
+    let editingPostId = null;
 
-    // Admin Configuration
-    const ADMIN_CODE = "admin123"; // Kode admin yang harus dirahasiakan
-    
-    // Tab Switching
-    loginTab.addEventListener('click', () => {
-      loginForm.classList.remove('hidden');
-      registerForm.classList.add('hidden');
-      loginTab.classList.add('tab-active');
-      loginTab.classList.remove('text-gray-400');
-      registerTab.classList.add('text-gray-400');
-      registerTab.classList.remove('tab-active');
-    });
-
-    registerTab.addEventListener('click', () => {
-      registerForm.classList.remove('hidden');
-      loginForm.classList.add('hidden');
-      registerTab.classList.add('tab-active');
-      registerTab.classList.remove('text-gray-400');
-      loginTab.classList.add('text-gray-400');
-      loginTab.classList.remove('tab-active');
-    });
-
-    // Toggle admin code field
-    isAdminCheckbox.addEventListener('change', function() {
-      adminCodeContainer.classList.toggle('hidden', !this.checked);
-    });
-
-    // Navigation Tabs
-    showKasBtn.addEventListener('click', () => {
-      kasSection.classList.remove('hidden');
-      agendaSection.classList.add('hidden');
-      sosialSection.classList.add('hidden');
-      adminSection.classList.add('hidden');
-    });
-
-    showAgendaBtn.addEventListener('click', () => {
-      agendaSection.classList.remove('hidden');
-      kasSection.classList.add('hidden');
-      sosialSection.classList.add('hidden');
-      adminSection.classList.add('hidden');
-    });
-
-    showSosialBtn.addEventListener('click', () => {
-      sosialSection.classList.remove('hidden');
-      kasSection.classList.add('hidden');
-      agendaSection.classList.add('hidden');
-      adminSection.classList.add('hidden');
-    });
-
-    showAdminBtn?.addEventListener('click', () => {
-      adminSection.classList.remove('hidden');
-      kasSection.classList.add('hidden');
-      agendaSection.classList.add('hidden');
-      sosialSection.classList.add('hidden');
-      loadAdminData();
-    });
-
-    // File Input Handling
-    agendaFileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        fileNameDisplay.textContent = e.target.files[0].name;
-      } else {
-        fileNameDisplay.textContent = 'Pilih file...';
-      }
-    });
-
-    postImageInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        imageNameDisplay.textContent = e.target.files[0].name;
-      } else {
-        imageNameDisplay.textContent = 'Lampirkan Gambar/Video';
-      }
-    });
-
-    // ======================= AUTHENTICATION =======================
-    // Login
-    loginForm.addEventListener('submit', (e) => {
+    // ================= AUTH FUNCTIONS =================
+    // Handle login
+    document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
       
       auth.signInWithEmailAndPassword(email, password)
-        .then(() => {
-          errorMessage.classList.add('hidden');
+        .then((userCredential) => {
+          currentUser = userCredential.user;
+          loadUserData();
         })
         .catch((error) => {
-          errorMessage.textContent = error.message;
-          errorMessage.classList.remove('hidden');
+          showError(error.message);
         });
     });
 
-    // Register
-    registerForm.addEventListener('submit', (e) => {
+    // Handle register
+    document.getElementById('register-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const name = document.getElementById('register-name').value;
       const email = document.getElementById('register-email').value;
       const password = document.getElementById('register-password').value;
-      const isAdmin = isAdminCheckbox.checked;
-      const adminCode = adminCodeInput.value;
+      const isAdmin = document.getElementById('is-admin').checked;
+      const adminCode = document.getElementById('admin-code').value;
       
-      // Validasi kode admin jika mendaftar sebagai admin
-      if (isAdmin && adminCode !== ADMIN_CODE) {
-        errorMessage.textContent = "Kode admin salah!";
-        errorMessage.classList.remove('hidden');
+      // Validasi kode admin
+      if (isAdmin && adminCode !== "admin123") {
+        showError("Kode admin salah!");
         return;
       }
-      
+
       auth.createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
+          currentUser = userCredential.user;
+          
           // Simpan data pengguna tambahan
-          return db.collection('users').doc(userCredential.user.uid).set({
+          return usersRef.doc(currentUser.uid).set({
+            uid: currentUser.uid,
             name: name,
             email: email,
-            isAdmin: isAdmin,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            role: isAdmin ? "admin" : "member",
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            profileImage: "",
+            totalIncome: 0,
+            totalExpense: 0
           });
         })
         .then(() => {
-          errorMessage.classList.add('hidden');
+          loadUserData();
         })
         .catch((error) => {
-          errorMessage.textContent = error.message;
-          errorMessage.classList.remove('hidden');
+          showError(error.message);
         });
     });
 
-    // Logout
-    logoutBtn.addEventListener('click', () => {
+    // Handle reset password
+    document.getElementById('reset-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('reset-email').value;
+      
+      auth.sendPasswordResetEmail(email)
+        .then(() => {
+          showSuccess("Email reset password telah dikirim!");
+        })
+        .catch((error) => {
+          showError(error.message);
+        });
+    });
+
+    // Handle logout
+    document.getElementById('logout-btn').addEventListener('click', () => {
       auth.signOut();
     });
 
-    // Auth state observer
+    // Handle auth state changes
     auth.onAuthStateChanged(user => {
       if (user) {
-        // User is signed in
-        authContainer.classList.add('hidden');
-        dashboard.classList.remove('hidden');
-        loginBtn.classList.add('hidden');
-        logoutBtn.classList.remove('hidden');
-        userEmail.textContent = user.email;
-        userEmail.classList.remove('hidden');
-        
-        // Ambil data user dari Firestore
-        db.collection('users').doc(user.uid).get()
-          .then(doc => {
-            if (doc.exists) {
-              const userData = doc.data();
-              userName.textContent = userData.name;
-              userInitial.textContent = userData.name.charAt(0).toUpperCase();
-              userEmailDisplay.textContent = userData.email;
-              
-              // Tampilkan badge role
-              if (userData.isAdmin) {
-                roleBadge.textContent = 'Admin';
-                roleBadge.className = 'role-badge admin-badge';
-                
-                // Tampilkan fitur admin
-                document.querySelectorAll('.admin-only').forEach(el => {
-                  el.classList.add('admin-visible');
-                });
-              } else {
-                roleBadge.textContent = 'Member';
-                roleBadge.className = 'role-badge member-badge';
-              }
-            }
-          });
-        
-        // Load data awal
-        loadTransactions();
-        loadAgendas();
-        loadPosts();
+        currentUser = user;
+        loadUserData();
       } else {
-        // User is signed out
-        authContainer.classList.remove('hidden');
-        dashboard.classList.add('hidden');
-        loginBtn.classList.remove('hidden');
-        logoutBtn.classList.add('hidden');
-        userEmail.classList.add('hidden');
+        // Pengguna keluar
+        document.getElementById('dashboard').classList.add('hidden');
+        document.getElementById('auth-container').classList.remove('hidden');
+        document.getElementById('logout-btn').classList.add('hidden');
+        document.getElementById('login-btn').classList.remove('hidden');
       }
     });
 
-    // ======================= KAS & TRANSAKSI =======================
-    // Tampilkan form transaksi
-    addTransactionBtn.addEventListener('click', () => {
-      transactionForm.classList.remove('hidden');
-    });
-
-    // Batal transaksi
-    cancelTransactionBtn.addEventListener('click', () => {
-      transactionForm.classList.add('hidden');
-    });
-
-    // Simpan transaksi
-    transactionForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const type = document.getElementById('transaction-type').value;
-      const amount = parseFloat(document.getElementById('transaction-amount').value);
-      const description = document.getElementById('transaction-desc').value;
-      
-      if (!amount || amount <= 0) {
-        alert('Jumlah harus diisi dan lebih dari 0');
-        return;
-      }
-      
-      const user = auth.currentUser;
-      if (user) {
-        db.collection('transactions').add({
-          userId: user.uid,
-          type: type,
-          amount: amount,
-          description: description,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        })
-        .then(() => {
-          transactionForm.reset();
-          transactionForm.classList.add('hidden');
+    // ================= USER FUNCTIONS =================
+    function loadUserData() {
+      usersRef.doc(currentUser.uid).get().then(doc => {
+        if (doc.exists) {
+          const userData = doc.data();
+          
+          // Update UI
+          document.getElementById('user-initial').textContent = userData.name.charAt(0);
+          document.getElementById('user-initial-setting').textContent = userData.name.charAt(0);
+          document.getElementById('user-name').textContent = userData.name;
+          document.getElementById('user-email-display').textContent = userData.email;
+          document.getElementById('setting-name').value = userData.name;
+          document.getElementById('setting-email').value = userData.email;
+          
+          // Update role badge
+          const roleBadge = document.getElementById('role-badge');
+          roleBadge.textContent = userData.role === 'admin' ? 'Admin' : 'Member';
+          roleBadge.className = userData.role === 'admin' ? 
+            'role-badge admin-badge' : 'role-badge member-badge';
+          
+          // Update user stats
+          document.getElementById('user-income').textContent = formatRupiah(userData.totalIncome || 0);
+          document.getElementById('user-expense').textContent = formatRupiah(userData.totalExpense || 0);
+          
+          // Show profile image if exists
+          if (userData.profileImage) {
+            document.getElementById('profile-avatar').classList.add('hidden');
+            document.getElementById('profile-image').classList.remove('hidden');
+            document.getElementById('profile-image').src = userData.profileImage;
+            
+            document.getElementById('profile-avatar-setting').classList.add('hidden');
+            document.getElementById('profile-image-setting').classList.remove('hidden');
+            document.getElementById('profile-image-setting').src = userData.profileImage;
+          }
+          
+          // Show admin elements
+          if (userData.role === 'admin') {
+            document.querySelectorAll('.admin-only').forEach(el => {
+              el.style.display = 'block';
+            });
+          }
+          
+          // Show dashboard
+          document.getElementById('auth-container').classList.add('hidden');
+          document.getElementById('dashboard').classList.remove('hidden');
+          document.getElementById('logout-btn').classList.remove('hidden');
+          document.getElementById('login-btn').classList.add('hidden');
+          document.getElementById('user-email').textContent = userData.email;
+          document.getElementById('user-email').classList.remove('hidden');
+          document.getElementById('user-role').textContent = userData.role === 'admin' ? 'Admin' : 'Member';
+          document.getElementById('user-role').classList.remove('hidden');
+          
+          // Load data
           loadTransactions();
-        })
-        .catch(error => {
-          console.error("Error adding transaction: ", error);
-          alert("Gagal menambahkan transaksi: " + error.message);
-        });
-      }
-    });
+          loadAgendas();
+          loadPosts();
+          loadUsers();
+          
+          // Update balance
+          updateBalance();
+        }
+      }).catch(error => {
+        showError("Gagal memuat data pengguna: " + error.message);
+      });
+    }
 
-    // Muat transaksi dari Firestore
+    // ================= TRANSACTION FUNCTIONS =================
     function loadTransactions() {
-      const user = auth.currentUser;
-      if (!user) return;
-      
+      const transactionsList = document.getElementById('transactions-list');
       transactionsList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data transaksi...</p></div>';
       
-      db.collection('transactions')
-        .where('userId', '==', user.uid)
-        .orderBy('createdAt', 'desc')
-        .get()
-        .then(querySnapshot => {
-          transactionsList.innerHTML = '';
-          let totalIncome = 0;
-          let totalExpense = 0;
+      transactionsRef.orderBy('date', 'desc').get().then(snapshot => {
+        transactionsList.innerHTML = '';
+        
+        if (snapshot.empty) {
+          transactionsList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada transaksi</p>';
+          return;
+        }
+        
+        snapshot.forEach(doc => {
+          const transaction = doc.data();
+          const transactionDate = transaction.date ? transaction.date.toDate() : new Date();
+          const formattedDate = transactionDate.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          });
           
-          // Data untuk chart
-          const last7Days = [];
-          const incomeData = [0, 0, 0, 0, 0, 0, 0];
-          const expenseData = [0, 0, 0, 0, 0, 0, 0];
+          const transactionElement = document.createElement('div');
+          transactionElement.className = `p-4 rounded-lg ${transaction.type === 'masuk' ? 'transaction-in' : 'transaction-out'} bg-gray-800/50`;
+          transactionElement.innerHTML = `
+            <div class="flex justify-between items-start">
+              <div>
+                <h4 class="font-medium">${transaction.description}</h4>
+                <p class="text-sm text-gray-400 mt-1">${formattedDate}</p>
+              </div>
+              <div class="text-right">
+                <p class="${transaction.type === 'masuk' ? 'text-green-400' : 'text-red-400'} font-mono font-medium">${transaction.type === 'masuk' ? '+' : '-'} ${formatRupiah(transaction.amount)}</p>
+                <p class="text-xs text-gray-400 mt-1">${transaction.userName}</p>
+              </div>
+            </div>
+            ${currentUser.role === 'admin' ? `
+              <div class="action-buttons mt-3">
+                <button class="edit-transaction action-button" data-id="${doc.id}">
+                  <i class="fas fa-edit mr-1"></i> Edit
+                </button>
+                <button class="delete-transaction action-button text-red-400" data-id="${doc.id}">
+                  <i class="fas fa-trash mr-1"></i> Hapus
+                </button>
+              </div>
+            ` : ''}
+          `;
           
-          // Siapkan tanggal 7 hari terakhir
-          for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            last7Days.push(date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }));
-          }
-          
-          if (querySnapshot.empty) {
-            transactionsList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada transaksi</p>';
-          } else {
-            querySnapshot.forEach(doc => {
-              const transaction = doc.data();
-              const date = transaction.createdAt.toDate();
-              const formattedDate = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-              
-              // Hitung total pemasukan/pengeluaran
-              if (transaction.type === 'masuk') {
-                totalIncome += transaction.amount;
-              } else {
-                totalExpense += transaction.amount;
-              }
-              
-              // Update data chart
-              const today = new Date();
-              const transactionDate = new Date(date);
-              const diffTime = Math.abs(today - transactionDate);
-              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-              
-              if (diffDays <= 6) {
-                if (transaction.type === 'masuk') {
-                  incomeData[6 - diffDays] += transaction.amount;
-                } else {
-                  expenseData[6 - diffDays] += transaction.amount;
-                }
-              }
-              
-              const transactionEl = document.createElement('div');
-              transactionEl.className = `p-4 rounded-lg ${transaction.type === 'masuk' ? 'transaction-in bg-gray-800/50' : 'transaction-out bg-gray-800/50'}`;
-              
-              transactionEl.innerHTML = `
-                <div class="flex justify-between items-center">
-                  <div>
-                    <p class="font-medium">${transaction.description}</p>
-                    <p class="text-sm text-gray-400">${formattedDate}</p>
-                  </div>
-                  <div class="text-right">
-                    <p class="${transaction.type === 'masuk' ? 'text-green-400' : 'text-red-400'} font-mono">
-                      ${transaction.type === 'masuk' ? '+' : '-'} Rp ${transaction.amount.toLocaleString('id-ID')}
-                    </p>
-                  </div>
-                </div>
-              `;
-              
-              transactionsList.appendChild(transactionEl);
-            });
-          }
-          
-          // Update summary
-          const totalBalance = totalIncome - totalExpense;
-          totalSaldo.textContent = `Rp ${totalBalance.toLocaleString('id-ID')}`;
-          incomeAmount.textContent = `+ Rp ${totalIncome.toLocaleString('id-ID')}`;
-          expenseAmount.textContent = `- Rp ${totalExpense.toLocaleString('id-ID')}`;
-          
-          // Update chart
-          updateFinanceChart(last7Days, incomeData, expenseData);
-        })
-        .catch(error => {
-          transactionsList.innerHTML = '<p class="text-center py-6 text-red-400">Gagal memuat transaksi</p>';
-          console.error("Error loading transactions: ", error);
+          transactionsList.appendChild(transactionElement);
         });
+        
+        // Add event listeners for admin actions
+        if (currentUser.role === 'admin') {
+          document.querySelectorAll('.edit-transaction').forEach(button => {
+            button.addEventListener('click', (e) => {
+              const id = e.target.closest('button').dataset.id;
+              editTransaction(id);
+            });
+          });
+          
+          document.querySelectorAll('.delete-transaction').forEach(button => {
+            button.addEventListener('click', (e) => {
+              const id = e.target.closest('button').dataset.id;
+              deleteTransaction(id);
+            });
+          });
+        }
+      }).catch(error => {
+        transactionsList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat transaksi: ${error.message}</p>`;
+      });
     }
 
-    // Update finance chart
-    function updateFinanceChart(labels, incomeData, expenseData) {
-      const ctx = document.getElementById('finance-chart').getContext('2d');
+    // ================= HELPER FUNCTIONS =================
+    function showError(message) {
+      const errorElement = document.getElementById('error-message');
+      errorElement.textContent = message;
+      errorElement.classList.remove('hidden');
+      setTimeout(() => errorElement.classList.add('hidden'), 5000);
+    }
+    
+    function showSuccess(message) {
+      const successElement = document.getElementById('success-message');
+      successElement.textContent = message;
+      successElement.classList.remove('hidden');
+      setTimeout(() => successElement.classList.add('hidden'), 5000);
+    }
+
+    function formatRupiah(amount) {
+      return 'Rp ' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+    
+    function updateBalance() {
+      // Hitung total saldo dari transaksi
+      let totalIncome = 0;
+      let totalExpense = 0;
       
-      // Hapus chart sebelumnya jika ada
-      if (financeChart) {
-        financeChart.destroy();
-      }
-      
-      financeChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: 'Pemasukan',
-              data: incomeData,
-              backgroundColor: 'rgba(16, 185, 129, 0.7)',
-              borderColor: 'rgba(16, 185, 129, 1)',
+      transactionsRef.get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const transaction = doc.data();
+          if (transaction.type === 'masuk') {
+            totalIncome += transaction.amount;
+          } else {
+            totalExpense += transaction.amount;
+          }
+        });
+        
+        const totalBalance = totalIncome - totalExpense;
+        
+        // Update UI
+        document.getElementById('total-saldo').textContent = formatRupiah(totalBalance);
+        document.getElementById('income-amount').textContent = '+ ' + formatRupiah(totalIncome);
+        document.getElementById('expense-amount').textContent = '- ' + formatRupiah(totalExpense);
+        
+        // Update chart
+        updateFinanceChart(totalIncome, totalExpense);
+      });
+    }
+    
+    function updateFinanceChart(income, expense) {
+      if (!financeChart) {
+        const ctx = document.getElementById('finance-chart').getContext('2d');
+        financeChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Kas Masuk', 'Kas Keluar'],
+            datasets: [{
+              label: 'Jumlah (Rp)',
+              data: [income, expense],
+              backgroundColor: [
+                'rgba(16, 185, 129, 0.7)',
+                'rgba(239, 68, 68, 0.7)'
+              ],
+              borderColor: [
+                'rgba(16, 185, 129, 1)',
+                'rgba(239, 68, 68, 1)'
+              ],
               borderWidth: 1
-            },
-            {
-              label: 'Pengeluaran',
-              data: expenseData,
-              backgroundColor: 'rgba(239, 68, 68, 0.7)',
-              borderColor: 'rgba(239, 68, 68, 1)',
-              borderWidth: 1
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              grid: {
-                color: 'rgba(55, 65, 81, 0.3)'
-              },
-              ticks: {
-                callback: function(value) {
-                  return 'Rp ' + value.toLocaleString('id-ID');
-                }
-              }
-            },
-            x: {
-              grid: {
-                color: 'rgba(55, 65, 81, 0.3)'
-              }
-            }
+            }]
           },
-          plugins: {
-            legend: {
-              position: 'top',
-              labels: {
-                color: '#f3f4f6'
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return 'Rp ' + context.raw.toLocaleString('id-ID');
+                  }
+                }
               }
             },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  let label = context.dataset.label || '';
-                  if (label) {
-                    label += ': ';
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return 'Rp ' + value.toLocaleString('id-ID');
                   }
-                  if (context.parsed.y !== null) {
-                    label += 'Rp ' + context.parsed.y.toLocaleString('id-ID');
-                  }
-                  return label;
                 }
               }
             }
           }
-        }
-      });
-    }
-        // ======================= AGENDA QC =======================
-    // Tampilkan form agenda
-    addAgendaBtn.addEventListener('click', () => {
-      agendaForm.classList.remove('hidden');
-    });
-
-    // Batal agenda
-    cancelAgendaBtn.addEventListener('click', () => {
-      agendaForm.classList.add('hidden');
-      fileNameDisplay.textContent = 'Pilih file...';
-      agendaFileInput.value = '';
-    });
-
-    // Simpan agenda
-    agendaForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const title = document.getElementById('agenda-title').value;
-      const description = document.getElementById('agenda-desc').value;
-      const date = document.getElementById('agenda-date').value;
-      const file = agendaFileInput.files[0];
-      
-      if (!title || !date) {
-        alert('Judul dan tanggal harus diisi');
-        return;
-      }
-      
-      const user = auth.currentUser;
-      if (user) {
-        // Jika ada file, upload dulu
-        if (file) {
-          const storageRef = storage.ref(`agenda_files/${user.uid}/${Date.now()}_${file.name}`);
-          storageRef.put(file)
-            .then(snapshot => {
-              return snapshot.ref.getDownloadURL();
-            })
-            .then(downloadURL => {
-              return saveAgenda(title, description, date, downloadURL, file.name);
-            })
-            .then(() => {
-              agendaForm.reset();
-              agendaForm.classList.add('hidden');
-              fileNameDisplay.textContent = 'Pilih file...';
-              agendaFileInput.value = '';
-              loadAgendas();
-            })
-            .catch(error => {
-              console.error("Error uploading file or saving agenda: ", error);
-              alert("Gagal menyimpan agenda: " + error.message);
-            });
-        } else {
-          saveAgenda(title, description, date, null, null)
-            .then(() => {
-              agendaForm.reset();
-              agendaForm.classList.add('hidden');
-              fileNameDisplay.textContent = 'Pilih file...';
-              agendaFileInput.value = '';
-              loadAgendas();
-            })
-            .catch(error => {
-              console.error("Error saving agenda: ", error);
-              alert("Gagal menyimpan agenda: " + error.message);
-            });
-        }
-      }
-    });
-
-    function saveAgenda(title, description, date, fileUrl, fileName) {
-      const user = auth.currentUser;
-      return db.collection('agendas').add({
-        userId: user.uid,
-        title: title,
-        description: description,
-        date: new Date(date),
-        fileUrl: fileUrl || null,
-        fileName: fileName || null,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-
-    // Muat agenda dari Firestore
-    function loadAgendas() {
-      const user = auth.currentUser;
-      if (!user) return;
-      
-      agendaList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data agenda...</p></div>';
-      
-      db.collection('agendas')
-        .where('userId', '==', user.uid)
-        .orderBy('date', 'asc')
-        .get()
-        .then(querySnapshot => {
-          agendaList.innerHTML = '';
-          
-          if (querySnapshot.empty) {
-            agendaList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada agenda</p>';
-          } else {
-            querySnapshot.forEach(doc => {
-              const agenda = doc.data();
-              const agendaDate = agenda.date.toDate();
-              const formattedDate = agendaDate.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-              
-              let fileHtml = '';
-              if (agenda.fileUrl) {
-                const fileIcon = agenda.fileName.match(/\.(jpg|jpeg|png|gif)$/i) ? 
-                  '<i class="fas fa-image mr-2"></i>' : 
-                  '<i class="fas fa-file-alt mr-2"></i>';
-                
-                fileHtml = `
-                  <a href="${agenda.fileUrl}" target="_blank" class="attachment-link">
-                    ${fileIcon} ${agenda.fileName}
-                  </a>
-                `;
-              }
-              
-              const agendaEl = document.createElement('div');
-              agendaEl.className = 'agenda-card p-4 mb-3';
-              agendaEl.innerHTML = `
-                <div class="flex justify-between">
-                  <div>
-                    <h3 class="font-medium">${agenda.title}</h3>
-                    <p class="text-sm text-gray-400 mt-1">${agenda.description}</p>
-                    ${fileHtml}
-                  </div>
-                  <div class="text-right">
-                    <p class="text-sm text-purple-400">${formattedDate}</p>
-                  </div>
-                </div>
-              `;
-              
-              agendaList.appendChild(agendaEl);
-            });
-          }
-        })
-        .catch(error => {
-          agendaList.innerHTML = '<p class="text-center py-6 text-red-400">Gagal memuat agenda</p>';
-          console.error("Error loading agendas: ", error);
         });
-    }
-
-    // ======================= SOSIAL MEDIA =======================
-    // Buat postingan
-    postForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const content = document.getElementById('post-content').value;
-      const file = postImageInput.files[0];
-      
-      if (!content.trim()) {
-        alert('Isi postingan tidak boleh kosong');
-        return;
-      }
-      
-      const user = auth.currentUser;
-      if (!user) return;
-      
-      // Jika ada file, upload dulu
-      if (file) {
-        const storageRef = storage.ref(`post_media/${user.uid}/${Date.now()}_${file.name}`);
-        storageRef.put(file)
-          .then(snapshot => {
-            return snapshot.ref.getDownloadURL();
-          })
-          .then(mediaUrl => {
-            return createPost(content, mediaUrl, file.type.startsWith('image') ? 'image' : 'video');
-          })
-          .then(() => {
-            resetPostForm();
-            loadPosts();
-          })
-          .catch(error => {
-            console.error("Error uploading media or creating post: ", error);
-            alert("Gagal membuat postingan: " + error.message);
-          });
       } else {
-        createPost(content, null, null)
-          .then(() => {
-            resetPostForm();
-            loadPosts();
-          })
-          .catch(error => {
-            console.error("Error creating post: ", error);
-            alert("Gagal membuat postingan: " + error.message);
-          });
+        financeChart.data.datasets[0].data = [income, expense];
+        financeChart.update();
+      }
+    }
+    
+    // ... (Fungsi lainnya akan ditambahkan di sini) ...
+    
+    // ================= INITIALIZATION =================
+    // Tab switching
+    document.getElementById('login-tab').addEventListener('click', () => {
+      document.getElementById('login-form').classList.remove('hidden');
+      document.getElementById('register-form').classList.add('hidden');
+      document.getElementById('reset-form').classList.add('hidden');
+      document.getElementById('login-tab').classList.add('tab-active');
+      document.getElementById('register-tab').classList.remove('tab-active');
+      document.getElementById('reset-tab').classList.remove('tab-active');
+    });
+    
+    document.getElementById('register-tab').addEventListener('click', () => {
+      document.getElementById('login-form').classList.add('hidden');
+      document.getElementById('register-form').classList.remove('hidden');
+      document.getElementById('reset-form').classList.add('hidden');
+      document.getElementById('login-tab').classList.remove('tab-active');
+      document.getElementById('register-tab').classList.add('tab-active');
+      document.getElementById('reset-tab').classList.remove('tab-active');
+    });
+    
+    document.getElementById('reset-tab').addEventListener('click', () => {
+      document.getElementById('login-form').classList.add('hidden');
+      document.getElementById('register-form').classList.add('hidden');
+      document.getElementById('reset-form').classList.remove('hidden');
+      document.getElementById('login-tab').classList.remove('tab-active');
+      document.getElementById('register-tab').classList.remove('tab-active');
+      document.getElementById('reset-tab').classList.add('tab-active');
+    });
+    
+    // Admin checkbox toggle
+    document.getElementById('is-admin').addEventListener('change', (e) => {
+      if (e.target.checked) {
+        document.getElementById('admin-code-container').classList.remove('hidden');
+      } else {
+        document.getElementById('admin-code-container').classList.add('hidden');
       }
     });
-
-    function createPost(content, mediaUrl, mediaType) {
-      const user = auth.currentUser;
-      return db.collection('posts').add({
-        userId: user.uid,
-        userName: userName.textContent,
-        content: content,
-        mediaUrl: mediaUrl || null,
-        mediaType: mediaType || null,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-
-    function resetPostForm() {
-      document.getElementById('post-content').value = '';
-      postImageInput.value = '';
-      imageNameDisplay.textContent = 'Lampirkan Gambar/Video';
-    }
-
-    // Muat postingan dari Firestore
-    function loadPosts() {
-      const user = auth.currentUser;
-      if (!user) return;
-      
-      postsList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat postingan...</p></div>';
-      
-      db.collection('posts')
-        .where('userId', '==', user.uid)
-        .orderBy('createdAt', 'desc')
-        .get()
-        .then(querySnapshot => {
-          postsList.innerHTML = '';
-          
-          if (querySnapshot.empty) {
-            postsList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada postingan</p>';
-          } else {
-            querySnapshot.forEach(doc => {
-              const post = doc.data();
-              const postDate = post.createdAt.toDate();
-              const formattedDate = postDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-              
-              let mediaHtml = '';
-              if (post.mediaUrl) {
-                if (post.mediaType === 'image') {
-                  mediaHtml = `<img src="${post.mediaUrl}" alt="Post attachment" class="attachment-preview w-full">`;
-                } else if (post.mediaType === 'video') {
-                  mediaHtml = `
-                    <video controls class="attachment-preview w-full">
-                      <source src="${post.mediaUrl}" type="video/mp4">
-                      Browser Anda tidak mendukung tag video.
-                    </video>
-                  `;
-                }
-              }
-              
-              const postEl = document.createElement('div');
-              postEl.className = 'post-card p-5';
-              
-              postEl.innerHTML = `
-                <div class="flex items-start mb-4">
-                  <div class="user-avatar w-10 h-10 text-sm mr-3">
-                    <span>${post.userName.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <div>
-                    <h3 class="font-medium">${post.userName}</h3>
-                    <p class="text-xs text-gray-400">${formattedDate}</p>
-                  </div>
-                </div>
-                <p class="mb-3">${post.content}</p>
-                ${mediaHtml}
-              `;
-              
-              postsList.appendChild(postEl);
-            });
-          }
-        })
-        .catch(error => {
-          postsList.innerHTML = '<p class="text-center py-6 text-red-400">Gagal memuat postingan</p>';
-          console.error("Error loading posts: ", error);
-        });
-    }
-
-    // ======================= ADMIN PANEL =======================
-    function loadAdminData() {
-      // Load users
-      usersList.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-400"><div class="loading mx-auto"></div>Memuat data pengguna...</td></tr>';
-      
-      db.collection('users')
-        .orderBy('createdAt', 'desc')
-        .get()
-        .then(querySnapshot => {
-          usersList.innerHTML = '';
-          
-          if (querySnapshot.empty) {
-            usersList.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-400">Tidak ada pengguna</td></tr>';
-          } else {
-            querySnapshot.forEach(doc => {
-              const user = doc.data();
-              const userEl = document.createElement('tr');
-              userEl.className = 'border-b border-gray-700';
-              
-              userEl.innerHTML = `
-                <td class="py-3">${user.name}</td>
-                <td class="py-3">${user.email}</td>
-                <td class="py-3">
-                  <span class="${user.isAdmin ? 'admin-badge' : 'member-badge'}">
-                    ${user.isAdmin ? 'Admin' : 'Member'}
-                  </span>
-                </td>
-                <td class="py-3">
-                  <button class="px-2 py-1 bg-gray-700/50 hover:bg-gray-600/50 rounded text-xs" onclick="promoteUser('${doc.id}', ${!user.isAdmin})">
-                    ${user.isAdmin ? 'Demote' : 'Promote'}
-                  </button>
-                </td>
-              `;
-              
-              usersList.appendChild(userEl);
-            });
-          }
-          
-          // Update stats
-          totalUsersEl.textContent = querySnapshot.size;
-        })
-        .catch(error => {
-          usersList.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-red-400">Gagal memuat pengguna</td></tr>';
-          console.error("Error loading users: ", error);
-        });
-      
-      // Load transactions count
-      db.collection('transactions')
-        .get()
-        .then(querySnapshot => {
-          totalTransactionsEl.textContent = querySnapshot.size;
-        });
-      
-      // Load agendas count
-      db.collection('agendas')
-        .get()
-        .then(querySnapshot => {
-          totalAgendasEl.textContent = querySnapshot.size;
-        });
-      
-      // Load posts count
-      db.collection('posts')
-        .get()
-        .then(querySnapshot => {
-          totalPostsEl.textContent = querySnapshot.size;
-        });
-    }
-
-    // Promote/Demote user
-    window.promoteUser = function(userId, promote) {
-      if (confirm(`Anda yakin ingin ${promote ? 'promote' : 'demote'} pengguna ini?`)) {
-        db.collection('users').doc(userId).update({
-          isAdmin: promote
-        })
-        .then(() => {
-          alert(`Pengguna berhasil di-${promote ? 'promote' : 'demote'}`);
-          loadAdminData();
-        })
-        .catch(error => {
-          console.error("Error updating user role: ", error);
-          alert("Gagal mengupdate role pengguna");
-        });
-      }
-    };
-
-    // Export data
-    exportDataBtn.addEventListener('click', () => {
-      alert("Fitur ekspor data akan diimplementasikan");
-      // Implementasi ekspor data ke CSV/Excel
+    
+    // Menu navigation
+    document.getElementById('show-kas').addEventListener('click', () => {
+      hideAllSections();
+      document.getElementById('kas-section').classList.remove('hidden');
     });
-
-    // Backup data
-    backupDataBtn.addEventListener('click', () => {
-      alert("Fitur backup data akan diimplementasikan");
-      // Implementasi backup data ke Cloud Storage
+    
+    document.getElementById('show-agenda').addEventListener('click', () => {
+      hideAllSections();
+      document.getElementById('agenda-section').classList.remove('hidden');
+    });
+    
+    document.getElementById('show-sosial').addEventListener('click', () => {
+      hideAllSections();
+      document.getElementById('sosial-section').classList.remove('hidden');
+    });
+    
+    document.getElementById('show-admin').addEventListener('click', () => {
+      hideAllSections();
+      document.getElementById('admin-section').classList.remove('hidden');
+    });
+    
+    document.getElementById('show-setting').addEventListener('click', () => {
+      hideAllSections();
+      document.getElementById('setting-section').classList.remove('hidden');
+    });
+    
+    function hideAllSections() {
+      document.getElementById('kas-section').classList.add('hidden');
+      document.getElementById('agenda-section').classList.add('hidden');
+      document.getElementById('sosial-section').classList.add('hidden');
+      document.getElementById('admin-section').classList.add('hidden');
+      document.getElementById('setting-section').classList.add('hidden');
+    }
+    
+    // Admin tabs
+    document.getElementById('users-tab').addEventListener('click', () => {
+      document.getElementById('users-admin').classList.remove('hidden');
+      document.getElementById('transactions-admin').classList.add('hidden');
+      document.getElementById('agendas-admin').classList.add('hidden');
+      document.getElementById('users-tab').classList.add('tab-active');
+      document.getElementById('transactions-admin-tab').classList.remove('tab-active');
+      document.getElementById('agendas-admin-tab').classList.remove('tab-active');
+    });
+    
+    document.getElementById('transactions-admin-tab').addEventListener('click', () => {
+      document.getElementById('users-admin').classList.add('hidden');
+      document.getElementById('transactions-admin').classList.remove('hidden');
+      document.getElementById('agendas-admin').classList.add('hidden');
+      document.getElementById('users-tab').classList.remove('tab-active');
+      document.getElementById('transactions-admin-tab').classList.add('tab-active');
+      document.getElementById('agendas-admin-tab').classList.remove('tab-active');
+      loadAdminTransactions();
+    });
+    
+    document.getElementById('agendas-admin-tab').addEventListener('click', () => {
+      document.getElementById('users-admin').classList.add('hidden');
+      document.getElementById('transactions-admin').classList.add('hidden');
+      document.getElementById('agendas-admin').classList.remove('hidden');
+      document.getElementById('users-tab').classList.remove('tab-active');
+      document.getElementById('transactions-admin-tab').classList.remove('tab-active');
+      document.getElementById('agendas-admin-tab').classList.add('tab-active');
+      loadAdminAgendas();
     });
   </script>
 </body>
