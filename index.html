@@ -4,12 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wallet QC - Solana Style</title>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
@@ -183,10 +178,6 @@
       padding: 2px 8px;
       border-radius: 9999px;
       margin-left: 8px;
-    }
-    
-    .admin-badge {
-      background: linear-gradient(to right, #f59e0b, #ef4444);
     }
     
     .member-badge {
@@ -642,7 +633,12 @@
       </p>
     </div>
   </footer>
-
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     // Firebase Configuration
     const firebaseConfig = {
@@ -697,8 +693,6 @@
     const expenseAmount = document.getElementById('expense-amount');
     const roleBadge = document.getElementById('role-badge');
     const userEmailDisplay = document.getElementById('user-email-display');
-    const adminCodeContainer = document.getElementById('admin-code-container');
-    const adminCodeInput = document.getElementById('admin-code');
     const agendaFileInput = document.getElementById('agenda-file');
     const fileNameDisplay = document.getElementById('file-name-display');
     const postImageInput = document.getElementById('post-image');
