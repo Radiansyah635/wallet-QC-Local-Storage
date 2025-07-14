@@ -1360,7 +1360,7 @@ registerForm.addEventListener('submit', (e) => {
     }
 
     // ======================= ADMIN PANEL =======================
-    function loadAdminData() {
+      function loadAdminData() {
   // Load users
   usersList.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-400"><div class="loading mx-auto"></div>Memuat data pengguna...</td></tr>';
 
@@ -1399,16 +1399,15 @@ registerForm.addEventListener('submit', (e) => {
           usersList.appendChild(userEl);
         });
       }
+
+      // ⬅️ Letakkan di sini, masih di dalam .then()
+      totalUsersEl.textContent = querySnapshot.size;
+    })
+    .catch(error => {
+      usersList.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-red-400">Gagal memuat pengguna</td></tr>';
+      console.error("Error loading users: ", error);
     });
     }
-          
-          // Update stats
-          totalUsersEl.textContent = querySnapshot.size;
-        })
-        .catch(error => {
-          usersList.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-red-400">Gagal memuat pengguna</td></tr>';
-          console.error("Error loading users: ", error);
-        });
       
       // Load transactions count
       db.collection('transactions')
