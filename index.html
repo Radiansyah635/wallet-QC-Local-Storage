@@ -1,13 +1,17 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wallet QC Local Storage</title>
+  <!-- Firebase Compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <!-- Tailwind & Icons & Charts & PDF -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -745,153 +749,106 @@
   </main>
 
   
-    
-    <script>
-  // ================= KONFIGURASI FIREBASE =================
-  const firebaseConfig = {
-    apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
-    authDomain: "wallet-qc-local-storage.firebaseapp.com",
-    databaseURL: "https://wallet-qc-local-storage-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "wallet-qc-local-storage",
-    storageBucket: "wallet-qc-local-storage.appspot.com",
-    messagingSenderId: "443546801664",
-    appId: "1:443546801664:web:6d0342e1b8261dd920aae5",
-    measurementId: "G-WS8TVNJJG0"
-  };
+<script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
+      authDomain: "wallet-qc-local-storage.firebaseapp.com",
+      databaseURL: "https://wallet-qc-local-storage-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "wallet-qc-local-storage",
+      storageBucket: "wallet-qc-local-storage.appspot.com",
+      messagingSenderId: "443546801664",
+      appId: "1:443546801664:web:6d0342e1b8261dd920aae5",
+      measurementId: "G-WS8TVNJJG0"
+    };
+    // Initialize
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+    const functions = firebase.functions();
+    const connectionRef = firebase.database().ref('.info/connected');
 
-  // Inisialisasi Firebase
-  const app = firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-  const storage = firebase.storage();
-  const functions = firebase.functions();
+    // Utility: format currency
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('id-ID',{ style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+    }
+    // Alias for backward compatibility
+    const formatRupiah = formatCurrency;
 
-  // ================= PENGATURAN OFFLINE =================
-  // Aktifkan persistensi data offline
-  db.enablePersistence()
-    .catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn("Mode offline hanya bekerja di satu tab");
-      } else if (err.code === 'unimplemented') {
-        console.warn("Browser tidak mendukung fitur offline");
+    // Show/hide sections helper
+    function showSection(id) {
+      document.querySelectorAll('section[id$="-section"]').forEach(s => s.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    // Tab switching on auth forms
+    document.getElementById('login-tab').onclick = ()=>{ document.getElementById('login-form').classList.remove('hidden'); document.getElementById('register-form').classList.add('hidden'); document.getElementById('reset-form').classList.add('hidden'); }
+    document.getElementById('register-tab').onclick = ()=>{ document.getElementById('register-form').classList.remove('hidden'); document.getElementById('login-form').classList.add('hidden'); document.getElementById('reset-form').classList.add('hidden'); }
+    document.getElementById('reset-tab').onclick = ()=>{ document.getElementById('reset-form').classList.remove('hidden'); document.getElementById('login-form').classList.add('hidden'); document.getElementById('register-form').classList.add('hidden'); }
+
+    // Auth state
+    auth.onAuthStateChanged(user => {
+      const authSec = document.getElementById('auth-container');
+      const dash    = document.getElementById('dashboard');
+      if (user) {
+        // load user data
+        db.collection('users').doc(user.uid).get().then(doc=>{
+          const data = doc.data();
+          // update UI fields...
+          document.getElementById('user-name').textContent = data.name;
+          document.getElementById('user-email-display').textContent = data.email;
+          document.getElementById('role-badge').textContent = data.role === 'admin' ? 'Admin' : 'Member';
+          document.getElementById('user-initial').textContent = data.name.charAt(0);
+          // show admin-only if needed
+          document.querySelectorAll('.admin-only').forEach(el=>el.style.display = data.role==='admin'? 'block':'none');
+          // hide auth, show dashboard/header
+          authSec.classList.add('hidden'); dash.classList.remove('hidden');
+          document.getElementById('logout-btn').classList.remove('hidden');
+          document.getElementById('login-btn').classList.add('hidden');
+          document.getElementById('user-email').textContent = data.email; document.getElementById('user-email').classList.remove('hidden');
+          document.getElementById('user-role').classList.remove('hidden');
+        });
+      } else {
+        // reset to login view
+        dash.classList.add('hidden'); authSec.classList.remove('hidden');
+        document.getElementById('logout-btn').classList.add('hidden');
+        document.getElementById('login-btn').classList.remove('hidden');
+        document.getElementById('user-email').classList.add('hidden');
+        document.getElementById('user-role').classList.add('hidden');
       }
     });
 
-  // ================= MANAJEMEN KONEKSI =================
-  const connectionRef = firebase.database().ref('.info/connected');
-  
-  connectionRef.on('value', (snap) => {
-    const isOnline = snap.val();
-    updateConnectionStatus(isOnline);
-    
-    if (isOnline) {
-      console.log("Koneksi pulih, melakukan sinkronisasi...");
-      // Tambahkan logika sinkronisasi disini
-    }
-  });
+    // Login
+    document.getElementById('login-form').addEventListener('submit', e=>{
+      e.preventDefault();
+      const email = e.target['login-email'].value;
+      const pass  = e.target['login-password'].value;
+      auth.signInWithEmailAndPassword(email, pass).catch(err=>alert('Login gagal: '+err.message));
+    });
 
-  function updateConnectionStatus(online) {
-    const statusEl = document.getElementById('connection-status');
-    if (statusEl) {
-      statusEl.innerHTML = online 
-        ? '<i class="fas fa-wifi mr-2"></i> Online' 
-        : '<i class="fas fa-plug mr-2"></i> Offline';
-      statusEl.className = online 
-        ? 'bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm'
-        : 'bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm';
-    }
-  }
+    // Logout
+    document.getElementById('logout-btn').onclick = ()=>auth.signOut();
 
-  // ================= FUNGSI ADMIN =================
-  async function setAdminClaims(targetUserId) {
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) throw new Error("Harus login terlebih dahulu");
-      
-      const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-      if (!currentUserDoc.exists || currentUserDoc.data().role !== 'superadmin') {
-        throw new Error("Hanya Super Admin yang bisa menambahkan admin");
-      }
+    // Connection status
+    connectionRef.on('value', snap=>{
+      const online = snap.val();
+      const el = document.getElementById('connection-status');
+      if (!el) return;
+      el.innerHTML = online? 'Online':'Offline';
+      el.className = online? 'bg-green-100':'bg-red-100';
+    });
 
-      const setAdmin = functions.httpsCallable('setAdminManually');
-      const result = await setAdmin({ uid: targetUserId });
-      
-      console.log("Admin berhasil ditambahkan:", result.data);
-      alert("Status admin berhasil diperbarui");
-      return true;
-    } catch (error) {
-      console.error("Gagal set admin:", error);
-      alert(`Error: ${error.message}`);
-      return false;
-    }
-  }
+    // Show/hide main menu
+    document.getElementById('show-kas').onclick    = ()=> showSection('kas-section');
+    document.getElementById('show-agenda').onclick = ()=> showSection('agenda-section');
+    document.getElementById('show-sosial').onclick = ()=> showSection('sosial-section');
+    document.getElementById('show-admin').onclick  = ()=> showSection('admin-section');
+    document.getElementById('show-setting').onclick= ()=> showSection('setting-section');
 
-  // ================= REFERENSI KOLEKSI =================
-  const usersRef = db.collection("users");
-  const transactionsRef = db.collection("transactions");
-  const agendasRef = db.collection("agendas");
-  const postsRef = db.collection("posts");
+    // (Tambahkan fungsi loadTransactions, loadAgendas, loadPosts, loadUsers berikutnya)    
 
-  // ================= VARIABEL GLOBAL =================
-  let currentUser = null;
-  let financeChart = null;
-  let selectedAgendaFile = null;
-  let selectedPostFile = null;
-  let profileImageFile = null;
-  let editingTransactionId = null;
-  let editingAgendaId = null;
-  let editingPostId = null;
-
-  // ================= FUNGSI UTILITAS =================
-  function formatCurrency(amount) {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  }
-
-  function showError(message) {
-    const errorEl = document.getElementById('error-message');
-    if (errorEl) {
-      errorEl.textContent = message;
-      errorEl.classList.remove('hidden');
-      setTimeout(() => errorEl.classList.add('hidden'), 5000);
-    }
-    console.error(message);
-  }
-
-  function showSuccess(message) {
-    const successEl = document.getElementById('success-message');
-    if (successEl) {
-      successEl.textContent = message;
-      successEl.classList.remove('hidden');
-      setTimeout(() => successEl.classList.add('hidden'), 5000);
-    }
-    console.log(message);
-  }
-
-  // ================= FUNGSI AUTH =================
-  document.getElementById('login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-    
-    try {
-      const userCredential = await auth.signInWithEmailAndPassword(email, password);
-      const userDoc = await usersRef.doc(userCredential.user.uid).get();
-      
-      if (userDoc.exists) {
-        showDashboard(userDoc.data());
-      } else {
-        throw new Error("Data user tidak ditemukan");
-      }
-    } catch (error) {
-      showError(`Login gagal: ${error.message}`);
-    }
-  });
-
-  // ... (fungsi register, reset password, logout tetap sama)
+    // ... (fungsi register, reset password, logout tetap sama)
 
     // Handle register
     document.getElementById('register-form').addEventListener('submit', (e) => {
