@@ -746,15 +746,17 @@
 
 <script>
   // Inisialisasi Firebase
-  firebase.initializeApp({
-    apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
-    authDomain: "wallet-qc-local-storage.firebaseapp.com",
-    projectId: "wallet-qc-local-storage",
-    storageBucket: "wallet-qc-local-storage.firebasestorage.app",
-    messagingSenderId: "443546801664",
-    appId: "1:443546801664:web:6d0342e1b8261dd920aae5",
-    measurementId: "G-WS8TVNJJG0"
-  });
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
+  authDomain: "wallet-qc-local-storage.firebaseapp.com",
+  databaseURL: "https://wallet-qc-local-storage-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "wallet-qc-local-storage",
+  storageBucket: "wallet-qc-local-storage.firebasestorage.app",
+  messagingSenderId: "443546801664",
+  appId: "1:443546801664:web:d520fd8d2f311edd20aae5",
+  measurementId: "G-KVKSD7ES9P"
+};
 
   const auth = firebase.auth();
   const db = firebase.firestore();
