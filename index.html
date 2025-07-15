@@ -137,7 +137,7 @@
     
     .attachment-preview {
       max-height: 300px;
-      object-fit: contain; /* Changed from cover to contain for better preview */
+      object-fit: contain;
       border-radius: 8px;
       margin-top: 10px;
       background-color: #000;
@@ -465,7 +465,7 @@
                   <span class="mr-3">💬</span> Sosial Media
                 </button>
               </li>
-              <li class="admin-only">
+              <li class="admin-only" style="display: none;">
                 <button id="show-admin" class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
                   <span class="mr-3">🔒</span> Admin Panel
                 </button>
@@ -502,7 +502,7 @@
                 <button id="print-transactions" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg mr-2">
                   <i class="fas fa-print mr-1"></i> Cetak PDF
                 </button>
-                <button id="add-transaction-btn" class="btn-primary admin-only">
+                <button id="add-transaction-btn" class="btn-primary admin-only" style="display: none;">
                   <i class="fas fa-plus mr-2"></i> Tambah Transaksi
                 </button>
               </div>
@@ -554,7 +554,7 @@
           <section id="agenda-section" class="solana-card p-6 hidden">
             <div class="flex justify-between items-center mb-6">
               <h2 class="text-xl font-semibold">Agenda QC</h2>
-              <button id="add-agenda-btn" class="btn-primary admin-only">
+              <button id="add-agenda-btn" class="btn-primary admin-only" style="display: none;">
                 <i class="fas fa-plus mr-2"></i> Tambah Agenda
               </button>
             </div>
@@ -745,18 +745,17 @@
   </main>
 
   <script>
-    // Firebase configuration (ganti dengan konfigurasi proyek Anda)
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
-  authDomain: "wallet-qc-local-storage.firebaseapp.com",
-  databaseURL: "https://wallet-qc-local-storage-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "wallet-qc-local-storage",
-  storageBucket: "wallet-qc-local-storage.firebasestorage.app",
-  messagingSenderId: "443546801664",
-  appId: "1:443546801664:web:6d0342e1b8261dd920aae5",
-  measurementId: "G-WS8TVNJJG0"
-};
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
+      authDomain: "wallet-qc-local-storage.firebaseapp.com",
+      databaseURL: "https://wallet-qc-local-storage-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "wallet-qc-local-storage",
+      storageBucket: "wallet-qc-local-storage.appspot.com",
+      messagingSenderId: "443546801664",
+      appId: "1:443546801664:web:6d0342e1b8261dd920aae5",
+      measurementId: "G-WS8TVNJJG0"
+    };
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
@@ -769,20 +768,16 @@ const firebaseConfig = {
     const transactionsRef = db.collection("transactions");
     const agendasRef = db.collection("agendas");
     const postsRef = db.collection("posts");
-    // commentsRef dan likesRef akan menjadi subkoleksi, tidak perlu referensi top-level di sini
-    // const commentsRef = db.collection("comments"); 
-    // const likesRef = db.collection("likes");
 
     // Variabel global
     let currentUser = null;
     let financeChart = null;
-    let selectedAgendaFile = null; // Renamed to be specific
-    let selectedPostFile = null; // New variable for post attachments
+    let selectedAgendaFile = null;
+    let selectedPostFile = null;
     let profileImageFile = null;
     let editingTransactionId = null;
     let editingAgendaId = null;
     let editingPostId = null;
-
 
     // ================= AUTH FUNCTIONS =================
     // Handle login
@@ -794,7 +789,6 @@ const firebaseConfig = {
       auth.signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
           currentUser = userCredential.user;
-          // loadUserData() akan dipanggil oleh onAuthStateChanged
           showSuccess("Login berhasil!");
         })
         .catch((error) => {
@@ -834,7 +828,6 @@ const firebaseConfig = {
           });
         })
         .then(() => {
-          // loadUserData() akan dipanggil oleh onAuthStateChanged
           showSuccess("Pendaftaran berhasil! Selamat datang.");
           // Reset form setelah berhasil
           document.getElementById('register-form').reset();
@@ -865,11 +858,10 @@ const firebaseConfig = {
     document.getElementById('logout-btn').addEventListener('click', () => {
       auth.signOut()
         .then(() => {
-            showSuccess("Anda telah berhasil logout.");
-            // UI update handled by onAuthStateChanged
+          showSuccess("Anda telah berhasil logout.");
         })
         .catch(error => {
-            showError("Gagal logout: " + error.message);
+          showError("Gagal logout: " + error.message);
         });
     });
 
@@ -877,10 +869,10 @@ const firebaseConfig = {
     auth.onAuthStateChanged(user => {
       if (user) {
         currentUser = user;
-        loadUserData(); // Muat data pengguna setelah login/register
+        loadUserData();
       } else {
         // Pengguna keluar
-        currentUser = null; // Pastikan currentUser direset
+        currentUser = null;
         document.getElementById('dashboard').classList.add('hidden');
         document.getElementById('auth-container').classList.remove('hidden');
         document.getElementById('logout-btn').classList.add('hidden');
@@ -893,14 +885,15 @@ const firebaseConfig = {
           el.style.display = 'none';
         });
 
-        // Pastikan kembali ke tab login
+        // Reset form login
+        document.getElementById('login-form').reset();
         document.getElementById('login-tab').click();
       }
     });
 
     // ================= USER FUNCTIONS =================
     function loadUserData() {
-      if (!currentUser) return; // Pastikan ada pengguna yang login
+      if (!currentUser) return;
 
       usersRef.doc(currentUser.uid).get().then(doc => {
         if (doc.exists) {
@@ -943,11 +936,11 @@ const firebaseConfig = {
           // Show admin elements
           if (userData.role === 'admin') {
             document.querySelectorAll('.admin-only').forEach(el => {
-              el.style.display = 'block'; // Make sure it's 'block' for visibility
+              el.style.display = 'block';
             });
           } else {
              document.querySelectorAll('.admin-only').forEach(el => {
-              el.style.display = 'none'; // Hide for non-admin
+              el.style.display = 'none';
             });
           }
           
@@ -965,7 +958,7 @@ const firebaseConfig = {
           loadTransactions();
           loadAgendas();
           loadPosts();
-          loadUsers(); // Panggil loadUsers di sini agar data pengguna termuat saat dashboard terbuka
+          loadUsers();
           
           // Update balance
           updateBalance();
@@ -975,14 +968,12 @@ const firebaseConfig = {
           document.getElementById('kas-section').classList.remove('hidden');
 
         } else {
-          // Dokumen user tidak ditemukan, mungkin ada masalah saat pendaftaran.
-          // Atau user dihapus dari Firestore tapi masih ada di Auth.
           showError("Data pengguna tidak ditemukan di Firestore. Silakan daftar ulang atau hubungi admin.");
-          auth.signOut(); // Paksa logout
+          auth.signOut();
         }
       }).catch(error => {
         showError("Gagal memuat data pengguna: " + error.message);
-        auth.signOut(); // Jika gagal memuat, lebih baik logout
+        auth.signOut();
       });
     }
 
@@ -990,13 +981,13 @@ const firebaseConfig = {
     document.getElementById('add-transaction-btn').addEventListener('click', () => {
         document.getElementById('transaction-form').classList.remove('hidden');
         document.getElementById('transaction-form').reset();
-        editingTransactionId = null; // Reset editing state
+        editingTransactionId = null;
     });
 
     document.getElementById('cancel-transaction-btn').addEventListener('click', () => {
         document.getElementById('transaction-form').classList.add('hidden');
         document.getElementById('transaction-form').reset();
-        editingTransactionId = null; // Reset editing state
+        editingTransactionId = null;
     });
 
     document.getElementById('transaction-form').addEventListener('submit', (e) => {
@@ -1012,7 +1003,7 @@ const firebaseConfig = {
 
       const transactionData = {
         userId: currentUser.uid,
-        userName: document.getElementById('user-name').textContent, // Mengambil nama dari UI
+        userName: document.getElementById('user-name').textContent,
         type: type,
         amount: amount,
         description: description,
@@ -1058,8 +1049,8 @@ const firebaseConfig = {
           document.getElementById('transaction-form').classList.add('hidden');
           document.getElementById('transaction-form').reset();
           editingTransactionId = null;
-          loadTransactions(); // Reload transactions to update UI
-          updateBalance(); // Update dashboard balance
+          loadTransactions();
+          updateBalance();
         })
         .catch((error) => {
           showError("Gagal memperbarui transaksi: " + error.message);
@@ -1068,7 +1059,7 @@ const firebaseConfig = {
       } else {
         // Mode Tambah
         db.runTransaction(async (transaction) => {
-          const newTransactionRef = transactionsRef.doc(); // Create new doc reference
+          const newTransactionRef = transactionsRef.doc();
           
           const userDocRef = usersRef.doc(currentUser.uid);
           const userDoc = await transaction.get(userDocRef);
@@ -1093,8 +1084,8 @@ const firebaseConfig = {
           showSuccess("Transaksi berhasil ditambahkan!");
           document.getElementById('transaction-form').classList.add('hidden');
           document.getElementById('transaction-form').reset();
-          loadTransactions(); // Reload transactions to update UI
-          updateBalance(); // Update dashboard balance
+          loadTransactions();
+          updateBalance();
         })
         .catch((error) => {
           showError("Gagal menambahkan transaksi: " + error.message);
@@ -1148,8 +1139,8 @@ const firebaseConfig = {
             })
             .then(() => {
                 showSuccess("Transaksi berhasil dihapus!");
-                loadTransactions(); // Reload transactions to update UI
-                updateBalance(); // Update dashboard balance
+                loadTransactions();
+                updateBalance();
             })
             .catch((error) => {
                 showError("Gagal menghapus transaksi: " + error.message);
@@ -1157,12 +1148,11 @@ const firebaseConfig = {
         }
     }
 
-
     function loadTransactions() {
       const transactionsList = document.getElementById('transactions-list');
       transactionsList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data transaksi...</p></div>';
       
-      transactionsRef.orderBy('date', 'desc').get().then(snapshot => {
+      transactionsRef.orderBy('date', 'desc').onSnapshot(snapshot => {
         transactionsList.innerHTML = '';
         
         if (snapshot.empty) {
@@ -1192,7 +1182,7 @@ const firebaseConfig = {
                 <p class="text-xs text-gray-400 mt-1">${transaction.userName}</p>
               </div>
             </div>
-            ${currentUser && currentUser.role === 'admin' ? `
+            ${currentUser && currentUser.uid === transaction.userId || (currentUser && currentUser.role === 'admin') ? `
               <div class="action-buttons mt-3">
                 <button class="edit-transaction action-button" data-id="${doc.id}">
                   <i class="fas fa-edit mr-1"></i> Edit
@@ -1207,8 +1197,8 @@ const firebaseConfig = {
           transactionsList.appendChild(transactionElement);
         });
         
-        // Add event listeners for admin actions (Delegated for dynamically added elements)
-        if (currentUser && currentUser.role === 'admin') {
+        // Add event listeners for admin actions
+        if (currentUser && (currentUser.role === 'admin' || currentUser.uid === transaction.userId)) {
             transactionsList.querySelectorAll('.edit-transaction').forEach(button => {
                 button.onclick = (e) => editTransaction(e.currentTarget.dataset.id);
             });
@@ -1216,7 +1206,7 @@ const firebaseConfig = {
                 button.onclick = (e) => deleteTransaction(e.currentTarget.dataset.id);
             });
         }
-      }).catch(error => {
+      }, error => {
         transactionsList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat transaksi: ${error.message}</p>`;
       });
     }
@@ -1250,7 +1240,7 @@ const firebaseConfig = {
                 head: [['Tanggal', 'Pengguna', 'Deskripsi', 'Masuk', 'Keluar']],
                 body: transactionsData,
                 theme: 'striped',
-                headStyles: { fillColor: [139, 92, 246] }, // Primary purple
+                headStyles: { fillColor: [139, 92, 246] },
                 styles: { fontSize: 9, cellPadding: 3 },
                 columnStyles: {
                     0: { cellWidth: 25 },
@@ -1267,7 +1257,6 @@ const firebaseConfig = {
             showError("Gagal membuat laporan PDF: " + error.message);
         });
     });
-
 
     // ================= AGENDA FUNCTIONS =================
     document.getElementById('add-agenda-btn').addEventListener('click', () => {
@@ -1302,7 +1291,7 @@ const firebaseConfig = {
 
     document.getElementById('remove-agenda-attachment').addEventListener('click', () => {
         selectedAgendaFile = null;
-        document.getElementById('agenda-file').value = ''; // Clear file input
+        document.getElementById('agenda-file').value = '';
         document.getElementById('agenda-file-name-display').textContent = 'Pilih file...';
         document.getElementById('agenda-attachment-preview').classList.add('hidden');
     });
@@ -1330,7 +1319,7 @@ const firebaseConfig = {
             userName: document.getElementById('user-name').textContent,
             title: title,
             description: description,
-            date: date, // Keep as string for simple date input
+            date: date,
             fileUrl: fileUrl,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -1406,7 +1395,7 @@ const firebaseConfig = {
                     const fileRef = storage.refFromURL(agenda.fileUrl);
                     return fileRef.delete();
                 }
-                return Promise.resolve(); // Lanjutkan jika tidak ada file
+                return Promise.resolve();
             })
             .then(() => agendasRef.doc(id).delete())
             .then(() => {
@@ -1423,7 +1412,7 @@ const firebaseConfig = {
       const agendaList = document.getElementById('agenda-list');
       agendaList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data agenda...</p></div>';
       
-      agendasRef.orderBy('date', 'desc').get().then(snapshot => {
+      agendasRef.orderBy('date', 'desc').onSnapshot(snapshot => {
         agendaList.innerHTML = '';
         
         if (snapshot.empty) {
@@ -1433,7 +1422,7 @@ const firebaseConfig = {
         
         snapshot.forEach(doc => {
           const agenda = doc.data();
-          const agendaDate = agenda.date; // Date is stored as string
+          const agendaDate = agenda.date;
           
           const agendaElement = document.createElement('div');
           agendaElement.className = `agenda-card p-4 bg-gray-800/50`;
@@ -1445,7 +1434,7 @@ const firebaseConfig = {
             <p class="text-gray-300 text-sm mb-2">${agenda.description}</p>
             ${agenda.fileUrl ? `<p class="text-xs text-purple-400"><a href="${agenda.fileUrl}" target="_blank" class="hover:underline"><i class="fas fa-paperclip mr-1"></i> Lampiran</a></p>` : ''}
             <p class="text-xs text-gray-500 mt-2">Dibuat oleh: ${agenda.userName}</p>
-            ${currentUser && currentUser.role === 'admin' ? `
+            ${currentUser && currentUser.uid === agenda.userId || (currentUser && currentUser.role === 'admin') ? `
               <div class="action-buttons mt-3">
                 <button class="edit-agenda action-button" data-id="${doc.id}">
                   <i class="fas fa-edit mr-1"></i> Edit
@@ -1460,7 +1449,7 @@ const firebaseConfig = {
           agendaList.appendChild(agendaElement);
         });
 
-        if (currentUser && currentUser.role === 'admin') {
+        if (currentUser && (currentUser.role === 'admin' || currentUser.uid === agenda.userId)) {
             agendaList.querySelectorAll('.edit-agenda').forEach(button => {
                 button.onclick = (e) => editAgenda(e.currentTarget.dataset.id);
             });
@@ -1468,7 +1457,7 @@ const firebaseConfig = {
                 button.onclick = (e) => deleteAgenda(e.currentTarget.dataset.id);
             });
         }
-      }).catch(error => {
+      }, error => {
         agendaList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat agenda: ${error.message}</p>`;
       });
     }
@@ -1545,7 +1534,7 @@ const firebaseConfig = {
         const postData = {
             userId: currentUser.uid,
             userName: document.getElementById('user-name').textContent,
-            userProfileImage: document.getElementById('profile-image').src || '', // Add user profile image
+            userProfileImage: document.getElementById('profile-image').src || '',
             content: content,
             fileUrl: fileUrl,
             fileType: fileType,
@@ -1558,7 +1547,7 @@ const firebaseConfig = {
             .then(() => {
                 showSuccess("Postingan berhasil diterbitkan!");
                 document.getElementById('post-form').reset();
-                document.getElementById('remove-attachment').click(); // Clear attachment preview
+                document.getElementById('remove-attachment').click();
                 loadPosts();
             })
             .catch((error) => {
@@ -1570,7 +1559,7 @@ const firebaseConfig = {
       const socialFeed = document.getElementById('social-feed');
       socialFeed.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat postingan...</p></div>';
       
-      postsRef.orderBy('createdAt', 'desc').get().then(snapshot => {
+      postsRef.orderBy('createdAt', 'desc').onSnapshot(snapshot => {
         socialFeed.innerHTML = '';
         
         if (snapshot.empty) {
@@ -1631,7 +1620,7 @@ const firebaseConfig = {
                   <button class="comment-toggle-button" data-id="${postId}">
                     <i class="fas fa-comment"></i> <span class="comments-count">${commentsSnapshot.size}</span> Komentar
                   </button>
-                  ${currentUser && currentUser.uid === post.userId || currentUser.role === 'admin' ? `
+                  ${currentUser && (currentUser.uid === post.userId || currentUser.role === 'admin') ? `
                     <div class="ml-auto">
                         <button class="delete-post-button text-red-400" data-id="${postId}">
                           <i class="fas fa-trash"></i> Hapus
@@ -1664,7 +1653,7 @@ const firebaseConfig = {
             }).catch(error => console.error("Error fetching comments:", error));
           }).catch(error => console.error("Error fetching likes:", error));
         });
-      }).catch(error => {
+      }, error => {
         socialFeed.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat postingan: ${error.message}</p>`;
       });
     }
@@ -1686,7 +1675,7 @@ const firebaseConfig = {
             await likeRef.set({ likedAt: firebase.firestore.FieldValue.serverTimestamp() });
             await postDocRef.update({ likesCount: currentLikesCount + 1 });
         }
-        loadPosts(); // Reload posts to reflect changes
+        loadPosts();
     }
 
     async function addComment(e) {
@@ -1715,7 +1704,7 @@ const firebaseConfig = {
         });
 
         e.currentTarget.reset();
-        loadPosts(); // Reload posts to show new comment
+        loadPosts();
     }
 
     async function deletePost(postId, fileUrl) {
@@ -1727,11 +1716,6 @@ const firebaseConfig = {
                     await fileRef.delete();
                 }
 
-                // Delete comments subcollection (requires Cloud Functions for robust deletion)
-                // For client-side, you'd typically just delete the parent post,
-                // and rely on security rules or a Cloud Function to clean up subcollections.
-                // Here, we'll just delete the post itself.
-
                 await postsRef.doc(postId).delete();
                 showSuccess("Postingan berhasil dihapus!");
                 loadPosts();
@@ -1740,7 +1724,6 @@ const firebaseConfig = {
             }
         }
     }
-
 
     // ================= ADMIN PANEL FUNCTIONS =================
     function loadUsers() {
@@ -1761,10 +1744,10 @@ const firebaseConfig = {
 
         snapshot.forEach(doc => {
           const user = doc.data();
-          if (user.uid === currentUser.uid) return; // Jangan tampilkan diri sendiri di daftar
+          if (user.uid === currentUser.uid) return;
 
           const userElement = document.createElement('div');
-          userElement.className = `user-list-item solana-card p-3 my-2`; // Added solana-card for styling
+          userElement.className = `user-list-item solana-card p-3 my-2`;
           userElement.innerHTML = `
             <div class="user-avatar w-10 h-10 text-base mr-3">
               ${user.profileImage ? `<img src="${user.profileImage}" class="w-full h-full rounded-full object-cover" alt="Profile">` : user.name.charAt(0)}
@@ -1811,7 +1794,7 @@ const firebaseConfig = {
             showError("Anda tidak memiliki izin untuk mengubah peran.");
             return;
         }
-        if (uid === currentUser.uid) { // Prevent admin from changing their own role via this UI
+        if (uid === currentUser.uid) {
             showError("Anda tidak dapat mengubah peran Anda sendiri melalui panel ini.");
             return;
         }
@@ -1819,7 +1802,7 @@ const firebaseConfig = {
         usersRef.doc(uid).update({ role: newRole })
             .then(() => {
                 showSuccess(`Peran pengguna berhasil diubah menjadi ${newRole}.`);
-                loadUsers(); // Reload user list
+                loadUsers();
             })
             .catch(error => {
                 showError("Gagal mengubah peran pengguna: " + error.message);
@@ -1841,29 +1824,21 @@ const firebaseConfig = {
                 // Delete user's Firestore document
                 await usersRef.doc(uidToDelete).delete();
 
-                // (Opsional) Delete user's specific data in other collections
-                // This would require more complex queries and might be better handled by Cloud Functions
-                // Example: Delete all transactions by this user
+                // Delete user's transactions
                 const userTransactionsSnapshot = await transactionsRef.where('userId', '==', uidToDelete).get();
                 const batch = db.batch();
                 userTransactionsSnapshot.forEach(doc => {
                     batch.delete(doc.ref);
                 });
                 await batch.commit();
-
-                // NOTE: Deleting user from Firebase Authentication (`auth.deleteUser`)
-                // can only be done server-side (Cloud Functions) or by the user themselves.
-                // An admin cannot directly delete another user's auth record from client-side.
-                // If you need full deletion, you'd need a Cloud Function triggered by this action.
                 
                 showSuccess("Pengguna dan data terkait (transaksi) berhasil dihapus.");
-                loadUsers(); // Reload user list
+                loadUsers();
             } catch (error) {
                 showError("Gagal menghapus pengguna: " + error.message);
             }
         }
     }
-
 
     function loadAdminTransactions() {
         const adminTransactionsList = document.getElementById('admin-transactions-list');
@@ -1874,7 +1849,7 @@ const firebaseConfig = {
             return;
         }
 
-        transactionsRef.orderBy('date', 'desc').get().then(snapshot => {
+        transactionsRef.orderBy('date', 'desc').onSnapshot(snapshot => {
             adminTransactionsList.innerHTML = '';
             if (snapshot.empty) {
                 adminTransactionsList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada transaksi.</p>';
@@ -1902,7 +1877,7 @@ const firebaseConfig = {
                 `;
                 adminTransactionsList.appendChild(transactionElement);
             });
-        }).catch(error => {
+        }, error => {
             adminTransactionsList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat transaksi admin: ${error.message}</p>`;
         });
     }
@@ -1916,7 +1891,7 @@ const firebaseConfig = {
             return;
         }
         
-        agendasRef.orderBy('date', 'desc').get().then(snapshot => {
+        agendasRef.orderBy('date', 'desc').onSnapshot(snapshot => {
             adminAgendasList.innerHTML = '';
             if (snapshot.empty) {
                 adminAgendasList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada agenda.</p>';
@@ -1940,7 +1915,7 @@ const firebaseConfig = {
                 `;
                 adminAgendasList.appendChild(agendaElement);
             });
-        }).catch(error => {
+        }, error => {
             adminAgendasList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat agenda admin: ${error.message}</p>`;
         });
     }
@@ -1988,15 +1963,14 @@ const firebaseConfig = {
                 }
                 await auth.currentUser.updatePassword(newPassword);
                 showSuccess("Kata sandi berhasil diperbarui!");
-                document.getElementById('setting-password').value = ''; // Clear password field
+                document.getElementById('setting-password').value = '';
             }
 
-            loadUserData(); // Reload data to update UI with new name/image
+            loadUserData();
             showSuccess("Pengaturan berhasil disimpan!");
 
         } catch (error) {
             showError("Gagal menyimpan pengaturan: " + error.message);
-            // Specific error for password update might require re-authentication
             if (error.code === 'auth/requires-recent-login') {
                 showError("Mohon login kembali untuk memperbarui kata sandi Anda.");
             }
@@ -2009,12 +1983,6 @@ const firebaseConfig = {
         }
 
         try {
-            // Re-authenticate user if needed (important for security)
-            // This usually means showing a prompt for them to re-enter credentials
-            // For simplicity here, we're assuming they just logged in or can handle the prompt.
-            // In a real app, you'd trigger a re-authentication flow here.
-            // Example: const credential = promptForCredentials(); await auth.currentUser.reauthenticateWithCredential(credential);
-
             // Delete user document from Firestore
             await usersRef.doc(currentUser.uid).delete();
             
@@ -2022,14 +1990,13 @@ const firebaseConfig = {
             if (document.getElementById('profile-image').src) {
                 const imgUrl = document.getElementById('profile-image').src;
                 const imgRef = storage.refFromURL(imgUrl);
-                await imgRef.delete().catch(e => console.warn("Could not delete old profile image:", e.message)); // Ignore if not found
+                await imgRef.delete().catch(e => console.warn("Could not delete old profile image:", e.message));
             }
 
             // Delete user from Firebase Authentication
             await auth.currentUser.delete();
 
             showSuccess("Akun Anda berhasil dihapus. Anda telah logout.");
-            // auth.onAuthStateChanged will handle UI redirection after auth.currentUser.delete()
         } catch (error) {
             showError("Gagal menghapus akun: " + error.message);
             if (error.code === 'auth/requires-recent-login') {
@@ -2039,7 +2006,6 @@ const firebaseConfig = {
             }
         }
     });
-
 
     // ================= HELPER FUNCTIONS =================
     function showError(message) {
@@ -2061,11 +2027,9 @@ const firebaseConfig = {
     }
     
     function updateBalance() {
-      // Hitung total saldo dari transaksi berdasarkan transaksi user yang login (atau semua jika admin)
       let totalIncome = 0;
       let totalExpense = 0;
       
-      // Ambil data totalIncome dan totalExpense langsung dari dokumen pengguna
       usersRef.doc(currentUser.uid).get().then(doc => {
         if (doc.exists) {
             const userData = doc.data();
@@ -2074,12 +2038,10 @@ const firebaseConfig = {
             
             const totalBalance = totalIncome - totalExpense;
             
-            // Update UI
             document.getElementById('total-saldo').textContent = formatRupiah(totalBalance);
             document.getElementById('income-amount').textContent = '+ ' + formatRupiah(totalIncome);
             document.getElementById('expense-amount').textContent = '- ' + formatRupiah(totalExpense);
             
-            // Update chart
             updateFinanceChart(totalIncome, totalExpense);
         } else {
             showError("Data saldo pengguna tidak ditemukan.");
@@ -2206,9 +2168,7 @@ const firebaseConfig = {
     document.getElementById('show-admin').addEventListener('click', () => {
       hideAllSections();
       document.getElementById('admin-section').classList.remove('hidden');
-      // Load admin data when admin section is shown
       loadUsers();
-      // Set default admin tab to users
       document.getElementById('users-tab').click();
     });
     
@@ -2233,7 +2193,7 @@ const firebaseConfig = {
       document.getElementById('users-tab').classList.add('tab-active');
       document.getElementById('transactions-admin-tab').classList.remove('tab-active');
       document.getElementById('agendas-admin-tab').classList.remove('tab-active');
-      loadUsers(); // Refresh users list
+      loadUsers();
     });
     
     document.getElementById('transactions-admin-tab').addEventListener('click', () => {
