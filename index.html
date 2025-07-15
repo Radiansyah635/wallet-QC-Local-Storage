@@ -744,227 +744,154 @@
     </section>
   </main>
 
-  <script>
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
-      authDomain: "wallet-qc-local-storage.firebaseapp.com",
-      databaseURL: "https://wallet-qc-local-storage-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "wallet-qc-local-storage",
-      storageBucket: "wallet-qc-local-storage.appspot.com",
-      messagingSenderId: "443546801664",
-      appId: "1:443546801664:web:6d0342e1b8261dd920aae5",
-      measurementId: "G-WS8TVNJJG0"
-    };
-
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const storage = firebase.storage();
-
-     async function setAdminClaims(targetUserId) {
-    // Verifikasi admin yang sedang login
-    const currentUser = auth.currentUser;
-    const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+  
     
-    if (!currentUserDoc.exists || currentUserDoc.data().role !== 'superadmin') {
-      throw new Error("Hanya Super Admin yang bisa menambahkan admin");
-    }
+    <script>
+  // ================= KONFIGURASI FIREBASE =================
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
+    authDomain: "wallet-qc-local-storage.firebaseapp.com",
+    databaseURL: "https://wallet-qc-local-storage-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "wallet-qc-local-storage",
+    storageBucket: "wallet-qc-local-storage.appspot.com",
+    messagingSenderId: "443546801664",
+    appId: "1:443546801664:web:6d0342e1b8261dd920aae5",
+    measurementId: "G-WS8TVNJJG0"
+  };
 
-    // Gunakan Cloud Function callable
-    const setAdmin = firebase.functions().httpsCallable('setAdminManually');
+  // Inisialisasi Firebase
+  const app = firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+  const functions = firebase.functions();
+
+  // ================= PENGATURAN OFFLINE =================
+  // Aktifkan persistensi data offline
+  db.enablePersistence()
+    .catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn("Mode offline hanya bekerja di satu tab");
+      } else if (err.code === 'unimplemented') {
+        console.warn("Browser tidak mendukung fitur offline");
+      }
+    });
+
+  // ================= MANAJEMEN KONEKSI =================
+  const connectionRef = firebase.database().ref('.info/connected');
+  
+  connectionRef.on('value', (snap) => {
+    const isOnline = snap.val();
+    updateConnectionStatus(isOnline);
     
-    try {
-      const result = await setAdmin({ uid: targetUserId });
-      console.log("Berhasil set admin:", result.data);
-      alert("Admin berhasil ditambahkan");
-    } catch (error) {
-      console.error("Gagal:", error);
-      alert(`Error: ${error.message}`);
-    }
-  }
-
-    import { initializeFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
-
-const firestoreConfig = {
-  experimentalForceLongPolling: true,  // Untuk koneksi yang tidak stabil
-  ignoreUndefinedProperties: true      // Handle data undefined
-};
-
-const db = initializeFirestore(app, firestoreConfig);
-
-// Aktifkan offline persistence
-enableIndexedDbPersistence(db)
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn("Persistence error: Buka hanya di satu tab");
-    } else if (err.code === 'unimplemented') {
-      console.warn("Browser tidak mendukung offline persistence");
+    if (isOnline) {
+      console.log("Koneksi pulih, melakukan sinkronisasi...");
+      // Tambahkan logika sinkronisasi disini
     }
   });
 
-    import { onSnapshot } from 'firebase/firestore';
-
-const docRef = doc(db, 'status/connection');
-
-const unsubscribe = onSnapshot(docRef, (doc) => {
-  console.log("Connection status:", doc.data());
-}, (error) => {
-  console.error("Channel error:", error);
-  
-  // Fallback mechanism
-  if (error.code === 'unavailable') {
-    const cachedDoc = await getDocFromCache(docRef);
-    console.log("Using cached data:", cachedDoc.data());
+  function updateConnectionStatus(online) {
+    const statusEl = document.getElementById('connection-status');
+    if (statusEl) {
+      statusEl.innerHTML = online 
+        ? '<i class="fas fa-wifi mr-2"></i> Online' 
+        : '<i class="fas fa-plug mr-2"></i> Offline';
+      statusEl.className = online 
+        ? 'bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm'
+        : 'bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm';
+    }
   }
-});
 
-// Untuk menutup koneksi saat tidak diperlukan
-window.addEventListener('beforeunload', () => {
-  unsubscribe();
-});
-    const connectionRef = ref(getDatabase(), '.info/connected');
-onValue(connectionRef, (snapshot) => {
-  const isOnline = snapshot.val();
-  console.log(isOnline ? "Online" : "Offline");
-  
-  if (isOnline) {
-    // Reconnect logic
-    channel.open(); 
+  // ================= FUNGSI ADMIN =================
+  async function setAdminClaims(targetUserId) {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error("Harus login terlebih dahulu");
+      
+      const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+      if (!currentUserDoc.exists || currentUserDoc.data().role !== 'superadmin') {
+        throw new Error("Hanya Super Admin yang bisa menambahkan admin");
+      }
+
+      const setAdmin = functions.httpsCallable('setAdminManually');
+      const result = await setAdmin({ uid: targetUserId });
+      
+      console.log("Admin berhasil ditambahkan:", result.data);
+      alert("Status admin berhasil diperbarui");
+      return true;
+    } catch (error) {
+      console.error("Gagal set admin:", error);
+      alert(`Error: ${error.message}`);
+      return false;
+    }
   }
-});
-    function initRealtimeChannel() {
-  try {
-    channel.open();
-  } catch (error) {
-    console.error("Channel open failed:", error);
+
+  // ================= REFERENSI KOLEKSI =================
+  const usersRef = db.collection("users");
+  const transactionsRef = db.collection("transactions");
+  const agendasRef = db.collection("agendas");
+  const postsRef = db.collection("posts");
+
+  // ================= VARIABEL GLOBAL =================
+  let currentUser = null;
+  let financeChart = null;
+  let selectedAgendaFile = null;
+  let selectedPostFile = null;
+  let profileImageFile = null;
+  let editingTransactionId = null;
+  let editingAgendaId = null;
+  let editingPostId = null;
+
+  // ================= FUNGSI UTILITAS =================
+  function formatCurrency(amount) {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount);
+  }
+
+  function showError(message) {
+    const errorEl = document.getElementById('error-message');
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.classList.remove('hidden');
+      setTimeout(() => errorEl.classList.add('hidden'), 5000);
+    }
+    console.error(message);
+  }
+
+  function showSuccess(message) {
+    const successEl = document.getElementById('success-message');
+    if (successEl) {
+      successEl.textContent = message;
+      successEl.classList.remove('hidden');
+      setTimeout(() => successEl.classList.add('hidden'), 5000);
+    }
+    console.log(message);
+  }
+
+  // ================= FUNGSI AUTH =================
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
     
-    // Exponential backoff
-    const delay = Math.min(2 ** 5 * 1000, 30000); // Max 30 detik
-    setTimeout(initRealtimeChannel, delay);
-  }
-}
-
-initRealtimeChannel();
-
-// Contoh UI feedback
-function updateConnectionStatus(online) {
-  const statusEl = document.getElementById('connection-status');
-  statusEl.textContent = online ? '🟢 Online' : '🔴 Offline';
-  statusEl.style.color = online ? 'green' : 'red';
-  
-  if (!online) {
-    statusEl.title = 'Koneksi terputus, menggunakan data lokal';
-  }
-}
-    // Referensi koleksi
-    const usersRef = db.collection("users");
-    const transactionsRef = db.collection("transactions");
-    const agendasRef = db.collection("agendas");
-    const postsRef = db.collection("posts");
-
-    // Variabel global
-    let currentUser = null;
-    let financeChart = null;
-    let selectedAgendaFile = null;
-    let selectedPostFile = null;
-    let profileImageFile = null;
-    let editingTransactionId = null;
-    let editingAgendaId = null;
-    let editingPostId = null;
-
-    // ================= AUTH FUNCTIONS =================
-    // Handle login
-    // Fungsi untuk menampilkan dashboard dengan data user
-function showDashboard(userData) {
-  // 1. Atur tampilan elemen
-  document.getElementById('auth-container').classList.add('hidden');
-  document.getElementById('dashboard').classList.remove('hidden');
-  document.getElementById('logout-btn').classList.remove('hidden');
-  document.getElementById('login-btn').classList.add('hidden');
-
-  // 2. Isi data profil user
-  // Avatar dan inisial
-  const initial = userData.name ? userData.name.charAt(0).toUpperCase() : 'U';
-  document.getElementById('user-initial').textContent = initial;
-  
-  // Jika ada gambar profil
-  if (userData.profileImage) {
-    document.getElementById('profile-image').src = userData.profileImage;
-    document.getElementById('profile-image').classList.remove('hidden');
-    document.getElementById('user-initial').classList.add('hidden');
-  }
-
-  // 3. Isi data user
-  document.getElementById('user-name').textContent = userData.name || 'User';
-  document.getElementById('user-email-display').textContent = userData.email;
-  
-  // Atur badge role
-  const roleBadge = document.getElementById('role-badge');
-  roleBadge.textContent = userData.role === 'admin' ? 'Admin' : 'Member';
-  roleBadge.className = userData.role === 'admin' ? 'role-badge admin-badge' : 'role-badge member-badge';
-
-  // 4. Tampilkan menu admin jika role admin
-  if (userData.role === 'admin') {
-    document.querySelectorAll('.admin-only').forEach(el => {
-      el.style.display = 'block';
-    });
-  }
-
-  // 5. Isi data keuangan
-  document.getElementById('user-income').textContent = formatCurrency(userData.totalIncome || 0);
-  document.getElementById('user-expense').textContent = formatCurrency(userData.totalExpense || 0);
-  document.getElementById('income-amount').textContent = `+ ${formatCurrency(userData.totalIncome || 0)}`;
-  document.getElementById('expense-amount').textContent = `- ${formatCurrency(userData.totalExpense || 0)}`;
-  
-  // Hitung total saldo
-  const totalSaldo = (userData.totalIncome || 0) - (userData.totalExpense || 0);
-  document.getElementById('total-saldo').textContent = formatCurrency(totalSaldo);
-}
-
-// Fungsi helper untuk format mata uang
-function formatCurrency(amount) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0
-  }).format(amount);
-}
-
-// Handle login
-document.getElementById('login-form').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const email = document.getElementById('login-email').value;
-  const password = document.getElementById('login-password').value;
-  
-  auth.signInWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      // Ambil data user dari Firestore
-      return db.collection("users").doc(userCredential.user.uid).get();
-    })
-    .then((doc) => {
-      if (doc.exists) {
-        // Panggil showDashboard dengan data lengkap
-        showDashboard({
-          uid: doc.id,
-          email: doc.data().email,
-          name: doc.data().name,
-          role: doc.data().role,
-          profileImage: doc.data().profileImage,
-          totalIncome: doc.data().totalIncome,
-          totalExpense: doc.data().totalExpense,
-          createdAt: doc.data().createdAt
-        });
+    try {
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      const userDoc = await usersRef.doc(userCredential.user.uid).get();
+      
+      if (userDoc.exists) {
+        showDashboard(userDoc.data());
       } else {
         throw new Error("Data user tidak ditemukan");
       }
-    })
-    .catch((error) => {
-      console.error("Error login:", error);
-      alert(`Login gagal: ${error.message}`);
-    });
-});
+    } catch (error) {
+      showError(`Login gagal: ${error.message}`);
+    }
+  });
+
+  // ... (fungsi register, reset password, logout tetap sama)
 
     // Handle register
     document.getElementById('register-form').addEventListener('submit', (e) => {
