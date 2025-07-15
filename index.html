@@ -763,6 +763,27 @@
     const db = firebase.firestore();
     const storage = firebase.storage();
 
+     async function setAdminClaims(targetUserId) {
+    // Verifikasi admin yang sedang login
+    const currentUser = auth.currentUser;
+    const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+    
+    if (!currentUserDoc.exists || currentUserDoc.data().role !== 'superadmin') {
+      throw new Error("Hanya Super Admin yang bisa menambahkan admin");
+    }
+
+    // Gunakan Cloud Function callable
+    const setAdmin = firebase.functions().httpsCallable('setAdminManually');
+    
+    try {
+      const result = await setAdmin({ uid: targetUserId });
+      console.log("Berhasil set admin:", result.data);
+      alert("Admin berhasil ditambahkan");
+    } catch (error) {
+      console.error("Gagal:", error);
+      alert(`Error: ${error.message}`);
+    }
+  }
     // Referensi koleksi
     const usersRef = db.collection("users");
     const transactionsRef = db.collection("transactions");
