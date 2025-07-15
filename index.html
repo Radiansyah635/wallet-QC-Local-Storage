@@ -762,7 +762,6 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
     const storage = firebase.storage();
-    let currentUser = null;
 
     // Referensi koleksi
     const usersRef = db.collection("users");
@@ -791,6 +790,7 @@
         .then((userCredential) => {
           currentUser = userCredential.user;
           showSuccess("Login berhasil!");
+          return db.collection("users").doc(currentUser.uid).get();
         })
         .catch((error) => {
           showError(error.message);
