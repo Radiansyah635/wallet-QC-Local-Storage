@@ -757,7 +757,10 @@ const firebaseConfig = {
   appId: "1:443546801664:web:d520fd8d2f311edd20aae5",
   measurementId: "G-KVKSD7ES9P"
 };
-  
+
+ // ✅ WAJIB: Inisialisasi Firebase
+firebase.initializeApp(firebaseConfig);
+
   const auth = firebase.auth();
   const db = firebase.firestore();
 
