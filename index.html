@@ -494,21 +494,24 @@
 
   <script>
     // Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
-      authDomain: "wallet-qc-local-storage.firebaseapp.com",
-      projectId: "wallet-qc-local-storage",
-      storageBucket: "wallet-qc-local-storage.appspot.com",
-      messagingSenderId: "443546801664",
-      appId: "1:443546801664:web:6d0342e1b8261dd920aae5"
-    };
+   // Firebase Configuration (ini sudah benar untuk project Anda)
+const firebaseConfig = {
+  apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
+  authDomain: "wallet-qc-local-storage.firebaseapp.com",
+  projectId: "wallet-qc-local-storage",
+  storageBucket: "wallet-qc-local-storage.appspot.com",
+  messagingSenderId: "443546801664",
+  appId: "1:443546801664:web:6d0342e1b8261dd920aae5"
+};
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const secondaryApp = firebase.initializeApp(firebaseConfig, 'mySecondaryFirestoreApp');
-    const auth = firebase.auth();
-    const db = firebase.firestore(secondaryApp);
-    const storage = firebase.storage();
+// Initialize Firebase (CUKUP SATU INISIALISASI APLIKASI)
+firebase.initializeApp(firebaseConfig); // Ini adalah aplikasi default untuk proyek Anda
+
+const auth = firebase.auth(); // Auth akan menggunakan aplikasi default
+const db = firebase.firestore(); // <-- KEMBALIKAN KE SINI! Firestore akan terhubung ke database (default) proyek Anda
+const storage = firebase.storage(); // Storage akan menggunakan aplikasi default
+
+// ... Sisa kode JavaScript Anda ...
 
     // DOM Elements
     const authContainer = document.getElementById('auth-container');
