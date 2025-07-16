@@ -589,32 +589,43 @@
     }
 
     // Handle Register
-    function handleRegister(e) {
-      e.preventDefault();
-      const name = document.getElementById('register-name').value;
-      const email = document.getElementById('register-email').value;
-      const password = document.getElementById('register-password').value;
-      
-      auth.createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          // Save additional user data to Firestore
-          return db.collection('users').doc(userCredential.user.uid).set({
-            name: name,
-            email: email,
-            createdAt: new Date(),
-            role: 'member',
-            photoURL: ''
-          });
-        })
-        .then(() => {
-          showSuccess('Registrasi berhasil! Silakan login');
-          switchTab('login');
-          registerForm.reset();
-        })
-        .catch((error) => {
-          showError(error.message);
-        });
-    }
+   function handleRegister(e) {
+  e.preventDefault();
+  const name = document.getElementById('register-name').value;
+  const email = document.getElementById('register-email').value;
+  const password = document.getElementById('register-password').value;
+
+  console.log("Mencoba mendaftar dengan:", { name, email, password }); // Log 1
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      console.log("Pengguna berhasil terautentikasi:", userCredential.user); // Log 2
+      if (!userCredential.user || !userCredential.user.uid) {
+          console.error("UID pengguna tidak ditemukan setelah autentikasi."); // Error Log
+          showError("Gagal mendapatkan info pengguna.");
+          return; // Penting: Hentikan eksekusi jika UID tidak ada
+      }
+
+      // Coba simpan data tambahan ke Firestore
+      return db.collection('users').doc(userCredential.user.uid).set({
+        name: name,
+        email: email,
+        createdAt: new Date(),
+        role: 'member',
+        photoURL: ''
+      });
+    })
+    .then(() => {
+      console.log("Data pengguna berhasil disimpan ke Firestore."); // Log 3
+      showSuccess('Registrasi berhasil! Silakan login');
+      switchTab('login');
+      registerForm.reset();
+    })
+    .catch((error) => {
+      console.error("Terjadi kesalahan saat register atau menyimpan data ke Firestore:", error); // Log 4
+      showError(error.message);
+    });
+}
 
     // Handle Reset Password
     function handleResetPassword(e) {
