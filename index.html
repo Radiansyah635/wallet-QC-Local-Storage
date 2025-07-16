@@ -3,15 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wallet QC Local Storage</title>
+  <title>Wallet QC - Pengaturan Akun</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.autotable.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
@@ -88,25 +85,7 @@
       font-weight: 600;
     }
     
-    .transaction-in {
-      border-left: 4px solid var(--primary-green);
-    }
-    
-    .transaction-out {
-      border-left: 4px solid #EF4444;
-    }
-    
-    .user-avatar {
-      background: linear-gradient(to right, var(--primary-purple), var(--primary-green));
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      font-weight: bold;
-    }
-    
-    .section-hidden {
+    .hidden {
       display: none;
     }
     
@@ -124,157 +103,64 @@
       to { transform: rotate(360deg); }
     }
     
-    .post-card {
-      background: rgba(40, 40, 40, 0.7);
-      border-radius: 12px;
-      overflow: hidden;
-      transition: transform 0.3s ease;
-    }
-    
-    .post-card:hover {
-      transform: translateY(-3px);
-    }
-    
-    .attachment-preview {
-      max-height: 300px;
-      object-fit: contain; /* Changed from cover to contain for better preview */
-      border-radius: 8px;
-      margin-top: 10px;
-      background-color: #000;
-    }
-    
-    .agenda-card {
-      background: rgba(45, 45, 45, 0.7);
-      border-left: 4px solid var(--primary-green);
-      border-radius: 8px;
-    }
-    
-    .role-badge {
-      font-size: 0.75rem;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      margin-left: 8px;
-    }
-    
-    .admin-badge {
-      background: linear-gradient(to right, #f59e0b, #ef4444);
-    }
-    
-    .member-badge {
-      background: linear-gradient(to right, #3b82f6, #8b5cf6);
-    }
-    
-    .chart-container {
-      position: relative;
-      height: 300px;
-      width: 100%;
-    }
-    
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    
-    ::-webkit-scrollbar-track {
-      background: rgba(31, 31, 31, 0.5);
-    }
-    
-    ::-webkit-scrollbar-thumb {
-      background: var(--primary-purple);
-      border-radius: 4px;
+    .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--primary-purple);
     }
     
     .file-upload-label {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: inline-block;
+      padding: 10px 15px;
+      background: rgba(70, 70, 70, 0.5);
+      border-radius: 8px;
       cursor: pointer;
-      padding: 12px 16px;
-      border-radius: 12px;
-      background: rgba(55, 55, 55, 0.5);
-      border: 1px dashed rgba(139, 92, 246, 0.5);
-      transition: all 0.3s ease;
+      transition: all 0.3s;
+      margin-top: 10px;
     }
     
     .file-upload-label:hover {
-      border-color: var(--primary-purple);
-      background: rgba(55, 55, 55, 0.7);
-    }
-    
-    .admin-info-box {
-      background: rgba(139, 92, 246, 0.1);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    
-    .admin-info-box h3 {
-      color: var(--primary-purple);
-      margin-bottom: 15px;
-      font-weight: 600;
-    }
-    
-    .admin-info-box ul {
-      list-style-type: none;
-      padding-left: 0;
-    }
-    
-    .admin-info-box li {
-      margin-bottom: 10px;
-      padding-left: 25px;
-      position: relative;
-    }
-    
-    .admin-info-box li:before {
-      content: "•";
-      color: var(--primary-green);
-      position: absolute;
-      left: 0;
-      font-size: 20px;
-      line-height: 1;
-    }
-    
-    .comment-box {
-      background: rgba(50, 50, 50, 0.5);
-      border-radius: 8px;
-      padding: 10px;
-      margin-top: 10px;
-    }
-    
-    .action-buttons {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    
-    .action-button {
-      background: rgba(70, 70, 70, 0.5);
-      border: none;
-      border-radius: 8px;
-      padding: 5px 10px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .action-button:hover {
       background: rgba(90, 90, 90, 0.7);
     }
     
-    .like-button.active {
-      color: #EF4444;
+    .btn-danger {
+      background: linear-gradient(to right, #EF4444, #F59E0B);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
     }
     
-    .user-list-item {
-      display: flex;
-      align-items: center;
-      padding: 12px;
+    .btn-danger:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+    }
+    
+    .btn-secondary {
+      background: rgba(70, 70, 70, 0.5);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(90, 90, 90, 0.7);
+    }
+    
+    .setting-section {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
       border-bottom: 1px solid rgba(70, 70, 70, 0.5);
-    }
-    
-    .user-actions {
-      margin-left: auto;
-      display: flex;
-      gap: 10px;
     }
   </style>
 </head>
@@ -284,7 +170,6 @@
       <h1 class="text-2xl font-bold gradient-text">Wallet QC Local Storage</h1>
       <div id="auth-section" class="flex items-center space-x-4">
         <span id="user-email" class="text-sm text-gray-300 hidden"></span>
-        <span id="user-role" class="text-xs px-2 py-1 rounded-full bg-purple-600/50 hidden">Member</span>
         <button id="logout-btn" class="px-4 py-2 bg-red-600/80 hover:bg-red-500/90 rounded-lg text-sm hidden">
           Logout
         </button>
@@ -294,6 +179,7 @@
   </header>
 
   <main class="flex-grow container mx-auto px-4 py-8">
+    <!-- Auth Container -->
     <section id="auth-container" class="max-w-md mx-auto solana-card p-8">
       <div class="text-center mb-8">
         <h2 class="text-3xl font-bold gradient-text mb-2">Selamat Datang</h2>
@@ -312,6 +198,7 @@
         </button>
       </div>
 
+      <!-- Login Form -->
       <form id="login-form">
         <div class="space-y-4">
           <div>
@@ -340,6 +227,7 @@
         </div>
       </form>
 
+      <!-- Register Form -->
       <form id="register-form" class="hidden">
         <div class="space-y-4">
           <div>
@@ -372,25 +260,13 @@
               placeholder="••••••••"
             >
           </div>
-          <div class="hidden" id="admin-code-container">
-            <label for="admin-code" class="block text-sm mb-2 text-gray-300">Kode Admin</label>
-            <input 
-              type="password" 
-              id="admin-code" 
-              class="input-field"
-              placeholder="Masukkan kode admin"
-            >
-          </div>
-          <div class="flex items-center">
-            <input type="checkbox" id="is-admin" class="mr-2">
-            <label for="is-admin" class="text-sm">Daftar sebagai Admin</label>
-          </div>
           <button type="submit" class="btn-primary w-full">
             Daftar
           </button>
         </div>
       </form>
       
+      <!-- Reset Password Form -->
       <form id="reset-form" class="hidden">
         <div class="space-y-4">
           <div>
@@ -409,44 +285,32 @@
         </div>
       </form>
       
-      <div class="admin-info-box mt-6">
-        <h3>Cara Masuk Sebagai Admin</h3>
-        <ul>
-          <li>Untuk akun yang sudah ada: Gunakan email dan password yang sudah didaftarkan</li>
-          <li>Untuk membuat akun admin baru: Centang "Daftar sebagai Admin" dan masukkan kode admin: <strong>admin123</strong></li>
-          <li>Akun demo admin: <strong>admin@walletqc.com</strong> / password: <strong>admin123</strong></li>
-        </ul>
-      </div>
-      
       <div id="error-message" class="mt-4 text-center text-red-400 text-sm hidden"></div>
       <div id="success-message" class="mt-4 text-center text-green-400 text-sm hidden"></div>
     </section>
 
+    <!-- Dashboard -->
     <section id="dashboard" class="hidden">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div class="lg:col-span-1 space-y-6">
+          <!-- User Profile Card -->
           <div class="solana-card p-6">
             <div class="flex items-center space-x-4">
               <div class="relative">
-                <div id="profile-avatar" class="user-avatar w-16 h-16 text-xl">
-                  <span id="user-initial">U</span>
-                </div>
-                <img id="profile-image" class="absolute inset-0 w-16 h-16 rounded-full object-cover hidden" alt="Profile">
+                <img id="profile-avatar" class="profile-avatar" alt="Profile">
+                <div id="avatar-initial" class="profile-avatar bg-purple-600 flex items-center justify-center text-3xl font-bold hidden"></div>
               </div>
               <div>
-                <div class="flex items-center">
-                  <h3 id="user-name" class="font-medium text-lg">User Name</h3>
-                  <span id="role-badge" class="role-badge member-badge">Member</span>
-                </div>
+                <h3 id="user-name" class="font-medium text-lg">User Name</h3>
                 <p id="user-email-display" class="text-sm text-gray-400">user@email.com</p>
                 <div class="mt-2 text-sm">
-                  <p>Kas Masuk: <span id="user-income" class="text-green-400">Rp 0</span></p>
-                  <p>Kas Keluar: <span id="user-expense" class="text-red-400">Rp 0</span></p>
+                  <p>Member sejak: <span id="join-date">Jan 2023</span></p>
                 </div>
               </div>
             </div>
           </div>
 
+          <!-- Quick Actions -->
           <div class="solana-card p-6">
             <h3 class="font-medium mb-4 text-purple-400">Menu Cepat</h3>
             <ul class="space-y-3">
@@ -465,11 +329,6 @@
                   <span class="mr-3">💬</span> Sosial Media
                 </button>
               </li>
-              <li class="admin-only">
-                <button id="show-admin" class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
-                  <span class="mr-3">🔒</span> Admin Panel
-                </button>
-              </li>
               <li>
                 <button id="show-setting" class="w-full text-left p-3 hover:bg-gray-800/50 rounded-lg flex items-center">
                   <span class="mr-3">⚙️</span> Pengaturan
@@ -478,452 +337,554 @@
             </ul>
           </div>
 
+          <!-- Stats Card -->
           <div class="solana-card bg-gradient-to-br from-purple-900/30 to-green-900/20 p-6">
-            <h3 class="font-medium mb-2">Total Saldo</h3>
-            <p id="total-saldo" class="text-3xl font-bold font-mono">Rp 0</p>
+            <h3 class="font-medium mb-2">Statistik Penggunaan</h3>
+            <p class="text-3xl font-bold font-mono">12 Transaksi</p>
             <div class="mt-4 bg-black/20 rounded-lg p-3">
               <div class="flex justify-between mb-2">
-                <span>Pemasukan</span>
-                <span id="income-amount" class="text-green-400">+ Rp 0</span>
+                <span>Aktifitas</span>
+                <span class="text-green-400">+ 5 hari</span>
               </div>
               <div class="flex justify-between">
-                <span>Pengeluaran</span>
-                <span id="expense-amount" class="text-red-400">- Rp 0</span>
+                <span>Anggota</span>
+                <span class="text-blue-400">8 orang</span>
               </div>
             </div>
           </div>
         </div>
 
         <div class="lg:col-span-2 space-y-6">
+          <!-- Kas & Transaksi -->
           <section id="kas-section" class="solana-card p-6">
             <div class="flex justify-between items-center mb-6">
               <h2 class="text-xl font-semibold">Kas & Transaksi</h2>
-              <div>
-                <button id="print-transactions" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg mr-2">
-                  <i class="fas fa-print mr-1"></i> Cetak PDF
-                </button>
-                <button id="add-transaction-btn" class="btn-primary admin-only">
-                  <i class="fas fa-plus mr-2"></i> Tambah Transaksi
-                </button>
-              </div>
-            </div>
-            
-            <div class="mb-8">
-              <h3 class="text-lg font-medium mb-4">Statistik Keuangan</h3>
-              <div class="chart-container">
-                <canvas id="finance-chart"></canvas>
-              </div>
-            </div>
-            
-            <form id="transaction-form" class="hidden space-y-4 mb-6">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm mb-2">Jenis Transaksi</label>
-                  <select id="transaction-type" class="input-field">
-                    <option value="masuk">Kas Masuk</option>
-                    <option value="keluar">Kas Keluar</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-sm mb-2">Jumlah (Rp)</label>
-                  <input type="number" id="transaction-amount" class="input-field" placeholder="1000000" required min="1">
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm mb-2">Keterangan</label>
-                <input type="text" id="transaction-desc" class="input-field" placeholder="Deskripsi transaksi" required>
-              </div>
-              <div class="flex justify-end space-x-3">
-                <button type="button" id="cancel-transaction-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
-                  Batal
-                </button>
-                <button type="submit" class="btn-primary">
-                  Simpan Transaksi
-                </button>
-              </div>
-            </form>
-
-            <div id="transactions-list" class="space-y-4 max-h-[500px] overflow-y-auto">
-              <div class="text-center py-10">
-                <div class="loading mx-auto"></div>
-                <p class="mt-3 text-gray-400">Memuat data transaksi...</p>
-              </div>
-            </div>
-          </section>
-          
-          <section id="agenda-section" class="solana-card p-6 hidden">
-            <div class="flex justify-between items-center mb-6">
-              <h2 class="text-xl font-semibold">Agenda QC</h2>
-              <button id="add-agenda-btn" class="btn-primary admin-only">
-                <i class="fas fa-plus mr-2"></i> Tambah Agenda
-              </button>
-            </div>
-
-            <form id="agenda-form" class="hidden space-y-4 mb-6">
-              <div>
-                <label class="block text-sm mb-2">Judul Agenda</label>
-                <input type="text" id="agenda-title" class="input-field" placeholder="Meeting QC" required>
-              </div>
-              <div>
-                <label class="block text-sm mb-2">Deskripsi</label>
-                <textarea id="agenda-desc" rows="3" class="input-field" placeholder="Detail agenda" required></textarea>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm mb-2">Tanggal</label>
-                  <input type="date" id="agenda-date" class="input-field" required>
-                </div>
-                <div>
-                  <label class="block text-sm mb-2">Lampiran</label>
-                  <label for="agenda-file" class="file-upload-label">
-                    <span id="agenda-file-name-display">Pilih file...</span>
-                    <i class="fas fa-cloud-upload-alt"></i>
-                  </label>
-                  <input type="file" id="agenda-file" class="hidden">
-                  <div id="agenda-attachment-preview" class="hidden mt-2 text-sm text-gray-400">
-                    <span id="agenda-preview-name"></span>
-                    <button type="button" id="remove-agenda-attachment" class="ml-2 text-red-400">
-                      <i class="fas fa-times"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div class="flex justify-end space-x-3">
-                <button type="button" id="cancel-agenda-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
-                  Batal
-                </button>
-                <button type="submit" class="btn-primary">
-                  Simpan Agenda
-                </button>
-              </div>
-            </form>
-
-            <div id="agenda-list" class="space-y-4 max-h-[600px] overflow-y-auto">
-              <div class="text-center py-10">
-                <div class="loading mx-auto"></div>
-                <p class="mt-3 text-gray-400">Memuat data agenda...</p>
-              </div>
-            </div>
-          </section>
-          
-          <section id="sosial-section" class="solana-card p-6 hidden">
-            <div class="flex justify-between items-center mb-6">
-              <h2 class="text-xl font-semibold">Sosial Media QC</h2>
-            </div>
-
-            <form id="post-form" class="space-y-4 mb-6">
-              <div>
-                <textarea id="post-content" rows="3" class="input-field" placeholder="Apa yang ingin Anda bagikan hari ini?" required></textarea>
-              </div>
-              <div class="flex justify-between items-center">
-                <div class="flex items-center">
-                  <label for="post-image" class="file-upload-label mr-3">
-                    <span id="image-name-display">Lampirkan Gambar/Video</span>
-                    <i class="fas fa-image"></i>
-                  </label>
-                  <input type="file" id="post-image" accept="image/*,video/*" class="hidden">
-                </div>
-                <button type="submit" class="btn-primary">
-                  Posting
-                </button>
-              </div>
-            </form>
-            
-            <div id="post-attachment-preview-container" class="hidden mt-4">
-              <img id="preview-image" class="attachment-preview w-full" alt="Preview lampiran">
-              <video id="preview-video" class="attachment-preview w-full hidden" controls></video>
-              <button id="remove-attachment" class="mt-2 text-red-400 text-sm">
-                <i class="fas fa-times mr-1"></i> Hapus lampiran
+              <button class="btn-primary">
+                <i class="fas fa-plus mr-2"></i> Tambah Transaksi
               </button>
             </div>
             
-            <div id="social-feed" class="mt-8 space-y-6 max-h-[600px] overflow-y-auto">
-              <div class="text-center py-10">
-                <div class="loading mx-auto"></div>
-                <p class="mt-3 text-gray-400">Memuat postingan...</p>
+            <div class="space-y-4">
+              <div class="p-4 border-l-4 border-green-500 bg-gray-800/30 rounded">
+                <div class="flex justify-between">
+                  <h4 class="font-medium">Kas Masuk</h4>
+                  <span class="text-green-400">+ Rp 500,000</span>
+                </div>
+                <p class="text-sm text-gray-400 mt-1">Pembayaran iuran anggota - 2 jam yang lalu</p>
+              </div>
+              
+              <div class="p-4 border-l-4 border-red-500 bg-gray-800/30 rounded">
+                <div class="flex justify-between">
+                  <h4 class="font-medium">Kas Keluar</h4>
+                  <span class="text-red-400">- Rp 250,000</span>
+                </div>
+                <p class="text-sm text-gray-400 mt-1">Pembelian konsumsi meeting - 1 hari yang lalu</p>
               </div>
             </div>
           </section>
           
-          <section id="admin-section" class="solana-card p-6 hidden">
-            <h2 class="text-xl font-semibold mb-6">Admin Panel</h2>
-            
-            <div class="flex border-b border-gray-800 mb-6">
-              <button id="users-tab" class="py-3 px-4 font-medium tab-active">Users</button>
-              <button id="transactions-admin-tab" class="py-3 px-4 font-medium text-gray-400">Transaksi</button>
-              <button id="agendas-admin-tab" class="py-3 px-4 font-medium text-gray-400">Agenda</button>
-            </div>
-            
-            <div id="users-admin-content">
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-medium">Manajemen Pengguna</h3>
-              </div>
-              
-              <div id="users-list" class="space-y-3 max-h-[500px] overflow-y-auto">
-                <div class="text-center py-10">
-                  <div class="loading mx-auto"></div>
-                  <p class="mt-3 text-gray-400">Memuat data pengguna...</p>
-                </div>
-              </div>
-            </div>
-            
-            <div id="transactions-admin-content" class="hidden">
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-medium">Manajemen Transaksi</h3>
-              </div>
-              
-              <div id="admin-transactions-list" class="space-y-4 max-h-[500px] overflow-y-auto">
-                <div class="text-center py-10">
-                  <div class="loading mx-auto"></div>
-                  <p class="mt-3 text-gray-400">Memuat data transaksi...</p>
-                </div>
-              </div>
-            </div>
-            
-            <div id="agendas-admin-content" class="hidden">
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-medium">Manajemen Agenda</h3>
-              </div>
-              
-              <div id="admin-agendas-list" class="space-y-4 max-h-[500px] overflow-y-auto">
-                <div class="text-center py-10">
-                  <div class="loading mx-auto"></div>
-                  <p class="mt-3 text-gray-400">Memuat data agenda...</p>
-                </div>
-              </div>
-            </div>
-          </section>
-          
-          <section id="setting-section" class="solana-card p-6 hidden">
+          <!-- Pengaturan Akun -->
+          <section id="setting-section" class="solana-card p-6">
             <h2 class="text-xl font-semibold mb-6">Pengaturan Akun</h2>
-            <form id="setting-form" class="space-y-6">
+            
+            <!-- Foto Profil -->
+            <div class="setting-section">
+              <h3 class="text-lg font-medium mb-4">Foto Profil</h3>
               <div class="flex items-center space-x-6">
                 <div class="relative">
-                  <div id="profile-avatar-setting" class="user-avatar w-24 h-24 text-2xl">
-                    <span id="user-initial-setting">U</span>
-                  </div>
-                  <img id="profile-image-setting" class="absolute inset-0 w-24 h-24 rounded-full object-cover hidden" alt="Profile">
+                  <img id="profile-image" class="profile-avatar" alt="Profile">
+                  <div id="profile-initial" class="profile-avatar bg-purple-600 flex items-center justify-center text-3xl font-bold hidden"></div>
                   <label for="profile-image-input" class="absolute bottom-0 right-0 bg-purple-600 rounded-full p-2 cursor-pointer">
                     <i class="fas fa-camera text-white"></i>
                   </label>
                   <input type="file" id="profile-image-input" accept="image/*" class="hidden">
                 </div>
                 <div>
-                  <h3 class="text-lg font-medium">Foto Profil</h3>
                   <p class="text-gray-400 text-sm">Ukuran maks. 5MB (JPG, PNG)</p>
+                  <label for="profile-image-input" class="file-upload-label mt-3">
+                    <i class="fas fa-upload mr-2"></i> Pilih Foto
+                  </label>
                 </div>
               </div>
-              
-              <div>
-                <label class="block text-sm mb-2">Nama Lengkap</label>
-                <input type="text" id="setting-name" class="input-field" placeholder="Nama Anda">
-              </div>
-              
-              <div>
-                <label class="block text-sm mb-2">Email</label>
-                <input type="email" id="setting-email" class="input-field" disabled>
-              </div>
-              
-              <div>
-                <label class="block text-sm mb-2">Password Baru (biarkan kosong jika tidak ingin mengubah)</label>
-                <input type="password" id="setting-password" class="input-field" placeholder="••••••••">
-              </div>
-              
-              <div class="pt-4">
-                <button type="submit" class="btn-primary mr-3">
-                  Simpan Perubahan
+            </div>
+            
+            <!-- Informasi Akun -->
+            <div class="setting-section">
+              <h3 class="text-lg font-medium mb-4">Informasi Akun</h3>
+              <form id="account-form">
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm mb-2">Nama Lengkap</label>
+                    <input type="text" id="setting-name" class="input-field" placeholder="Nama Anda" required>
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm mb-2">Email</label>
+                    <input type="email" id="setting-email" class="input-field" disabled>
+                  </div>
+                  
+                  <button type="submit" class="btn-primary mt-4">
+                    <i class="fas fa-save mr-2"></i> Simpan Perubahan
+                  </button>
+                </div>
+              </form>
+            </div>
+            
+            <!-- Keamanan Akun -->
+            <div class="setting-section">
+              <h3 class="text-lg font-medium mb-4">Keamanan Akun</h3>
+              <form id="security-form">
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm mb-2">Password Lama</label>
+                    <input type="password" id="old-password" class="input-field" placeholder="••••••••" required>
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm mb-2">Password Baru</label>
+                    <input type="password" id="new-password" class="input-field" placeholder="••••••••" required>
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm mb-2">Konfirmasi Password Baru</label>
+                    <input type="password" id="confirm-password" class="input-field" placeholder="••••••••" required>
+                  </div>
+                  
+                  <button type="submit" class="btn-primary mt-4">
+                    <i class="fas fa-key mr-2"></i> Ganti Password
+                  </button>
+                </div>
+              </form>
+            </div>
+            
+            <!-- Aksi Akun -->
+            <div>
+              <h3 class="text-lg font-medium mb-4">Aksi Akun</h3>
+              <div class="space-y-3">
+                <button id="logout-setting-btn" class="btn-secondary w-full">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
                 </button>
-                <button type="button" id="delete-account-btn" class="px-4 py-2 bg-red-600/80 hover:bg-red-700 rounded-lg">
-                  Hapus Akun
+                <button id="delete-account-btn" class="btn-danger w-full">
+                  <i class="fas fa-trash-alt mr-2"></i> Hapus Akun
                 </button>
               </div>
-            </form>
+            </div>
           </section>
         </div>
       </div>
     </section>
   </main>
 
-<script>
-  // Inisialisasi Firebase
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
-  authDomain: "wallet-qc-local-storage.firebaseapp.com",
-  databaseURL: "https://wallet-qc-local-storage-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "wallet-qc-local-storage",
-  storageBucket: "wallet-qc-local-storage.appspot.com", // ✅ INI YANG BENAR
-  messagingSenderId: "443546801664",
-  appId: "1:443546801664:web:d520fd8d2f311edd20aae5",
-  measurementId: "G-KVKSD7ES9P"
-};
+  <!-- Konfirmasi Hapus Akun Modal -->
+  <div id="delete-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden">
+    <div class="solana-card p-8 max-w-md w-full">
+      <h3 class="text-xl font-semibold mb-4">Konfirmasi Penghapusan Akun</h3>
+      <p class="text-gray-300 mb-6">Apakah Anda yakin ingin menghapus akun? Semua data akan dihapus secara permanen dan tidak dapat dikembalikan.</p>
+      
+      <div class="flex space-x-4">
+        <button id="confirm-delete" class="btn-danger flex-1">
+          <i class="fas fa-trash-alt mr-2"></i> Hapus Akun
+        </button>
+        <button id="cancel-delete" class="btn-secondary flex-1">
+          <i class="fas fa-times mr-2"></i> Batal
+        </button>
+      </div>
+    </div>
+  </div>
 
- // ✅ WAJIB: Inisialisasi Firebase
-firebase.initializeApp(firebaseConfig);
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
+      authDomain: "wallet-qc-local-storage.firebaseapp.com",
+      projectId: "wallet-qc-local-storage",
+      storageBucket: "wallet-qc-local-storage.appspot.com",
+      messagingSenderId: "443546801664",
+      appId: "1:443546801664:web:6d0342e1b8261dd920aae5"
+    };
 
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
 
-  // 🔁 Toggle antar tab
-  document.getElementById("login-tab").addEventListener("click", () => {
-    toggleTabs("login");
-  });
-  document.getElementById("register-tab").addEventListener("click", () => {
-    toggleTabs("register");
-  });
-  document.getElementById("reset-tab").addEventListener("click", () => {
-    toggleTabs("reset");
-  });
+    // DOM Elements
+    const authContainer = document.getElementById('auth-container');
+    const dashboard = document.getElementById('dashboard');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const resetForm = document.getElementById('reset-form');
+    const logoutBtn = document.getElementById('logout-btn');
+    const loginBtn = document.getElementById('login-btn');
+    const loginTab = document.getElementById('login-tab');
+    const registerTab = document.getElementById('register-tab');
+    const resetTab = document.getElementById('reset-tab');
+    const errorMessage = document.getElementById('error-message');
+    const successMessage = document.getElementById('success-message');
+    const showSettingBtn = document.getElementById('show-setting');
+    const profileImage = document.getElementById('profile-image');
+    const profileInitial = document.getElementById('profile-initial');
+    const profileImageInput = document.getElementById('profile-image-input');
+    const accountForm = document.getElementById('account-form');
+    const securityForm = document.getElementById('security-form');
+    const logoutSettingBtn = document.getElementById('logout-setting-btn');
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    const deleteModal = document.getElementById('delete-modal');
+    const confirmDelete = document.getElementById('confirm-delete');
+    const cancelDelete = document.getElementById('cancel-delete');
 
-  function toggleTabs(tab) {
-    const login = document.getElementById("login-form");
-    const register = document.getElementById("register-form");
-    const reset = document.getElementById("reset-form");
-    document.querySelectorAll(".tab-active").forEach(e => e.classList.remove("tab-active"));
-
-    if (tab === "login") {
-      login.classList.remove("hidden");
-      register.classList.add("hidden");
-      reset.classList.add("hidden");
-      document.getElementById("login-tab").classList.add("tab-active");
-    } else if (tab === "register") {
-      register.classList.remove("hidden");
-      login.classList.add("hidden");
-      reset.classList.add("hidden");
-      document.getElementById("register-tab").classList.add("tab-active");
-    } else {
-      reset.classList.remove("hidden");
-      login.classList.add("hidden");
-      register.classList.add("hidden");
-      document.getElementById("reset-tab").classList.add("tab-active");
-    }
-  }
-
-  // ✅ Login
-  document.getElementById("login-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const email = document.getElementById("login-email").value;
-    const password = document.getElementById("login-password").value;
-
-    try {
-      const userCredential = await auth.signInWithEmailAndPassword(email, password);
-      const uid = userCredential.user.uid;
-      const doc = await db.collection("users").doc(uid).get();
-
-      if (!doc.exists) throw new Error("Data pengguna tidak ditemukan");
-
-      const userData = doc.data();
-      localStorage.setItem("user", JSON.stringify(userData));
-      tampilkanDashboard(userData);
-    } catch (error) {
-      tampilkanError(error.message);
-    }
-  });
-
-  // ✅ Register
-  document.getElementById("register-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const name = document.getElementById("register-name").value;
-    const email = document.getElementById("register-email").value;
-    const password = document.getElementById("register-password").value;
-    const isAdmin = document.getElementById("is-admin").checked;
-    const adminCode = document.getElementById("admin-code").value;
-
-    try {
-      if (isAdmin && adminCode !== "admin123") {
-        throw new Error("Kode admin salah!");
+    // Tab Switching
+    loginTab.addEventListener('click', () => switchTab('login'));
+    registerTab.addEventListener('click', () => switchTab('register'));
+    resetTab.addEventListener('click', () => switchTab('reset'));
+    
+    function switchTab(tab) {
+      loginForm.classList.add('hidden');
+      registerForm.classList.add('hidden');
+      resetForm.classList.add('hidden');
+      
+      loginTab.classList.remove('tab-active');
+      registerTab.classList.remove('tab-active');
+      resetTab.classList.remove('tab-active');
+      
+      if (tab === 'login') {
+        loginForm.classList.remove('hidden');
+        loginTab.classList.add('tab-active');
+      } else if (tab === 'register') {
+        registerForm.classList.remove('hidden');
+        registerTab.classList.add('tab-active');
+      } else if (tab === 'reset') {
+        resetForm.classList.remove('hidden');
+        resetTab.classList.add('tab-active');
       }
+    }
 
-      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-      const uid = userCredential.user.uid;
-      const role = isAdmin ? "admin" : "member";
+    // Form Submission
+    loginForm.addEventListener('submit', handleLogin);
+    registerForm.addEventListener('submit', handleRegister);
+    resetForm.addEventListener('submit', handleResetPassword);
+    logoutBtn.addEventListener('click', handleLogout);
+    loginBtn.addEventListener('click', () => {
+      authContainer.classList.remove('hidden');
+      dashboard.classList.add('hidden');
+    });
 
-      await db.collection("users").doc(uid).set({
-        uid, name, email, role
+    // Handle Login
+    function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          showSuccess('Login berhasil!');
+          console.log('User logged in:', userCredential.user);
+        })
+        .catch((error) => {
+          showError(error.message);
+        });
+    }
+
+    // Handle Register
+    function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('register-name').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          // Save additional user data to Firestore
+          return db.collection('users').doc(userCredential.user.uid).set({
+            name: name,
+            email: email,
+            createdAt: new Date(),
+            role: 'member',
+            photoURL: ''
+          });
+        })
+        .then(() => {
+          showSuccess('Registrasi berhasil! Silakan login');
+          switchTab('login');
+          registerForm.reset();
+        })
+        .catch((error) => {
+          showError(error.message);
+        });
+    }
+
+    // Handle Reset Password
+    function handleResetPassword(e) {
+      e.preventDefault();
+      const email = document.getElementById('reset-email').value;
+      
+      auth.sendPasswordResetEmail(email)
+        .then(() => {
+          showSuccess('Link reset password telah dikirim ke email Anda');
+          resetForm.reset();
+        })
+        .catch((error) => {
+          showError(error.message);
+        });
+    }
+
+    // Handle Logout
+    function handleLogout() {
+      auth.signOut()
+        .then(() => {
+          showSuccess('Logout berhasil!');
+        })
+        .catch((error) => {
+          showError(error.message);
+        });
+    }
+
+    // Show error message
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.remove('hidden');
+      successMessage.classList.add('hidden');
+    }
+
+    // Show success message
+    function showSuccess(message) {
+      successMessage.textContent = message;
+      successMessage.classList.remove('hidden');
+      errorMessage.classList.add('hidden');
+      
+      // Auto hide success message after 5 seconds
+      setTimeout(hideMessages, 5000);
+    }
+
+    // Hide messages
+    function hideMessages() {
+      errorMessage.classList.add('hidden');
+      successMessage.classList.add('hidden');
+    }
+
+    // Update UI based on auth state
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        // User is signed in
+        console.log('User logged in:', user);
+        
+        // Update UI
+        document.getElementById('user-email').textContent = user.email;
+        document.getElementById('user-email').classList.remove('hidden');
+        document.getElementById('logout-btn').classList.remove('hidden');
+        document.getElementById('login-btn').classList.add('hidden');
+        
+        // Update dashboard
+        document.getElementById('user-name').textContent = user.displayName || user.email.split('@')[0];
+        document.getElementById('user-email-display').textContent = user.email;
+        
+        // Fetch additional user data from Firestore
+        db.collection('users').doc(user.uid).get()
+          .then(doc => {
+            if (doc.exists) {
+              const userData = doc.data();
+              
+              // Update name
+              if (userData.name) {
+                document.getElementById('user-name').textContent = userData.name;
+                document.getElementById('setting-name').value = userData.name;
+              }
+              
+              // Update join date
+              if (userData.createdAt) {
+                const joinDate = userData.createdAt.toDate();
+                document.getElementById('join-date').textContent = joinDate.toLocaleDateString('id-ID', {
+                  year: 'numeric',
+                  month: 'long'
+                });
+              }
+              
+              // Update profile photo
+              if (userData.photoURL) {
+                profileImage.src = userData.photoURL;
+                profileImage.classList.remove('hidden');
+                profileInitial.classList.add('hidden');
+              } else {
+                profileImage.classList.add('hidden');
+                profileInitial.textContent = userData.name?.charAt(0) || user.email.charAt(0).toUpperCase();
+                profileInitial.classList.remove('hidden');
+              }
+            }
+          });
+        
+        // Show dashboard
+        authContainer.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+      } else {
+        // User is signed out
+        console.log('User signed out');
+        document.getElementById('user-email').classList.add('hidden');
+        document.getElementById('logout-btn').classList.add('hidden');
+        document.getElementById('login-btn').classList.remove('hidden');
+        
+        // Hide dashboard
+        authContainer.classList.remove('hidden');
+        dashboard.classList.add('hidden');
+      }
+      
+      hideMessages();
+    });
+
+    // Profile image upload
+    profileImageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const user = auth.currentUser;
+      if (!user) return;
+      
+      // Show loading state
+      const initialText = profileInitial.textContent;
+      profileInitial.innerHTML = '<div class="loading mx-auto"></div>';
+      
+      // Upload file to Firebase Storage
+      const storageRef = storage.ref(`profile_images/${user.uid}/${file.name}`);
+      const uploadTask = storageRef.put(file);
+      
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          // Progress monitoring can be added here
+        }, 
+        (error) => {
+          showError('Gagal mengunggah foto: ' + error.message);
+          profileInitial.textContent = initialText;
+        }, 
+        () => {
+          // Upload completed successfully
+          uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+            // Update user profile in Firestore
+            db.collection('users').doc(user.uid).update({
+              photoURL: downloadURL
+            }).then(() => {
+              // Update UI
+              profileImage.src = downloadURL;
+              profileImage.classList.remove('hidden');
+              profileInitial.classList.add('hidden');
+              showSuccess('Foto profil berhasil diperbarui!');
+            }).catch((error) => {
+              showError('Gagal memperbarui profil: ' + error.message);
+              profileInitial.textContent = initialText;
+            });
+          });
+        }
+      );
+    });
+
+    // Update account info
+    accountForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const user = auth.currentUser;
+      if (!user) return;
+      
+      const newName = document.getElementById('setting-name').value;
+      
+      // Update in Firestore
+      db.collection('users').doc(user.uid).update({
+        name: newName
+      }).then(() => {
+        // Update UI
+        document.getElementById('user-name').textContent = newName;
+        showSuccess('Nama berhasil diperbarui!');
+      }).catch((error) => {
+        showError('Gagal memperbarui nama: ' + error.message);
       });
+    });
 
-      tampilkanSuccess("Berhasil daftar. Silakan login.");
-      toggleTabs("login");
-    } catch (error) {
-      tampilkanError(error.message);
-    }
-  });
-
-  // ✅ Reset Password
-  document.getElementById("reset-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const email = document.getElementById("reset-email").value;
-
-    try {
-      await auth.sendPasswordResetEmail(email);
-      tampilkanSuccess("Link reset telah dikirim ke email.");
-    } catch (error) {
-      tampilkanError(error.message);
-    }
-  });
-
-  // ✅ Logout
-  document.getElementById("logout-btn").addEventListener("click", async () => {
-    await auth.signOut();
-    localStorage.removeItem("user");
-    location.reload();
-  });
-
-  // 🔁 Auto login jika sudah login sebelumnya
-  auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      const doc = await db.collection("users").doc(user.uid).get();
-      if (doc.exists) {
-        tampilkanDashboard(doc.data());
+    // Change password
+    securityForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const user = auth.currentUser;
+      if (!user) return;
+      
+      const oldPassword = document.getElementById('old-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+      
+      // Validate new password
+      if (newPassword !== confirmPassword) {
+        showError('Password baru dan konfirmasi tidak cocok');
+        return;
       }
-    }
-  });
+      
+      // Re-authenticate user
+      const credential = firebase.auth.EmailAuthProvider.credential(
+        user.email, 
+        oldPassword
+      );
+      
+      user.reauthenticateWithCredential(credential)
+        .then(() => {
+          // Update password
+          return user.updatePassword(newPassword);
+        })
+        .then(() => {
+          showSuccess('Password berhasil diperbarui!');
+          securityForm.reset();
+        })
+        .catch((error) => {
+          showError('Gagal memperbarui password: ' + error.message);
+        });
+    });
 
-  function tampilkanDashboard(user) {
-    document.getElementById("auth-container").classList.add("hidden");
-    document.getElementById("dashboard").classList.remove("hidden");
+    // Logout from settings
+    logoutSettingBtn.addEventListener('click', handleLogout);
+    
+    // Delete account
+    deleteAccountBtn.addEventListener('click', function() {
+      deleteModal.classList.remove('hidden');
+    });
+    
+    cancelDelete.addEventListener('click', function() {
+      deleteModal.classList.add('hidden');
+    });
+    
+    confirmDelete.addEventListener('click', function() {
+      const user = auth.currentUser;
+      if (!user) return;
+      
+      // Get password for re-authentication
+      const password = prompt("Masukkan password Anda untuk konfirmasi penghapusan akun:");
+      if (!password) return;
+      
+      const credential = firebase.auth.EmailAuthProvider.credential(
+        user.email, 
+        password
+      );
+      
+      // Re-authenticate user
+      user.reauthenticateWithCredential(credential)
+        .then(() => {
+          // Delete user from Authentication
+          return user.delete();
+        })
+        .then(() => {
+          // Delete user data from Firestore
+          return db.collection('users').doc(user.uid).delete();
+        })
+        .then(() => {
+          showSuccess('Akun berhasil dihapus!');
+          deleteModal.classList.add('hidden');
+        })
+        .catch((error) => {
+          showError('Gagal menghapus akun: ' + error.message);
+          deleteModal.classList.add('hidden');
+        });
+    });
 
-    document.getElementById("user-name").innerText = user.name;
-    document.getElementById("user-email-display").innerText = user.email;
-    document.getElementById("user-initial").innerText = user.name.charAt(0).toUpperCase();
-    document.getElementById("user-email").innerText = user.email;
-    document.getElementById("user-role").innerText = user.role;
-    document.getElementById("role-badge").innerText = user.role.charAt(0).toUpperCase() + user.role.slice(1);
-    document.getElementById("login-btn").classList.add("hidden");
-    document.getElementById("logout-btn").classList.remove("hidden");
-    document.getElementById("user-email").classList.remove("hidden");
-    document.getElementById("user-role").classList.remove("hidden");
-
-    if (user.role === "admin") {
-      document.querySelectorAll(".admin-only").forEach(e => e.classList.remove("hidden"));
-      document.getElementById("role-badge").classList.add("admin-badge");
-      document.getElementById("role-badge").classList.remove("member-badge");
-    } else {
-      document.querySelectorAll(".admin-only").forEach(e => e.classList.add("hidden"));
-      document.getElementById("role-badge").classList.add("member-badge");
-      document.getElementById("role-badge").classList.remove("admin-badge");
-    }
-  }
-
-  // Helper tampilkan error dan success
-  function tampilkanError(msg) {
-    const error = document.getElementById("error-message");
-    error.innerText = msg;
-    error.classList.remove("hidden");
-    setTimeout(() => error.classList.add("hidden"), 5000);
-  }
-
-  function tampilkanSuccess(msg) {
-    const success = document.getElementById("success-message");
-    success.innerText = msg;
-    success.classList.remove("hidden");
-    setTimeout(() => success.classList.add("hidden"), 5000);
-  }
-
-  // Tampilkan input kode admin jika checkbox aktif
-  document.getElementById("is-admin").addEventListener("change", (e) => {
-    document.getElementById("admin-code-container").classList.toggle("hidden", !e.target.checked);
-  });
-</script> 
+    // Demo Accounts for Testing
+    document.addEventListener('DOMContentLoaded', () => {
+      // Pre-fill demo account for easier testing
+      document.getElementById('login-email').value = 'admin@walletqc.com';
+      document.getElementById('login-password').value = 'admin123';
+    });
+  </script>
 </body>
 </html>
