@@ -505,8 +505,9 @@
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
+    const secondaryApp = firebase.initializeApp(firebaseConfig, 'mySecondaryFirestoreApp');
     const auth = firebase.auth();
-    const db = firebase.firestore('wallet-qc-local-storage');
+    const db = firebase.firestore(secondaryApp);
     const storage = firebase.storage();
 
     // DOM Elements
