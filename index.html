@@ -495,15 +495,13 @@
   <script>
     // Firebase Configuration
     const firebaseConfig = {
-    apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
-    authDomain: "wallet-qc-local-storage.firebaseapp.com",
-    databaseURL: "https://wallet-qc-local-storage-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "wallet-qc-local-storage",
-    storageBucket: "wallet-qc-local-storage.firebasestorage.app",
-    messagingSenderId: "443546801664",
-    appId: "1:443546801664:web:d520fd8d2f311edd20aae5",
-    measurementId: "G-KVKSD7ES9P"
-  };
+      apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
+      authDomain: "wallet-qc-local-storage.firebaseapp.com",
+      projectId: "wallet-qc-local-storage",
+      storageBucket: "wallet-qc-local-storage.appspot.com",
+      messagingSenderId: "443546801664",
+      appId: "1:443546801664:web:6d0342e1b8261dd920aae5"
+    };
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
@@ -589,7 +587,7 @@
     }
 
     // Handle Register
-      function handleRegister(e) {
+    function handleRegister(e) {
       e.preventDefault();
       const name = document.getElementById('register-name').value;
       const email = document.getElementById('register-email').value;
