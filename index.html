@@ -979,7 +979,10 @@ const firebaseConfig = {
         });
 
         // Pastikan kembali ke tab login
-        document.getElementById('login-tab').click();
+        const loginTab = document.getElementById('login-tab');
+       if (loginTab) { // Memeriksa apakah elemen ditemukan
+      loginTab.click(); // Jalankan klik hanya jika elemen ada
+}
       }
     });
 
@@ -2530,10 +2533,13 @@ const firebaseConfig = {
       document.getElementById('login-form').classList.remove('hidden');
       document.getElementById('register-form').classList.add('hidden');
       document.getElementById('reset-form').classList.add('hidden');
-      document.getElementById('admin-code-container').classList.add('hidden'); // Ensure hidden
+      const adminCodeContainer = document.getElementById('admin-code-container');
+if (adminCodeContainer) { // Memeriksa apakah elemen ditemukan
+  adminCodeContainer.classList.add('hidden'); // Jalankan hanya jika elemen ada
+} // Ensure hidden
     });
 
-    document.getElementById('register-tab').addEventListener('click', () => {
+      document.getElementById('register-tab').addEventListener('click', () => {
       document.getElementById('register-tab').classList.add('tab-active');
       document.getElementById('login-tab').classList.remove('tab-active');
       document.getElementById('reset-tab').classList.remove('tab-active');
