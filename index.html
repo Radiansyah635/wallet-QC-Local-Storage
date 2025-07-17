@@ -2930,7 +2930,7 @@ document.getElementById('user-search').addEventListener('input', (e) => {
         const description = item.querySelector('h4.font-medium').textContent.toLowerCase();
         const userName = item.querySelector('p.text-xs').textContent.toLowerCase();
         
-        if (description.includes(searchTerm) {
+        if (description.includes(searchTerm)) {
           item.style.display = 'block';
         } else if (userName.includes(searchTerm)) {
           item.style.display = 'block';
