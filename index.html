@@ -778,21 +778,21 @@
     let editingPostId = null;
 
     // ================= AUTH FUNCTIONS =================
-    // Handle login
-    document.getElementById('login-form').addEventListener('submit', (e) => {
+    // Handle Login
+    function handleLogin(e) {
       e.preventDefault();
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
       
       auth.signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
-          currentUser = userCredential.user;
-          showSuccess("Login berhasil!");
+          showSuccess('Login berhasil!');
+          console.log('User logged in:', userCredential.user);
         })
         .catch((error) => {
           showError(error.message);
         });
-    });
+    }
 
     // Handle register
     document.getElementById('register-form').addEventListener('submit', (e) => {
