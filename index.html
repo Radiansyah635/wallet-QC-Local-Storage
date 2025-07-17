@@ -2884,24 +2884,25 @@
     }
 
     // Search functionality
-    document.getElementById('user-search').addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase();
-      const usersList = document.getElementById('users-list-dashboard');
-      const userItems = usersList.querySelectorAll('.user-list-item');
-      
-      userItems.forEach(item => {
-        const name = item.querySelector('p.font-medium').textContent.toLowerCase();
-        const email = item.querySelector('p.text-xs').textContent.toLowerCase();
+document.getElementById('user-search').addEventListener('input', (e) => {
+  const searchTerm = e.target.value.toLowerCase();
+  const usersList = document.getElementById('users-list-dashboard');
+  const userItems = usersList.querySelectorAll('.user-list-item');
+    
+  userItems.forEach(item => {
+    const name = item.querySelector('p.font-medium').textContent.toLowerCase();
+    const email = item.querySelector('p.text-xs').textContent.toLowerCase();
         
-        if (name.includes(searchTerm) {
-          item.style.display = 'flex';
-        } else if (email.includes(searchTerm)) {
-          item.style.display = 'flex';
-        } else {
-          item.style.display = 'none';
-        }
-      });
-    });
+    // Baris ini yang diperbaiki:
+    if (name.includes(searchTerm)) { // <-- Tanda ')' telah ditambahkan di sini
+      item.style.display = 'flex';
+    } else if (email.includes(searchTerm)) {
+      item.style.display = 'flex';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+});
 
     document.getElementById('admin-user-search').addEventListener('input', (e) => {
       const searchTerm = e.target.value.toLowerCase();
