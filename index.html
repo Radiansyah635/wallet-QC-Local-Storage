@@ -2949,7 +2949,7 @@ document.getElementById('user-search').addEventListener('input', (e) => {
         const title = item.querySelector('h4.font-medium').textContent.toLowerCase();
         const description = item.querySelector('p.text-gray-300').textContent.toLowerCase();
         
-        if (title.includes(searchTerm) {
+        if (title.includes(searchTerm)) {
           item.style.display = 'block';
         } else if (description.includes(searchTerm)) {
           item.style.display = 'block';
