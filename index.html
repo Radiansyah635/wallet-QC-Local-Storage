@@ -1,3 +1,1017 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallet QC - Financial Management</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.autotable.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-purple: #8B5CF6;
+      --primary-green: #10B981;
+      --dark-bg: #0f0f0f;
+      --card-bg: rgba(31, 31, 31, 0.7);
+    }
+    
+    body {
+      background: linear-gradient(to bottom, #000000, var(--dark-bg));
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #f3f4f6;
+    }
+    
+    .solana-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      transition: all 0.3s ease;
+    }
+    
+    .solana-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(139, 92, 246, 0.2);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(to right, var(--primary-purple), var(--primary-green));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(to right, var(--primary-purple), var(--primary-green));
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    }
+    
+    .input-field {
+      background: rgba(55, 55, 55, 0.5);
+      border: 1px solid rgba(107, 114, 128, 0.3);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: white;
+      width: 100%;
+      transition: border 0.3s ease;
+    }
+    
+    .input-field:focus {
+      outline: none;
+      border-color: var(--primary-purple);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+    
+    .tab-active {
+      background: rgba(139, 92, 246, 0.2);
+      color: var(--primary-purple);
+      font-weight: 600;
+    }
+    
+    .transaction-in {
+      border-left: 4px solid var(--primary-green);
+    }
+    
+    .transaction-out {
+      border-left: 4px solid #EF4444;
+    }
+    
+    .user-avatar {
+      background: linear-gradient(to right, var(--primary-purple), var(--primary-green));
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-weight: bold;
+    }
+    
+    .section-hidden {
+      display: none;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(139, 92, 246, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary-purple);
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .post-card {
+      background: rgba(40, 40, 40, 0.7);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+    
+    .post-card:hover {
+      transform: translateY(-3px);
+    }
+    
+    .attachment-preview {
+      max-height: 300px;
+      object-fit: contain;
+      border-radius: 8px;
+      margin-top: 10px;
+      background-color: #000;
+    }
+    
+    .agenda-card {
+      background: rgba(45, 45, 45, 0.7);
+      border-left: 4px solid var(--primary-green);
+      border-radius: 8px;
+    }
+    
+    .role-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      margin-left: 8px;
+    }
+    
+    .admin-badge {
+      background: linear-gradient(to right, #f59e0b, #ef4444);
+    }
+    
+    .member-badge {
+      background: linear-gradient(to right, #3b82f6, #8b5cf6);
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(31, 31, 31, 0.5);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary-purple);
+      border-radius: 4px;
+    }
+    
+    .file-upload-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: rgba(55, 55, 55, 0.5);
+      border: 1px dashed rgba(139, 92, 246, 0.5);
+      transition: all 0.3s ease;
+    }
+    
+    .file-upload-label:hover {
+      border-color: var(--primary-purple);
+      background: rgba(55, 55, 55, 0.7);
+    }
+    
+    .admin-info-box {
+      background: rgba(139, 92, 246, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .admin-info-box h3 {
+      color: var(--primary-purple);
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    
+    .admin-info-box ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    
+    .admin-info-box li {
+      margin-bottom: 10px;
+      padding-left: 25px;
+      position: relative;
+    }
+    
+    .admin-info-box li:before {
+      content: "•";
+      color: var(--primary-green);
+      position: absolute;
+      left: 0;
+      font-size: 20px;
+      line-height: 1;
+    }
+    
+    .comment-box {
+      background: rgba(50, 50, 50, 0.5);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .action-button {
+      background: rgba(70, 70, 70, 0.5);
+      border: none;
+      border-radius: 8px;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .action-button:hover {
+      background: rgba(90, 90, 90, 0.7);
+    }
+    
+    .like-button.active {
+      color: #EF4444;
+    }
+    
+    .user-list-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid rgba(70, 70, 70, 0.5);
+    }
+    
+    .user-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 10px;
+    }
+    
+    /* New styles for dashboard */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 300px 1fr 300px;
+      gap: 1.5rem;
+      height: calc(100vh - 150px);
+    }
+    
+    .dashboard-left {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    .dashboard-center {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    .dashboard-right {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    .dashboard-profile {
+      height: auto;
+    }
+    
+    .dashboard-balance {
+      height: auto;
+    }
+    
+    .dashboard-transactions {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    
+    .dashboard-chart {
+      height: 300px;
+    }
+    
+    .dashboard-social {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    
+    .dashboard-agenda {
+      height: auto;
+    }
+    
+    .dashboard-users {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    
+    .quick-access-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .quick-access-btn {
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(55, 55, 55, 0.5);
+      border: none;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    
+    .quick-access-btn:hover {
+      background: rgba(139, 92, 246, 0.3);
+    }
+    
+    @media (max-width: 1280px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      
+      .dashboard-left,
+      .dashboard-center,
+      .dashboard-right {
+        grid-column: span 1;
+      }
+    }
+    
+    .dashboard-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .dashboard-card-content {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    
+    .status-active {
+      background-color: var(--primary-green);
+    }
+    
+    .status-inactive {
+      background-color: #6B7280;
+    }
+    
+    .search-input {
+      background: rgba(55, 55, 55, 0.5);
+      border: 1px solid rgba(107, 114, 128, 0.3);
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: white;
+      width: 100%;
+      transition: border 0.3s ease;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary-purple);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <header class="bg-black/80 py-4 px-6 border-b border-purple-900/50 sticky top-0 z-50">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold gradient-text">Wallet QC</h1>
+      <div id="auth-section" class="flex items-center space-x-4">
+        <span id="user-email" class="text-sm text-gray-300 hidden"></span>
+        <span id="user-role" class="text-xs px-2 py-1 rounded-full bg-purple-600/50 hidden">Member</span>
+        <button id="logout-btn" class="px-4 py-2 bg-red-600/80 hover:bg-red-500/90 rounded-lg text-sm hidden">
+          Logout
+        </button>
+        <button id="login-btn" class="btn-primary">Login</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <!-- Auth Container -->
+    <section id="auth-container" class="max-w-md mx-auto solana-card p-8">
+      <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold gradient-text mb-2">Selamat Datang</h2>
+        <p class="text-gray-400">Kelola kas tim QC dengan mudah dan aman</p>
+      </div>
+
+      <div class="flex border-b border-gray-800 mb-6">
+        <button id="login-tab" class="flex-1 py-4 font-medium tab-active">
+          Login
+        </button>
+        <button id="register-tab" class="flex-1 py-4 font-medium text-gray-400">
+          Register
+        </button>
+        <button id="reset-tab" class="flex-1 py-4 font-medium text-gray-400">
+          Reset Password
+        </button>
+      </div>
+
+      <form id="login-form">
+        <div class="space-y-4">
+          <div>
+            <label for="login-email" class="block text-sm mb-2 text-gray-300">Email</label>
+            <input 
+              type="email" 
+              id="login-email" 
+              required
+              class="input-field"
+              placeholder="email@contoh.com"
+            >
+          </div>
+          <div>
+            <label for="login-password" class="block text-sm mb-2 text-gray-300">Password</label>
+            <input 
+              type="password" 
+              id="login-password" 
+              required
+              class="input-field"
+              placeholder="••••••••"
+            >
+          </div>
+          <button type="submit" class="btn-primary w-full">
+            Masuk
+          </button>
+        </div>
+      </form>
+
+      <form id="register-form" class="hidden">
+        <div class="space-y-4">
+          <div>
+            <label for="register-name" class="block text-sm mb-2 text-gray-300">Nama Lengkap</label>
+            <input 
+              type="text" 
+              id="register-name" 
+              required
+              class="input-field"
+              placeholder="Nama Anda"
+            >
+          </div>
+          <div>
+            <label for="register-email" class="block text-sm mb-2 text-gray-300">Email</label>
+            <input 
+              type="email" 
+              id="register-email" 
+              required
+              class="input-field"
+              placeholder="email@contoh.com"
+            >
+          </div>
+          <div>
+            <label for="register-password" class="block text-sm mb-2 text-gray-300">Password</label>
+            <input 
+              type="password" 
+              id="register-password" 
+              required
+              class="input-field"
+              placeholder="••••••••"
+            >
+          </div>
+          <div class="hidden" id="admin-code-container">
+            <label for="admin-code" class="block text-sm mb-2 text-gray-300">Kode Admin</label>
+            <input 
+              type="password" 
+              id="admin-code" 
+              class="input-field"
+              placeholder="Masukkan kode admin"
+            >
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="is-admin" class="mr-2">
+            <label for="is-admin" class="text-sm">Daftar sebagai Admin</label>
+          </div>
+          <button type="submit" class="btn-primary w-full">
+            Daftar
+          </button>
+        </div>
+      </form>
+      
+      <form id="reset-form" class="hidden">
+        <div class="space-y-4">
+          <div>
+            <label for="reset-email" class="block text-sm mb-2 text-gray-300">Email</label>
+            <input 
+              type="email" 
+              id="reset-email" 
+              required
+              class="input-field"
+              placeholder="email@contoh.com"
+            >
+          </div>
+          <button type="submit" class="btn-primary w-full">
+            Kirim Link Reset Password
+          </button>
+        </div>
+      </form>
+      
+      <div class="admin-info-box mt-6">
+        <h3>Cara Masuk Sebagai Admin</h3>
+        <ul>
+          <li>Untuk akun yang sudah ada: Gunakan email dan password yang sudah didaftarkan</li>
+          <li>Untuk membuat akun admin baru: Centang "Daftar sebagai Admin" dan masukkan kode admin: <strong>admin123</strong></li>
+          <li>Akun demo admin: <strong>admin@walletqc.com</strong> / password: <strong>admin123</strong></li>
+        </ul>
+      </div>
+      
+      <div id="error-message" class="mt-4 text-center text-red-400 text-sm hidden"></div>
+      <div id="success-message" class="mt-4 text-center text-green-400 text-sm hidden"></div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="hidden">
+      <!-- Dashboard Navigation -->
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold gradient-text">Dashboard</h1>
+        <div class="flex space-x-2">
+          <button id="show-full-kas" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
+            <i class="fas fa-wallet mr-2"></i> Kas Lengkap
+          </button>
+          <button id="show-full-agenda" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
+            <i class="fas fa-calendar-alt mr-2"></i> Agenda Lengkap
+          </button>
+          <button id="show-full-sosial" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
+            <i class="fas fa-users mr-2"></i> Sosial Lengkap
+          </button>
+          <button id="show-admin" class="px-4 py-2 bg-purple-600/50 hover:bg-purple-500/50 rounded-lg admin-only">
+            <i class="fas fa-lock mr-2"></i> Admin Panel
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Dashboard Grid -->
+      <div class="dashboard-grid">
+        <!-- Left Column -->
+        <div class="dashboard-left">
+          <!-- Profile Card -->
+          <div class="solana-card p-6 dashboard-profile">
+            <h2 class="text-xl font-semibold mb-4">Profil Saya</h2>
+            <div class="dashboard-card-content">
+              <div class="flex items-center space-x-4 mb-4">
+                <div class="relative">
+                  <div id="profile-avatar" class="user-avatar w-16 h-16 text-xl">
+                    <span id="user-initial">U</span>
+                  </div>
+                  <img id="profile-image" class="absolute inset-0 w-16 h-16 rounded-full object-cover hidden" alt="Profile">
+                </div>
+                <div>
+                  <div class="flex items-center">
+                    <h3 id="user-name" class="font-medium text-lg">User Name</h3>
+                    <span id="role-badge" class="role-badge member-badge">Member</span>
+                  </div>
+                  <p id="user-email-display" class="text-sm text-gray-400">user@email.com</p>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-400">Kas Masuk</span>
+                  <span id="user-income" class="text-green-400 font-medium">Rp 0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-400">Kas Keluar</span>
+                  <span id="user-expense" class="text-red-400 font-medium">Rp 0</span>
+                </div>
+                <div class="flex justify-between items-center pt-2 border-t border-gray-700">
+                  <span class="text-gray-300 font-medium">Saldo</span>
+                  <span id="user-balance" class="text-white font-bold">Rp 0</span>
+                </div>
+              </div>
+              
+              <!-- Quick Access Buttons -->
+              <div class="quick-access-buttons">
+                <button id="quick-add-income" class="quick-access-btn">
+                  <i class="fas fa-plus-circle mr-1"></i> Kas Masuk
+                </button>
+                <button id="quick-add-expense" class="quick-access-btn">
+                  <i class="fas fa-minus-circle mr-1"></i> Kas Keluar
+                </button>
+                <button id="quick-add-post" class="quick-access-btn">
+                  <i class="fas fa-pen mr-1"></i> Posting Baru
+                </button>
+                <button id="quick-setting" class="quick-access-btn">
+                  <i class="fas fa-cog mr-1"></i> Pengaturan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center Column -->
+        <div class="dashboard-center">
+          <!-- Balance Card -->
+          <div class="solana-card p-6 dashboard-balance">
+            <h2 class="text-xl font-semibold mb-4">Total Kas QC</h2>
+            <div class="dashboard-card-content">
+              <p id="total-saldo" class="text-3xl font-bold font-mono mb-4">Rp 0</p>
+              <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-400">Total Pemasukan</span>
+                  <span id="total-income" class="text-green-400 font-medium">Rp 0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-400">Total Pengeluaran</span>
+                  <span id="total-expense" class="text-red-400 font-medium">Rp 0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-400">Total Anggota</span>
+                  <span id="total-users" class="text-purple-400 font-medium">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart Card -->
+          <div class="solana-card p-6 dashboard-chart">
+            <h2 class="text-xl font-semibold mb-4">Statistik Keuangan</h2>
+            <div class="dashboard-card-content">
+              <div class="chart-container">
+                <canvas id="finance-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transactions Card -->
+          <div class="solana-card p-6 dashboard-transactions">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-semibold">Transaksi Terakhir</h2>
+              <button id="add-transaction-btn" class="btn-primary admin-only">
+                <i class="fas fa-plus mr-2"></i> Tambah Transaksi
+              </button>
+            </div>
+            <div class="dashboard-card-content">
+              <div id="recent-transactions" class="space-y-3">
+                <div class="text-center py-10">
+                  <div class="loading mx-auto"></div>
+                  <p class="mt-3 text-gray-400">Memuat data transaksi...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="dashboard-right">
+          <!-- Agenda Card -->
+          <div class="solana-card p-6 dashboard-agenda">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-semibold">Agenda Mendatang</h2>
+              <button id="add-agenda-btn" class="btn-primary admin-only">
+                <i class="fas fa-plus mr-2"></i> Tambah
+              </button>
+            </div>
+            <div class="dashboard-card-content">
+              <div id="upcoming-agendas" class="space-y-3">
+                <div class="text-center py-10">
+                  <div class="loading mx-auto"></div>
+                  <p class="mt-3 text-gray-400">Memuat agenda...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Social Card -->
+          <div class="solana-card p-6 dashboard-social">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-semibold">Aktivitas Terbaru</h2>
+              <button id="add-post-btn" class="btn-primary">
+                <i class="fas fa-plus mr-2"></i> Posting Baru
+              </button>
+            </div>
+            <div class="dashboard-card-content">
+              <div id="recent-posts" class="space-y-4">
+                <div class="text-center py-10">
+                  <div class="loading mx-auto"></div>
+                  <p class="mt-3 text-gray-400">Memuat aktivitas terbaru...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full Sections (Hidden by default) -->
+      <!-- Full Transactions Section -->
+      <section id="full-kas-section" class="solana-card p-6 hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-semibold">Kas & Transaksi</h2>
+          <div>
+            <button id="print-transactions" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg mr-2">
+              <i class="fas fa-print mr-1"></i> Cetak PDF
+            </button>
+            <button id="add-transaction-full-btn" class="btn-primary admin-only">
+              <i class="fas fa-plus mr-2"></i> Tambah Transaksi
+            </button>
+          </div>
+        </div>
+        
+        <div class="mb-8">
+          <h3 class="text-lg font-medium mb-4">Statistik Keuangan</h3>
+          <div class="chart-container">
+            <canvas id="full-finance-chart"></canvas>
+          </div>
+        </div>
+        
+        <form id="transaction-form" class="hidden space-y-4 mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm mb-2">Pilih User</label>
+              <select id="transaction-user" class="input-field admin-only">
+                <option value="">Pilih User</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm mb-2">Jenis Transaksi</label>
+              <select id="transaction-type" class="input-field">
+                <option value="masuk">Kas Masuk</option>
+                <option value="keluar">Kas Keluar</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm mb-2">Jumlah (Rp)</label>
+              <input type="number" id="transaction-amount" class="input-field" placeholder="1000000" required min="1">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm mb-2">Keterangan</label>
+            <input type="text" id="transaction-desc" class="input-field" placeholder="Deskripsi transaksi" required>
+          </div>
+          <div class="flex justify-end space-x-3">
+            <button type="button" id="cancel-transaction-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
+              Batal
+            </button>
+            <button type="submit" class="btn-primary">
+              Simpan Transaksi
+            </button>
+          </div>
+        </form>
+
+        <div id="transactions-list" class="space-y-4 max-h-[500px] overflow-y-auto">
+          <div class="text-center py-10">
+            <div class="loading mx-auto"></div>
+            <p class="mt-3 text-gray-400">Memuat data transaksi...</p>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Full Agenda Section -->
+      <section id="full-agenda-section" class="solana-card p-6 hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-semibold">Agenda QC</h2>
+          <button id="add-agenda-full-btn" class="btn-primary admin-only">
+            <i class="fas fa-plus mr-2"></i> Tambah Agenda
+          </button>
+        </div>
+
+        <form id="agenda-form" class="hidden space-y-4 mb-6">
+          <div>
+            <label class="block text-sm mb-2">Judul Agenda</label>
+            <input type="text" id="agenda-title" class="input-field" placeholder="Meeting QC" required>
+          </div>
+          <div>
+            <label class="block text-sm mb-2">Deskripsi</label>
+            <textarea id="agenda-desc" rows="3" class="input-field" placeholder="Detail agenda" required></textarea>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm mb-2">Tanggal</label>
+              <input type="date" id="agenda-date" class="input-field" required>
+            </div>
+            <div>
+              <label class="block text-sm mb-2">Lampiran</label>
+              <label for="agenda-file" class="file-upload-label">
+                <span id="agenda-file-name-display">Pilih file...</span>
+                <i class="fas fa-cloud-upload-alt"></i>
+              </label>
+              <input type="file" id="agenda-file" class="hidden">
+              <div id="agenda-attachment-preview" class="hidden mt-2 text-sm text-gray-400">
+                <span id="agenda-preview-name"></span>
+                <button type="button" id="remove-agenda-attachment" class="ml-2 text-red-400">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-end space-x-3">
+            <button type="button" id="cancel-agenda-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
+              Batal
+            </button>
+            <button type="submit" class="btn-primary">
+              Simpan Agenda
+            </button>
+          </div>
+        </form>
+
+        <div id="agenda-list" class="space-y-4 max-h-[600px] overflow-y-auto">
+          <div class="text-center py-10">
+            <div class="loading mx-auto"></div>
+            <p class="mt-3 text-gray-400">Memuat data agenda...</p>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Full Social Section -->
+      <section id="full-sosial-section" class="solana-card p-6 hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-semibold">Sosial Media QC</h2>
+        </div>
+
+        <form id="post-form" class="space-y-4 mb-6">
+          <div>
+            <textarea id="post-content" rows="3" class="input-field" placeholder="Apa yang ingin Anda bagikan hari ini?" required></textarea>
+          </div>
+          <div class="flex justify-between items-center">
+            <div class="flex items-center">
+              <label for="post-image" class="file-upload-label mr-3">
+                <span id="image-name-display">Lampirkan Gambar/Video</span>
+                <i class="fas fa-image"></i>
+              </label>
+              <input type="file" id="post-image" accept="image/*,video/*" class="hidden">
+            </div>
+            <button type="submit" class="btn-primary">
+              Posting
+            </button>
+          </div>
+        </form>
+        
+        <div id="post-attachment-preview-container" class="hidden mt-4">
+          <img id="preview-image" class="attachment-preview w-full" alt="Preview lampiran">
+          <video id="preview-video" class="attachment-preview w-full hidden" controls></video>
+          <button id="remove-attachment" class="mt-2 text-red-400 text-sm">
+            <i class="fas fa-times mr-1"></i> Hapus lampiran
+          </button>
+        </div>
+        
+        <div id="social-feed" class="mt-8 space-y-6 max-h-[600px] overflow-y-auto">
+          <div class="text-center py-10">
+            <div class="loading mx-auto"></div>
+            <p class="mt-3 text-gray-400">Memuat postingan...</p>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Admin Panel Section -->
+      <section id="admin-section" class="solana-card p-6 hidden">
+        <h2 class="text-xl font-semibold mb-6">Admin Panel</h2>
+        
+        <div class="flex border-b border-gray-800 mb-6">
+          <button id="users-tab" class="py-3 px-4 font-medium tab-active">Users</button>
+          <button id="transactions-admin-tab" class="py-3 px-4 font-medium text-gray-400">Transaksi</button>
+          <button id="agendas-admin-tab" class="py-3 px-4 font-medium text-gray-400">Agenda</button>
+        </div>
+        
+        <div id="users-admin-content">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium">Manajemen Pengguna</h3>
+            <input type="text" id="admin-user-search" class="search-input w-64" placeholder="Cari pengguna...">
+          </div>
+          
+          <div id="users-list" class="space-y-3 max-h-[500px] overflow-y-auto">
+            <div class="text-center py-10">
+              <div class="loading mx-auto"></div>
+              <p class="mt-3 text-gray-400">Memuat data pengguna...</p>
+            </div>
+          </div>
+        </div>
+        
+        <div id="transactions-admin-content" class="hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium">Manajemen Transaksi</h3>
+            <div class="flex space-x-2">
+              <input type="text" id="admin-transaction-search" class="search-input w-64" placeholder="Cari transaksi...">
+              <button id="admin-add-transaction-btn" class="btn-primary">
+                <i class="fas fa-plus mr-2"></i> Tambah
+              </button>
+            </div>
+          </div>
+          
+          <div id="admin-transactions-list" class="space-y-4 max-h-[500px] overflow-y-auto">
+            <div class="text-center py-10">
+              <div class="loading mx-auto"></div>
+              <p class="mt-3 text-gray-400">Memuat data transaksi...</p>
+            </div>
+          </div>
+        </div>
+        
+        <div id="agendas-admin-content" class="hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium">Manajemen Agenda</h3>
+            <div class="flex space-x-2">
+              <input type="text" id="admin-agenda-search" class="search-input w-64" placeholder="Cari agenda...">
+              <button id="admin-add-agenda-btn" class="btn-primary">
+                <i class="fas fa-plus mr-2"></i> Tambah
+              </button>
+            </div>
+          </div>
+          
+          <div id="admin-agendas-list" class="space-y-4 max-h-[500px] overflow-y-auto">
+            <div class="text-center py-10">
+              <div class="loading mx-auto"></div>
+              <p class="mt-3 text-gray-400">Memuat data agenda...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Settings Section -->
+      <section id="setting-section" class="solana-card p-6 hidden">
+        <h2 class="text-xl font-semibold mb-6">Pengaturan Akun</h2>
+        <form id="setting-form" class="space-y-6">
+          <div class="flex items-center space-x-6">
+            <div class="relative">
+              <div id="profile-avatar-setting" class="user-avatar w-24 h-24 text-2xl">
+                <span id="user-initial-setting">U</span>
+              </div>
+              <img id="profile-image-setting" class="absolute inset-0 w-24 h-24 rounded-full object-cover hidden" alt="Profile">
+              <label for="profile-image-input" class="absolute bottom-0 right-0 bg-purple-600 rounded-full p-2 cursor-pointer">
+                <i class="fas fa-camera text-white"></i>
+              </label>
+              <input type="file" id="profile-image-input" accept="image/*" class="hidden">
+            </div>
+            <div>
+              <h3 class="text-lg font-medium">Foto Profil</h3>
+              <p class="text-gray-400 text-sm">Ukuran maks. 5MB (JPG, PNG)</p>
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm mb-2">Nama Lengkap</label>
+            <input type="text" id="setting-name" class="input-field" placeholder="Nama Anda">
+          </div>
+          
+          <div>
+            <label class="block text-sm mb-2">Email</label>
+            <input type="email" id="setting-email" class="input-field" disabled>
+          </div>
+          
+          <div>
+            <label class="block text-sm mb-2">Password Baru (biarkan kosong jika tidak ingin mengubah)</label>
+            <input type="password" id="setting-password" class="input-field" placeholder="••••••••">
+          </div>
+          
+          <div class="pt-4">
+            <button type="submit" class="btn-primary mr-3">
+              Simpan Perubahan
+            </button>
+            <button type="button" id="delete-account-btn" class="px-4 py-2 bg-red-600/80 hover:bg-red-700 rounded-lg">
+              Hapus Akun
+            </button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+        // Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
+          authDomain: "wallet-qc-local-storage.firebaseapp.com",
+          projectId: "wallet-qc-local-storage",
+          storageBucket: "wallet-qc-local-storage.appspot.com",
+          messagingSenderId: "443546801664",
+          appId: "1:443546801664:web:6d0342e1b8261dd920aae5",
+        };
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
