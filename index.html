@@ -144,6 +144,13 @@
         </div>
 
         <div class="mb-8">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Ringkasan Grafik Keuangan</h3>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <canvas id="financialChart"></canvas>
+            </div>
+        </div>
+
+        <div class="mb-8">
             <h3 class="text-xl font-bold mb-4 text-gray-800">Transaksi Baru</h3>
             <form id="transaction-form" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -275,12 +282,12 @@
     </div> <script>
         // Konfigurasi Firebase Anda
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY", // Ganti dengan kunci API Anda
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+          apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
+          authDomain: "wallet-qc-local-storage.firebaseapp.com",
+          projectId: "wallet-qc-local-storage",
+          storageBucket: "wallet-qc-local-storage.appspot.com",
+          messagingSenderId: "443546801664",
+          appId: "1:443546801664:web:6d0342e1b8261dd920aae5",
         };
 
         // Inisialisasi Firebase
@@ -326,8 +333,12 @@
         const exportPdfBtn = document.getElementById('export-pdf-btn');
         const exportExcelBtn = document.getElementById('export-excel-btn');
 
+        // Elemen Chart baru
+        const financialChartCanvas = document.getElementById('financialChart');
+
 
         let currentUser = null; // Untuk menyimpan objek pengguna saat ini
+        let financialChartInstance = null; // Variabel untuk menyimpan instance chart
 
         // --- Fungsi Utilitas ---
 
@@ -389,6 +400,58 @@
                 type: file.type // Simpan tipe MIME
             };
         }
+
+        // Fungsi untuk menggambar atau memperbarui grafik keuangan
+        function renderFinancialChart(income, expense) {
+            const ctx = financialChartCanvas.getContext('2d');
+
+            // Hancurkan instance chart yang ada jika sudah ada untuk menghindari duplikasi
+            if (financialChartInstance) {
+                financialChartInstance.destroy();
+            }
+
+            financialChartInstance = new Chart(ctx, {
+                type: 'doughnut', // Atau 'bar', 'pie', dll. Doughnut cocok untuk perbandingan 2 nilai.
+                data: {
+                    labels: ['Pemasukan', 'Pengeluaran'],
+                    datasets: [{
+                        data: [income, expense],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.7)', // Warna hijau untuk pemasukan (emerald-500)
+                            'rgba(239, 68, 68, 0.7)'  // Warna merah untuk pengeluaran (red-500)
+                        ],
+                        borderColor: [
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(239, 68, 68, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Penting agar grafik menyesuaikan ukuran kontainer
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Distribusi Pemasukan vs Pengeluaran'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    // Format nilai tooltip sebagai Rupiah
+                                    const value = tooltipItem.raw;
+                                    return tooltipItem.label + ': ' + formatRupiah(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
 
         // --- Fungsi Pemuatan Data ---
 
@@ -460,6 +523,9 @@
                 totalIncomeEl.textContent = formatRupiah(totalIncome);
                 totalExpenseEl.textContent = formatRupiah(totalExpense);
                 netBalanceEl.textContent = formatRupiah(totalIncome - totalExpense);
+
+                // Panggil fungsi untuk merender grafik dengan data terbaru
+                renderFinancialChart(totalIncome, totalExpense); // <--- BARIS INI DITAMBAHKAN
 
             } catch (error) {
                 showError("Gagal memuat transaksi: " + error.message);
