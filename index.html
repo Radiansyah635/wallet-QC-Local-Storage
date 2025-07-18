@@ -20,12 +20,14 @@
       --dark-bg: #0f0f0f;
       --card-bg: rgba(31, 31, 31, 0.7);
     }
+    
     body {
       background: linear-gradient(to bottom, #000000, var(--dark-bg));
       min-height: 100vh;
       font-family: 'Segoe UI', system-ui, sans-serif;
       color: #f3f4f6;
     }
+    
     .solana-card {
       background: var(--card-bg);
       backdrop-filter: blur(10px);
@@ -34,16 +36,19 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
       transition: all 0.3s ease;
     }
+    
     .solana-card:hover {
       transform: translateY(-5px);
       box-shadow: 0 10px 25px rgba(139, 92, 246, 0.2);
     }
+    
     .gradient-text {
       background: linear-gradient(to right, var(--primary-purple), var(--primary-green));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
+    
     .btn-primary {
       background: linear-gradient(to right, var(--primary-purple), var(--primary-green));
       color: white;
@@ -54,11 +59,13 @@
       transition: all 0.3s ease;
       cursor: pointer;
     }
+    
     .btn-primary:hover {
       opacity: 0.9;
       transform: translateY(-2px);
       box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
     }
+    
     .input-field {
       background: rgba(55, 55, 55, 0.5);
       border: 1px solid rgba(107, 114, 128, 0.3);
@@ -68,22 +75,27 @@
       width: 100%;
       transition: border 0.3s ease;
     }
+    
     .input-field:focus {
       outline: none;
       border-color: var(--primary-purple);
       box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
     }
+    
     .tab-active {
       background: rgba(139, 92, 246, 0.2);
       color: var(--primary-purple);
       font-weight: 600;
     }
+    
     .transaction-in {
       border-left: 4px solid var(--primary-green);
     }
+    
     .transaction-out {
       border-left: 4px solid #EF4444;
     }
+    
     .user-avatar {
       background: linear-gradient(to right, var(--primary-purple), var(--primary-green));
       color: white;
@@ -93,7 +105,11 @@
       border-radius: 50%;
       font-weight: bold;
     }
-    .section-hidden { display: none; }
+    
+    .section-hidden {
+      display: none;
+    }
+    
     .loading {
       display: inline-block;
       width: 20px;
@@ -103,14 +119,22 @@
       border-top-color: var(--primary-purple);
       animation: spin 1s ease-in-out infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
     .post-card {
       background: rgba(40, 40, 40, 0.7);
       border-radius: 12px;
       overflow: hidden;
       transition: transform 0.3s ease;
     }
-    .post-card:hover { transform: translateY(-3px); }
+    
+    .post-card:hover {
+      transform: translateY(-3px);
+    }
+    
     .attachment-preview {
       max-height: 300px;
       object-fit: contain;
@@ -118,37 +142,280 @@
       margin-top: 10px;
       background-color: #000;
     }
+    
     .agenda-card {
       background: rgba(45, 45, 45, 0.7);
       border-left: 4px solid var(--primary-green);
       border-radius: 8px;
     }
-    .role-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 9999px; margin-left: 8px; }
-    .admin-badge { background: linear-gradient(to right, #f59e0b, #ef4444); }
-    .member-badge { background: linear-gradient(to right, #3b82f6, #8b5cf6); }
-    .chart-container { position: relative; height: 300px; width: 100%; }
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: rgba(31, 31, 31, 0.5); }
-    ::-webkit-scrollbar-thumb { background: var(--primary-purple); border-radius: 4px; }
+    
+    .role-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      margin-left: 8px;
+    }
+    
+    .admin-badge {
+      background: linear-gradient(to right, #f59e0b, #ef4444);
+    }
+    
+    .member-badge {
+      background: linear-gradient(to right, #3b82f6, #8b5cf6);
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(31, 31, 31, 0.5);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary-purple);
+      border-radius: 4px;
+    }
+    
     .file-upload-label {
-      display: flex; align-items: center; justify-content: space-between;
-      cursor: pointer; padding: 12px 16px; border-radius: 12px;
-      background: rgba(55, 55, 55, 0.5); border: 1px dashed rgba(139, 92, 246, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: rgba(55, 55, 55, 0.5);
+      border: 1px dashed rgba(139, 92, 246, 0.5);
       transition: all 0.3s ease;
     }
+    
     .file-upload-label:hover {
       border-color: var(--primary-purple);
       background: rgba(55, 55, 55, 0.7);
     }
-    .admin-info-box { background: rgba(139, 92, 246, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-    /* ... (style lain tetap seperti di file Anda) ... */
+    
+    .admin-info-box {
+      background: rgba(139, 92, 246, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .admin-info-box h3 {
+      color: var(--primary-purple);
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    
+    .admin-info-box ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    
+    .admin-info-box li {
+      margin-bottom: 10px;
+      padding-left: 25px;
+      position: relative;
+    }
+    
+    .admin-info-box li:before {
+      content: "•";
+      color: var(--primary-green);
+      position: absolute;
+      left: 0;
+      font-size: 20px;
+      line-height: 1;
+    }
+    
+    .comment-box {
+      background: rgba(50, 50, 50, 0.5);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .action-button {
+      background: rgba(70, 70, 70, 0.5);
+      border: none;
+      border-radius: 8px;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .action-button:hover {
+      background: rgba(90, 90, 90, 0.7);
+    }
+    
+    .like-button.active {
+      color: #EF4444;
+    }
+    
+    .user-list-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid rgba(70, 70, 70, 0.5);
+    }
+    
+    .user-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 10px;
+    }
+    
+    /* New styles for dashboard */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 300px 1fr 300px;
+      gap: 1.5rem;
+      height: calc(100vh - 150px);
+    }
+    
+    .dashboard-left {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    .dashboard-center {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    .dashboard-right {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    .dashboard-profile {
+      height: auto;
+    }
+    
+    .dashboard-balance {
+      height: auto;
+    }
+    
+    .dashboard-transactions {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    
+    .dashboard-chart {
+      height: 300px;
+    }
+    
+    .dashboard-social {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    
+    .dashboard-agenda {
+      height: auto;
+    }
+    
+    .dashboard-users {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    
+    .quick-access-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .quick-access-btn {
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(55, 55, 55, 0.5);
+      border: none;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    
+    .quick-access-btn:hover {
+      background: rgba(139, 92, 246, 0.3);
+    }
+    
+    @media (max-width: 1280px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      
+      .dashboard-left,
+      .dashboard-center,
+      .dashboard-right {
+        grid-column: span 1;
+      }
+    }
+    
+    .dashboard-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .dashboard-card-content {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    
+    .status-active {
+      background-color: var(--primary-green);
+    }
+    
+    .status-inactive {
+      background-color: #6B7280;
+    }
+    
+    .search-input {
+      background: rgba(55, 55, 55, 0.5);
+      border: 1px solid rgba(107, 114, 128, 0.3);
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: white;
+      width: 100%;
+      transition: border 0.3s ease;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary-purple);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
-  <!-- Seluruh HTML Anda tetap, copy dari yang sudah benar -->
-  <!-- Bagian utama HTML sudah benar, tidak perlu diubah -->
-  <!-- ... -->
-<header class="bg-black/80 py-4 px-6 border-b border-purple-900/50 sticky top-0 z-50">
+  <header class="bg-black/80 py-4 px-6 border-b border-purple-900/50 sticky top-0 z-50">
     <div class="container mx-auto flex justify-between items-center">
       <h1 class="text-2xl font-bold gradient-text">Wallet QC</h1>
       <div id="auth-section" class="flex items-center space-x-4">
@@ -734,10 +1001,8 @@
       </section>
     </section>
   </main>
-  <!-- (Untuk menghemat ruang, silakan copy HTML Anda yang sudah benar di atas ke bagian ini) -->
 
   <script>
-  
   document.addEventListener('DOMContentLoaded', function () {
         // Firebase configuration
         const firebaseConfig = {
