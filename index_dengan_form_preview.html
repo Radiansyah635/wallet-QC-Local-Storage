@@ -1072,36 +1072,49 @@
               currentUser = userCredential.user;
               
               // Simpan data pengguna tambahan
-              return usersRef.doc(currentUser.uid).set({
-                uid: currentUser.uid,
-                name: name,
-                email: email,
-                role: isAdmin ? "admin" : "member",
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                profileImage: "",
-                totalIncome: 0,
-                totalExpense: 0,
-                lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-              
-    function createMediaPreview(fileUrl, fileType) {
-      const mediaDiv = document.createElement("div");
-      mediaDiv.className = "border p-2 rounded";
+              // Simpan data pengguna tambahan
+return usersRef.doc(currentUser.uid).set({
+  uid: currentUser.uid,
+  name: name,
+  email: email,
+  role: isAdmin ? "admin" : "member",
+  createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  profileImage: "",
+  totalIncome: 0,
+  totalExpense: 0,
+  lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+}) // <--- Tambahkan ini: Kurung tutup untuk .set()
+.then(() => {
+    // Opsional: Lakukan sesuatu setelah data berhasil disimpan,
+    // misalnya menampilkan pesan sukses atau redirect.
+    console.log("Data pengguna berhasil disimpan!");
+})
+.catch(error => {
+    // Opsional: Tangani error jika penyimpanan gagal.
+    console.error("Error menyimpan data pengguna:", error);
+});
+; // <--- Opsional: Titik koma untuk mengakhiri statement (praktik baik)
 
-      if (fileType === "image") {
-        const img = document.createElement("img");
-        img.src = fileUrl;
-        img.className = "w-full h-auto rounded";
-        mediaDiv.appendChild(img);
-      } else if (fileType === "video") {
-        const vid = document.createElement("video");
-        vid.src = fileUrl;
-        vid.controls = true;
-        vid.className = "w-full rounded";
-        mediaDiv.appendChild(vid);
-      }
-      return mediaDiv;
-    }
+// Ini adalah fungsi terpisah, pastikan ia berada di luar blok kode di atas
+// atau di dalam cakupan yang tepat (misalnya, di dalam `<script>` tag di HTML Anda).
+function createMediaPreview(fileUrl, fileType) {
+  const mediaDiv = document.createElement("div");
+  mediaDiv.className = "border p-2 rounded";
 
+  if (fileType === "image") {
+    const img = document.createElement("img");
+    img.src = fileUrl;
+    img.className = "w-full h-auto rounded";
+    mediaDiv.appendChild(img);
+  } else if (fileType === "video") {
+    const vid = document.createElement("video");
+    vid.src = fileUrl;
+    vid.controls = true;
+    vid.className = "w-full rounded";
+    mediaDiv.appendChild(vid);
+  }
+  return mediaDiv;
+}
     function loadPosts() {
       postsRef.orderBy("createdAt", "desc").get().then(snapshot => {
         const postPreview = document.getElementById("post-preview");
