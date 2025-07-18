@@ -1,133 +1,147 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Wallet QC - Financial Management</title>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.autotable.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-    <style>
-        :root {
-            --primary-purple: #8B5CF6; /* Tailwind's purple-500 */
-            --secondary-purple: #A78BFA; /* Tailwind's purple-400 */
-            --dark-purple: #6D28D9; /* Tailwind's purple-700 */
-            --light-gray: #E5E7EB; /* Tailwind's gray-200 */
-            --dark-gray: #374151; /* Tailwind's gray-700 */
-            --success-green: #10B981; /* Tailwind's emerald-500 */
-            --error-red: #EF4444; /* Tailwind's red-500 */
-            --warning-yellow: #F59E0B; /* Tailwind's yellow-500 */
-            --info-blue: #3B82F6; /* Tailwind's blue-500 */
-        }
-        body {
-            font-family: 'Inter', sans-serif; /* Asumsi font Inter atau sejenisnya */
-        }
-        /* Custom scrollbar for better aesthetics */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--light-gray); /* Match light-gray for track */
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary-purple); /* Match primary-purple for thumb */
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--dark-purple); /* Darker purple on hover */
-        }
-        .text-purple-500 { color: var(--primary-purple); }
-        .bg-purple-500 { background-color: var(--primary-purple); }
-        .hover\:bg-purple-600:hover { background-color: var(--dark-purple); }
-        .focus\:ring-purple-500:focus { --tw-ring-color: var(--primary-purple); }
-        .bg-gray-100 { background-color: var(--light-gray); }
-        .text-gray-700 { color: var(--dark-gray); }
-        .border-red-500 { border-color: var(--error-red); }
-        .text-red-500 { color: var(--error-red); }
-        .text-green-500 { color: var(--success-green); }
-        .hidden { display: none !important; }
-        .block { display: block !important; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallet QC - Financial Management</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.autotable.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-purple: #8B5CF6; /* Tailwind's purple-500 */
+      --secondary-purple: #A78BFA; /* Tailwind's purple-400 */
+      --dark-purple: #6D28D9; /* Tailwind's purple-700 */
+      --light-gray: #E5E7EB; /* Tailwind's gray-200 */
+      --dark-gray: #374151; /* Tailwind's gray-700 */
+      --success-green: #10B981; /* Tailwind's emerald-500 */
+      --error-red: #EF4444; /* Tailwind's red-500 */
+      --warning-yellow: #F59E0B; /* Tailwind's yellow-500 */
+      --info-blue: #3B82F6; /* Tailwind's blue-500 */
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--light-gray);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary-purple);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--dark-purple);
+    }
+    .text-purple-500 { color: var(--primary-purple); }
+    .bg-purple-500 { background-color: var(--primary-purple); }
+    .hover\:bg-purple-600:hover { background-color: var(--dark-purple); }
+    .focus\:ring-purple-500:focus { --tw-ring-color: var(--primary-purple); }
+    .bg-gray-100 { background-color: var(--light-gray); }
+    .text-gray-700 { color: var(--dark-gray); }
+    .border-red-500 { border-color: var(--error-red); }
+    .text-red-500 { color: var(--error-red); }
+    .text-green-500 { color: var(--success-green); }
+    .hidden { display: none !important; }
+    .block { display: block !important; }
 
-        /* Custom styles for the form layout */
-        .form-section {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1.5rem; /* Equivalent to gap-6 */
-        }
-        @media (min-width: 768px) { /* md breakpoint */
-            .form-section {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-        .full-width {
-            grid-column: 1 / -1; /* Spans all columns */
-        }
-    </style>
+    .form-section {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    @media (min-width: 768px) {
+      .form-section {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    /* Styles for the navigation buttons */
+    .nav-button.active {
+        background-color: var(--dark-purple); /* Darker purple for active state */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Shadow for active button */
+    }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div id="auth-container" class="bg-white p-8 rounded-lg shadow-md w-full max-w-md mx-auto">
-        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Login</h2>
-        <div id="auth-error-message" class="text-red-500 text-sm mb-4 hidden"></div>
+  <div id="auth-container" class="bg-white p-8 rounded-lg shadow-md w-full max-w-md mx-auto">
+    <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Login</h2>
+    <div id="auth-error-message" class="text-red-500 text-sm mb-4 hidden"></div>
 
-        <form id="login-form" class="space-y-4">
-            <div>
-                <label for="login-email" class="block text-sm font-medium text-gray-700">Email</label>
-                <input type="email" id="login-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" required>
-            </div>
-            <div>
-                <label for="login-password" class="block text-sm font-medium text-gray-700">Password</label>
-                <input type="password" id="login-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" required>
-            </div>
-            <button type="submit" class="w-full bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">Login</button>
-        </form>
+    <form id="login-form" class="space-y-4">
+      <div>
+        <label for="login-email" class="block text-sm font-medium text-gray-700">Email</label>
+        <input type="email" id="login-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" required>
+      </div>
+      <div>
+        <label for="login-password" class="block text-sm font-medium text-gray-700">Password</label>
+        <input type="password" id="login-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" required>
+      </div>
+      <button type="submit" class="w-full bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">Login</button>
+    </form>
 
-        <p class="mt-6 text-center text-sm text-gray-600">Belum punya akun? <a href="#" id="show-register" class="font-medium text-purple-500 hover:text-purple-600">Daftar di sini</a></p>
+    <p class="mt-6 text-center text-sm text-gray-600">Belum punya akun? <a href="#" id="show-register" class="font-medium text-purple-500 hover:text-purple-600">Daftar di sini</a></p>
 
-        <form id="register-form" class="space-y-4 hidden">
-            <div>
-                <label for="register-name" class="block text-sm font-medium text-gray-700">Nama</label>
-                <input type="text" id="register-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" required>
-            </div>
-            <div>
-                <label for="register-email" class="block text-sm font-medium text-gray-700">Email</label>
-                <input type="email" id="register-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" required>
-            </div>
-            <div>
-                <label for="register-password" class="block text-sm font-medium text-gray-700">Password</label>
-                <input type="password" id="register-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" required>
-            </div>
-            <div class="flex items-center">
-                <input type="checkbox" id="register-admin" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
-                <label for="register-admin" class="ml-2 block text-sm text-gray-900">Daftar sebagai Admin (hanya untuk pengujian)</label>
-            </div>
-            <button type="submit" class="w-full bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">Daftar</button>
-        </form>
+    <form id="register-form" class="space-y-4 hidden">
+      <div>
+        <label for="register-name" class="block text-sm font-medium text-gray-700">Nama</label>
+        <input type="text" id="register-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" required>
+      </div>
+      <div>
+        <label for="register-email" class="block text-sm font-medium text-gray-700">Email</label>
+        <input type="email" id="register-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" required>
+      </div>
+      <div>
+        <label for="register-password" class="block text-sm font-medium text-gray-700">Password</label>
+        <input type="password" id="register-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" required>
+      </div>
+      <div class="flex items-center">
+        <input type="checkbox" id="register-admin" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+        <label for="register-admin" class="ml-2 block text-sm text-gray-900">Daftar sebagai Admin (hanya untuk pengujian)</label>
+      </div>
+      <button type="submit" class="w-full bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">Daftar</button>
+    </form>
 
-        <p class="mt-6 text-center text-sm text-gray-600">Sudah punya akun? <a href="#" id="show-login" class="font-medium text-purple-500 hover:text-purple-600 hidden">Login di sini</a></p>
+    <p class="mt-6 text-center text-sm text-gray-600">Sudah punya akun? <a href="#" id="show-login" class="font-medium text-purple-500 hover:text-purple-600 hidden">Login di sini</a></p>
+  </div>
+
+  <div id="dashboard" class="hidden bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto mt-8">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-3xl font-bold text-gray-800">Dashboard</h2>
+      <div class="flex items-center space-x-4">
+        <span id="user-email" class="text-gray-700 font-medium hidden"></span>
+        <span id="user-role" class="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold hidden"></span>
+        <button id="logout-btn" class="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 hidden">Logout</button>
+        <button id="login-btn" class="bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 hidden">Login</button>
+      </div>
     </div>
 
-    <div id="dashboard" class="hidden bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto mt-8">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-3xl font-bold text-gray-800">Dashboard</h2>
-            <div class="flex items-center space-x-4">
-                <span id="user-email" class="text-gray-700 font-medium hidden"></span>
-                <span id="user-role" class="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold hidden"></span>
-                <button id="logout-btn" class="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 hidden">Logout</button>
-                <button id="login-btn" class="bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 hidden">Login</button>
-            </div>
-        </div>
+    <div id="error-message" class="text-red-500 text-center mb-4 hidden"></div>
+    <div id="success-message" class="text-green-500 text-center mb-4 hidden"></div>
 
-        <div id="error-message" class="text-red-500 text-center mb-4 hidden"></div>
+    <div class="flex justify-center space-x-4 mb-8">
+        <button id="nav-dashboard" class="nav-button bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 active">Dashboard</button>
+        <button id="nav-full-finance" class="nav-button bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600">Full Finance</button>
+        <button id="nav-social-feed" class="nav-button bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600">Social Feed</button>
+        <button id="nav-agenda" class="nav-button bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600">Agenda</button>
+        <button id="nav-admin-panel" class="nav-button bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 admin-only hidden">Admin Panel</button>
+    </div>
 
+    <div id="dashboard-section" class="section-content">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <div class="bg-blue-100 p-4 rounded-lg shadow-sm">
                 <h3 class="text-lg font-semibold text-blue-800">Total Pemasukan</h3>
@@ -179,7 +193,45 @@
         </div>
 
         <div class="mb-8">
-            <h3 class="text-xl font-bold mb-4 text-gray-800">Daftar Transaksi</h3>
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Postingan Terbaru</h3>
+            <div id="recent-posts" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <p class="text-gray-500 text-center col-span-full">Memuat postingan terbaru...</p>
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Agenda Mendatang</h3>
+            <div id="upcoming-agendas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <p class="text-gray-500 text-center col-span-full">Memuat agenda mendatang...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="full-finance-section" class="section-content hidden">
+        <h3 class="text-2xl font-bold mb-6 text-gray-800">Seluruh Transaksi Keuangan</h3>
+
+        <div class="flex flex-wrap items-center justify-between mb-6 admin-only hidden">
+            <div class="mb-4 md:mb-0">
+                <label for="filter-user-id" class="block text-sm font-medium text-gray-700">Filter berdasarkan User:</label>
+                <select id="filter-user-id" class="mt-1 block w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
+                    <option value="">Semua User</option>
+                    </select>
+            </div>
+            <div class="flex space-x-2">
+                <button id="export-pdf-btn" class="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">Export PDF</button>
+                <button id="export-excel-btn" class="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600">Export Excel</button>
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Grafik Pemasukan vs Pengeluaran</h3>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <canvas id="fullFinanceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Daftar Transaksi Lengkap</h3>
             <div class="overflow-x-auto">
                 <table class="min-w-full bg-white border border-gray-200 rounded-lg">
                     <thead>
@@ -189,41 +241,21 @@
                             <th class="py-3 px-4 border-b border-gray-200">Jumlah</th>
                             <th class="py-3 px-4 border-b border-gray-200">Kategori</th>
                             <th class="py-3 px-4 border-b border-gray-200">Deskripsi</th>
-                            <th class="py-3 px-4 border-b border-gray-200 admin-only hidden">User UID</th>
-                            <th class="py-3 px-4 border-b border-gray-200">Aksi</th>
+                            <th class="py-3 px-4 admin-only hidden">User UID</th>
+                            <th class="py-3 px-4">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="transaction-list">
-                        <tr><td colspan="7" class="py-4 px-4 text-center text-gray-500">Belum ada transaksi.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-4 flex justify-end space-x-2 admin-only hidden">
-                <button id="export-pdf-btn" class="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">Export PDF (Admin)</button>
-                <button id="export-excel-btn" class="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600">Export Excel (Admin)</button>
-            </div>
-        </div>
-
-        <div id="admin-user-management" class="hidden admin-only mb-8">
-            <h3 class="text-xl font-bold mb-4 text-gray-800">Manajemen Pengguna (Admin)</h3>
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-200 rounded-lg">
-                    <thead>
-                        <tr class="bg-gray-100 text-gray-700 text-left text-sm font-semibold uppercase tracking-wider">
-                            <th class="py-3 px-4 border-b border-gray-200">Nama</th>
-                            <th class="py-3 px-4 border-b border-gray-200">Email</th>
-                            <th class="py-3 px-4 border-b border-gray-200">Role</th>
-                            <th class="py-3 px-4 border-b border-gray-200">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="user-list">
-                        <tr><td colspan="4" class="py-4 px-4 text-center text-gray-500">Memuat pengguna...</td></tr>
+                    <tbody id="full-transaction-list">
+                        <tr><td colspan="7" class="py-4 px-4 text-center text-gray-500">Memuat transaksi...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
 
-        <div id="posts-section" class="mb-8 admin-only hidden">
+    <div id="social-feed-section" class="section-content hidden">
+        <h3 class="text-2xl font-bold mb-6 text-gray-800">Social Feed (Postingan Publik)</h3>
+        <div class="mb-8 admin-only hidden">
             <h3 class="text-xl font-bold mb-4 text-gray-800">Posting Baru (Admin)</h3>
             <form id="post-form" class="space-y-4">
                 <div>
@@ -241,13 +273,16 @@
                 </div>
                 <button type="submit" class="w-full bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">Buat Post</button>
             </form>
-            <h3 class="text-xl font-bold mt-8 mb-4 text-gray-800">Daftar Posting</h3>
-            <div id="post-preview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <p class="text-gray-500 text-center col-span-full">Memuat postingan...</p>
-            </div>
         </div>
+        <h3 class="text-xl font-bold mt-8 mb-4 text-gray-800">Daftar Posting</h3>
+        <div id="all-posts" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <p class="text-gray-500 text-center col-span-full">Memuat postingan...</p>
+        </div>
+    </div>
 
-        <div id="agenda-section" class="mb-8 admin-only hidden">
+    <div id="agenda-section" class="section-content hidden">
+        <h3 class="text-2xl font-bold mb-6 text-gray-800">Agenda Kegiatan</h3>
+        <div class="mb-8 admin-only hidden">
             <h3 class="text-xl font-bold mb-4 text-gray-800">Agenda Baru (Admin)</h3>
             <form id="agenda-form" class="space-y-4">
                 <div>
@@ -273,836 +308,1075 @@
                 </div>
                 <button type="submit" class="w-full bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">Buat Agenda</button>
             </form>
-            <h3 class="text-xl font-bold mt-8 mb-4 text-gray-800">Daftar Agenda</h3>
-            <div id="agenda-preview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <p class="text-gray-500 text-center col-span-full">Memuat agenda...</p>
+        </div>
+        <h3 class="text-xl font-bold mt-8 mb-4 text-gray-800">Daftar Agenda</h3>
+        <div id="all-agendas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <p class="text-gray-500 text-center col-span-full">Memuat agenda...</p>
+        </div>
+    </div>
+
+    <div id="admin-panel-section" class="section-content hidden admin-only">
+        <h3 class="text-2xl font-bold mb-6 text-gray-800">Admin Panel</h3>
+
+        <div class="mb-8">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Manajemen Pengguna</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-700 text-left text-sm font-semibold uppercase tracking-wider">
+                            <th class="py-3 px-4 border-b border-gray-200">Nama</th>
+                            <th class="py-3 px-4 border-b border-gray-200">Email</th>
+                            <th class="py-3 px-4 border-b border-gray-200">Role</th>
+                            <th class="py-3 px-4">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-user-list">
+                        <tr><td colspan="4" class="py-4 px-4 text-center text-gray-500">Memuat pengguna...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-    </div> <script>
-        // Konfigurasi Firebase Anda
-        const firebaseConfig = {
-          apiKey: "AIzaSyD0RL0zvv4DL9EBax3XouugVZpkHdzyVNQ",
-          authDomain: "wallet-qc-local-storage.firebaseapp.com",
-          projectId: "wallet-qc-local-storage",
-          storageBucket: "wallet-qc-local-storage.appspot.com",
-          messagingSenderId: "443546801664",
-          appId: "1:443546801664:web:6d0342e1b8261dd920aae5",
+        <div class="mb-8">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Daftar Semua Transaksi</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-700 text-left text-sm font-semibold uppercase tracking-wider">
+                            <th class="py-3 px-4 border-b border-gray-200">Tanggal</th>
+                            <th class="py-3 px-4 border-b border-gray-200">Jenis</th>
+                            <th class="py-3 px-4 border-b border-gray-200">Jumlah</th>
+                            <th class="py-3 px-4 border-b border-gray-200">Kategori</th>
+                            <th class="py-3 px-4 border-b border-gray-200">Deskripsi</th>
+                            <th class="py-3 px-4">User UID</th>
+                            <th class="py-3 px-4">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-transaction-list">
+                        <tr><td colspan="7" class="py-4 px-4 text-center text-gray-500">Memuat transaksi...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div> </div>
+
+
+  <script>
+    // Konfigurasi Firebase Anda
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY", // Ganti dengan kunci API Anda
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    // Referensi koleksi Firestore
+    const usersRef = db.collection('users');
+    const transactionsRef = db.collection('transactions');
+    const postsRef = db.collection('posts');
+    const agendaRef = db.collection('agenda');
+
+    // Elemen DOM Autentikasi
+    const authContainer = document.getElementById('auth-container');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const showRegisterBtn = document.getElementById('show-register');
+    const showLoginBtn = document.getElementById('show-login');
+    const authErrorMessage = document.getElementById('auth-error-message');
+
+    // Elemen DOM Dashboard & Navigasi
+    const dashboard = document.getElementById('dashboard');
+    const errorMessage = document.getElementById('error-message');
+    const successMessage = document.getElementById('success-message');
+    const logoutBtn = document.getElementById('logout-btn');
+    const loginBtn = document.getElementById('login-btn'); // Tombol login di header dashboard saat logout
+    const userEmailSpan = document.getElementById('user-email');
+    const userRoleSpan = document.getElementById('user-role');
+
+    // Elemen DOM Dashboard Sections
+    const navDashboardBtn = document.getElementById('nav-dashboard');
+    const navFullFinanceBtn = document.getElementById('nav-full-finance');
+    const navSocialFeedBtn = document.getElementById('nav-social-feed');
+    const navAgendaBtn = document.getElementById('nav-agenda');
+    const navAdminPanelBtn = document.getElementById('nav-admin-panel');
+
+    const dashboardSection = document.getElementById('dashboard-section');
+    const fullFinanceSection = document.getElementById('full-finance-section');
+    const socialFeedSection = document.getElementById('social-feed-section');
+    const agendaSection = document.getElementById('agenda-section');
+    const adminPanelSection = document.getElementById('admin-panel-section');
+
+    // Elemen DOM Dashboard Utama
+    const totalIncomeEl = document.getElementById('total-income');
+    const totalExpenseEl = document.getElementById('total-expense');
+    const netBalanceEl = document.getElementById('net-balance');
+    const transactionForm = document.getElementById('transaction-form');
+    const financialChartCanvas = document.getElementById('financialChart');
+    const recentPostsContainer = document.getElementById('recent-posts');
+    const upcomingAgendasContainer = document.getElementById('upcoming-agendas');
+
+    // Elemen DOM Full Finance
+    const filterUserDropdown = document.getElementById('filter-user-id');
+    const exportPdfBtn = document.getElementById('export-pdf-btn');
+    const exportExcelBtn = document.getElementById('export-excel-btn');
+    const fullFinanceChartCanvas = document.getElementById('fullFinanceChart');
+    const fullTransactionList = document.getElementById('full-transaction-list');
+
+    // Elemen DOM Social Feed
+    const postForm = document.getElementById('post-form');
+    const postFileEl = document.getElementById('post-file');
+    const postFilePreview = document.getElementById('post-file-preview');
+    const allPostsContainer = document.getElementById('all-posts');
+
+    // Elemen DOM Agenda
+    const agendaForm = document.getElementById('agenda-form');
+    const agendaFileEl = document.getElementById('agenda-file');
+    const agendaFilePreview = document.getElementById('agenda-file-preview');
+    const allAgendasContainer = document.getElementById('all-agendas');
+
+    // Elemen DOM Admin Panel
+    const adminUserListTable = document.getElementById('admin-user-list');
+    const adminTransactionListTable = document.getElementById('admin-transaction-list');
+
+
+    let currentUser = null; // Untuk menyimpan objek pengguna saat ini
+    let financialChartInstance = null; // Instance grafik dashboard
+    let fullFinanceChartInstance = null; // Instance grafik full finance
+
+    // --- Fungsi Utilitas ---
+
+    // Fungsi untuk menampilkan pesan error
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.classList.remove('hidden');
+        successMessage.classList.add('hidden'); // Sembunyikan pesan sukses
+        setTimeout(() => errorMessage.classList.add('hidden'), 5000);
+    }
+
+    // Fungsi untuk menampilkan pesan sukses
+    function showSuccess(message) {
+        successMessage.textContent = message;
+        successMessage.classList.remove('hidden');
+        errorMessage.classList.add('hidden'); // Sembunyikan pesan error
+        setTimeout(() => successMessage.classList.add('hidden'), 5000);
+    }
+
+    // Fungsi untuk memformat angka menjadi mata uang Rupiah
+    function formatRupiah(amount) {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0
+        }).format(amount);
+    }
+
+    // Fungsi untuk membuat pratinjau gambar/video
+    function createMediaPreview(fileUrl, fileType) {
+        const mediaDiv = document.createElement("div");
+        mediaDiv.className = "border p-2 rounded";
+
+        if (fileType.startsWith("image")) {
+            const img = document.createElement("img");
+            img.src = fileUrl;
+            img.className = "w-full h-auto rounded";
+            mediaDiv.appendChild(img);
+        } else if (fileType.startsWith("video")) {
+            const vid = document.createElement("video");
+            vid.src = fileUrl;
+            vid.controls = true;
+            vid.className = "w-full rounded";
+            mediaDiv.appendChild(vid);
+        } else {
+            const p = document.createElement("p");
+            p.textContent = "Preview tidak tersedia untuk tipe file ini.";
+            p.className = "text-gray-500";
+            mediaDiv.appendChild(p);
+        }
+        return mediaDiv;
+    }
+
+    // Fungsi untuk mengunggah file ke Firebase Storage
+    async function uploadFile(file, folder) {
+        if (!file) return null;
+        const storageRef = storage.ref(`${folder}/${file.name}_${Date.now()}`);
+        const snapshot = await storageRef.put(file);
+        return {
+            url: await snapshot.ref.getDownloadURL(),
+            type: file.type
         };
+    }
 
-        // Inisialisasi Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const storage = firebase.storage();
+    // Fungsi untuk mengatur visibilitas section
+    function showSection(sectionId) {
+        document.querySelectorAll('.section-content').forEach(section => {
+            section.classList.add('hidden');
+        });
+        document.getElementById(sectionId).classList.remove('hidden');
 
-        // Referensi koleksi Firestore
-        const usersRef = db.collection('users');
-        const transactionsRef = db.collection('transactions');
-        const postsRef = db.collection('posts');
-        const agendaRef = db.collection('agenda');
+        // Update active class for nav buttons
+        document.querySelectorAll('.nav-button').forEach(button => {
+            button.classList.remove('active');
+            button.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+            button.classList.add('bg-purple-500', 'hover:bg-purple-600');
+        });
+        const activeButton = document.getElementById(`nav-${sectionId.replace('-section', '')}`);
+        if (activeButton) {
+            activeButton.classList.add('active');
+            activeButton.classList.remove('bg-purple-500', 'hover:bg-purple-600');
+            activeButton.classList.add('bg-purple-600', 'hover:bg-purple-700');
+        }
+    }
 
-        // Elemen DOM
-        const authContainer = document.getElementById('auth-container');
-        const dashboard = document.getElementById('dashboard');
-        const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
-        const showRegisterBtn = document.getElementById('show-register');
-        const showLoginBtn = document.getElementById('show-login');
-        const authErrorMessage = document.getElementById('auth-error-message');
-        const errorMessage = document.getElementById('error-message');
-        const logoutBtn = document.getElementById('logout-btn');
-        const loginBtn = document.getElementById('login-btn');
-        const userEmailSpan = document.getElementById('user-email');
-        const userRoleSpan = document.getElementById('user-role');
-        const totalIncomeEl = document.getElementById('total-income');
-        const totalExpenseEl = document.getElementById('total-expense');
-        const netBalanceEl = document.getElementById('net-balance');
-        const transactionForm = document.getElementById('transaction-form');
-        const transactionList = document.getElementById('transaction-list');
-        const adminUserManagement = document.getElementById('admin-user-management');
-        const userListTable = document.getElementById('user-list');
-        const postsSection = document.getElementById('posts-section');
-        const postForm = document.getElementById('post-form');
-        const postFileEl = document.getElementById('post-file');
-        const postFilePreview = document.getElementById('post-file-preview');
-        const agendaSection = document.getElementById('agenda-section');
-        const agendaForm = document.getElementById('agenda-form');
-        const agendaFileEl = document.getElementById('agenda-file');
-        const agendaFilePreview = document.getElementById('agenda-file-preview');
-        const exportPdfBtn = document.getElementById('export-pdf-btn');
-        const exportExcelBtn = document.getElementById('export-excel-btn');
+    // Fungsi untuk menggambar atau memperbarui grafik keuangan
+    function renderFinancialChart(canvasId, income, expense, chartInstanceRef) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
 
-        // Elemen Chart baru
-        const financialChartCanvas = document.getElementById('financialChart');
-
-
-        let currentUser = null; // Untuk menyimpan objek pengguna saat ini
-        let financialChartInstance = null; // Variabel untuk menyimpan instance chart
-
-        // --- Fungsi Utilitas ---
-
-        // Fungsi untuk menampilkan pesan error di form login/register
-        function showAuthError(message) {
-            authErrorMessage.textContent = message;
-            authErrorMessage.classList.remove('hidden');
-            setTimeout(() => authErrorMessage.classList.add('hidden'), 5000);
+        if (chartInstanceRef.value) {
+            chartInstanceRef.value.destroy();
         }
 
-        // Fungsi untuk menampilkan pesan error di dashboard
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.remove('hidden');
-            setTimeout(() => errorMessage.classList.add('hidden'), 5000);
-        }
-
-        // Fungsi untuk memformat angka menjadi mata uang Rupiah
-        function formatRupiah(amount) {
-            return new Intl.NumberFormat('id-ID', {
-                style: 'currency',
-                currency: 'IDR',
-                minimumFractionDigits: 0
-            }).format(amount);
-        }
-
-        // Fungsi untuk membuat pratinjau gambar/video
-        function createMediaPreview(fileUrl, fileType) {
-            const mediaDiv = document.createElement("div");
-            mediaDiv.className = "border p-2 rounded"; // Tailwind classes for styling
-
-            if (fileType.startsWith("image")) { // Periksa tipe file dengan startsWith
-                const img = document.createElement("img");
-                img.src = fileUrl;
-                img.className = "w-full h-auto rounded";
-                mediaDiv.appendChild(img);
-            } else if (fileType.startsWith("video")) { // Periksa tipe file dengan startsWith
-                const vid = document.createElement("video");
-                vid.src = fileUrl;
-                vid.controls = true;
-                vid.className = "w-full rounded";
-                mediaDiv.appendChild(vid);
-            } else {
-                const p = document.createElement("p");
-                p.textContent = "Preview tidak tersedia untuk tipe file ini.";
-                p.className = "text-gray-500";
-                mediaDiv.appendChild(p);
-            }
-            return mediaDiv;
-        }
-
-        // Fungsi untuk mengunggah file ke Firebase Storage
-        async function uploadFile(file, folder) {
-            if (!file) return null;
-            const storageRef = storage.ref(`${folder}/${file.name}_${Date.now()}`);
-            const snapshot = await storageRef.put(file);
-            return {
-                url: await snapshot.ref.getDownloadURL(),
-                type: file.type // Simpan tipe MIME
-            };
-        }
-
-        // Fungsi untuk menggambar atau memperbarui grafik keuangan
-        function renderFinancialChart(income, expense) {
-            const ctx = financialChartCanvas.getContext('2d');
-
-            // Hancurkan instance chart yang ada jika sudah ada untuk menghindari duplikasi
-            if (financialChartInstance) {
-                financialChartInstance.destroy();
-            }
-
-            financialChartInstance = new Chart(ctx, {
-                type: 'doughnut', // Atau 'bar', 'pie', dll. Doughnut cocok untuk perbandingan 2 nilai.
-                data: {
-                    labels: ['Pemasukan', 'Pengeluaran'],
-                    datasets: [{
-                        data: [income, expense],
-                        backgroundColor: [
-                            'rgba(16, 185, 129, 0.7)', // Warna hijau untuk pemasukan (emerald-500)
-                            'rgba(239, 68, 68, 0.7)'  // Warna merah untuk pengeluaran (red-500)
-                        ],
-                        borderColor: [
-                            'rgba(16, 185, 129, 1)',
-                            'rgba(239, 68, 68, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false, // Penting agar grafik menyesuaikan ukuran kontainer
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Distribusi Pemasukan vs Pengeluaran'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(tooltipItem) {
-                                    // Format nilai tooltip sebagai Rupiah
-                                    const value = tooltipItem.raw;
-                                    return tooltipItem.label + ': ' + formatRupiah(value);
-                                }
+        chartInstanceRef.value = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pemasukan', 'Pengeluaran'],
+                datasets: [{
+                    data: [income, expense],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.7)',
+                        'rgba(239, 68, 68, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(239, 68, 68, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Distribusi Pemasukan vs Pengeluaran'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(tooltipItem) {
+                                const value = tooltipItem.raw;
+                                return tooltipItem.label + ': ' + formatRupiah(value);
                             }
                         }
                     }
                 }
-            });
+            }
+        });
+    }
+
+    // --- Fungsi Pemuatan Data ---
+
+    // Memuat transaksi pengguna
+    async function loadTransactions(targetListElement, userId = null, updateCharts = true) {
+        targetListElement.innerHTML = '';
+        let query = transactionsRef.orderBy("createdAt", "desc");
+
+        // Jika userId diberikan (untuk filter admin) atau bukan admin, filter berdasarkan UID
+        if (userId) {
+            query = query.where("uid", "==", userId);
+        } else if (currentUser && currentUser.role !== 'admin') {
+            query = query.where("uid", "==", currentUser.uid);
         }
 
+        try {
+            const snapshot = await query.get();
+            let totalIncome = 0;
+            let totalExpense = 0;
 
-        // --- Fungsi Pemuatan Data ---
+            if (snapshot.empty) {
+                targetListElement.innerHTML = `<tr><td colspan="${currentUser && currentUser.role === 'admin' ? '7' : '6'}" class="py-4 px-4 text-center text-gray-500">Belum ada transaksi.</td></tr>`;
+            } else {
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const row = targetListElement.insertRow();
+                    row.className = "border-b border-gray-200 last:border-b-0";
 
-        // Memuat transaksi pengguna
-        async function loadTransactions() {
-            transactionList.innerHTML = ''; // Kosongkan daftar sebelum memuat
-            let query = transactionsRef.orderBy("createdAt", "desc");
+                    const amountClass = data.type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold';
+                    const typeText = data.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
+                    const createdAt = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString() : 'N/A';
 
-            // Jika bukan admin, hanya ambil transaksi pengguna saat ini
-            if (currentUser && currentUser.role !== 'admin') {
-                query = query.where("uid", "==", currentUser.uid);
-            }
+                    row.innerHTML = `
+                        <td class="py-3 px-4">${createdAt}</td>
+                        <td class="py-3 px-4 capitalize">${typeText}</td>
+                        <td class="py-3 px-4 ${amountClass}">${formatRupiah(data.amount)}</td>
+                        <td class="py-3 px-4">${data.category}</td>
+                        <td class="py-3 px-4">${data.description || '-'}</td>
+                        <td class="py-3 px-4 admin-only ${currentUser && currentUser.role === 'admin' ? '' : 'hidden'}">${data.uid}</td>
+                        <td class="py-3 px-4">
+                            <button class="text-red-500 hover:text-red-700 delete-transaction-btn" data-id="${doc.id}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    `;
 
-            try {
-                const snapshot = await query.get();
-                let totalIncome = 0;
-                let totalExpense = 0;
+                    if (data.type === 'income') {
+                        totalIncome += data.amount;
+                    } else {
+                        totalExpense += data.amount;
+                    }
+                });
 
-                if (snapshot.empty) {
-                    transactionList.innerHTML = '<tr><td colspan="7" class="py-4 px-4 text-center text-gray-500">Belum ada transaksi.</td></tr>';
-                } else {
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        const row = transactionList.insertRow();
-                        row.className = "border-b border-gray-200 last:border-b-0";
-
-                        const amountClass = data.type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold';
-                        const typeText = data.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
-
-                        row.innerHTML = `
-                            <td class="py-3 px-4">${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString() : 'N/A'}</td>
-                            <td class="py-3 px-4 capitalize">${typeText}</td>
-                            <td class="py-3 px-4 ${amountClass}">${formatRupiah(data.amount)}</td>
-                            <td class="py-3 px-4">${data.category}</td>
-                            <td class="py-3 px-4">${data.description || '-'}</td>
-                            <td class="py-3 px-4 admin-only ${currentUser && currentUser.role === 'admin' ? '' : 'hidden'}">${data.uid}</td>
-                            <td class="py-3 px-4">
-                                <button class="text-red-500 hover:text-red-700 delete-transaction-btn" data-id="${doc.id}">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </td>
-                        `;
-
-                        if (data.type === 'income') {
-                            totalIncome += data.amount;
-                        } else {
-                            totalExpense += data.amount;
+                // Tambahkan event listener untuk tombol hapus transaksi
+                targetListElement.querySelectorAll('.delete-transaction-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        const transactionId = e.currentTarget.dataset.id;
+                        if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+                            try {
+                                await transactionsRef.doc(transactionId).delete();
+                                await loadTransactions(targetListElement, userId, true); // Muat ulang transaksi
+                                if (currentUser) await updateUserFinancials(currentUser.uid); // Perbarui keuangan pengguna
+                                showSuccess('Transaksi berhasil dihapus!');
+                            } catch (error) {
+                                showError('Gagal menghapus transaksi: ' + error.message);
+                            }
                         }
                     });
+                });
+            }
 
-                    // Tambahkan event listener untuk tombol hapus
-                    document.querySelectorAll('.delete-transaction-btn').forEach(button => {
-                        button.addEventListener('click', async (e) => {
-                            const transactionId = e.currentTarget.dataset.id;
-                            if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
-                                try {
-                                    await transactionsRef.doc(transactionId).delete();
-                                    loadTransactions(); // Muat ulang transaksi setelah penghapusan
-                                    updateUserFinancials(currentUser.uid); // Perbarui keuangan pengguna
-                                    showError('Transaksi berhasil dihapus!', 'green'); // Pesan sukses
-                                } catch (error) {
-                                    showError('Gagal menghapus transaksi: ' + error.message);
-                                }
-                            }
-                        });
-                    });
-                }
-
+            // Perbarui ringkasan keuangan di dashboard
+            if (targetListElement === fullTransactionList) { // Ini adalah loadAllTransactions untuk halaman Full Finance
+                // Tidak perlu update totalIncomeEl, totalExpenseEl, netBalanceEl di sini
+                renderFinancialChart('fullFinanceChart', totalIncome, totalExpense, { value: fullFinanceChartInstance });
+            } else if (targetListElement.id === 'transaction-list') { // Ini adalah loadTransactions untuk Dashboard
                 totalIncomeEl.textContent = formatRupiah(totalIncome);
                 totalExpenseEl.textContent = formatRupiah(totalExpense);
                 netBalanceEl.textContent = formatRupiah(totalIncome - totalExpense);
-
-                // Panggil fungsi untuk merender grafik dengan data terbaru
-                renderFinancialChart(totalIncome, totalExpense); // <--- BARIS INI DITAMBAHKAN
-
-            } catch (error) {
-                showError("Gagal memuat transaksi: " + error.message);
+                renderFinancialChart('financialChart', totalIncome, totalExpense, { value: financialChartInstance });
+            } else if (targetListElement.id === 'admin-transaction-list') { // Untuk admin panel
+                // Tidak perlu update totalIncomeEl, totalExpenseEl, netBalanceEl di sini
             }
+
+        } catch (error) {
+            showError("Gagal memuat transaksi: " + error.message);
         }
+    }
 
-        // Memuat semua pengguna (hanya untuk admin)
-        async function loadUsers() {
-            if (currentUser && currentUser.role === 'admin') {
-                userListTable.innerHTML = ''; // Kosongkan daftar sebelum memuat
-                try {
-                    const snapshot = await usersRef.get();
-                    if (snapshot.empty) {
-                        userListTable.innerHTML = '<tr><td colspan="4" class="py-4 px-4 text-center text-gray-500">Tidak ada pengguna.</td></tr>';
-                    } else {
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            const row = userListTable.insertRow();
-                            row.className = "border-b border-gray-200 last:border-b-0";
-                            row.innerHTML = `
-                                <td class="py-3 px-4">${data.name || 'N/A'}</td>
-                                <td class="py-3 px-4">${data.email}</td>
-                                <td class="py-3 px-4 capitalize">${data.role || 'member'}</td>
-                                <td class="py-3 px-4">
-                                    <button class="text-red-500 hover:text-red-700 delete-user-btn" data-id="${doc.id}">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </td>
-                            `;
-                        });
-
-                        // Tambahkan event listener untuk tombol hapus pengguna
-                        document.querySelectorAll('.delete-user-btn').forEach(button => {
-                            button.addEventListener('click', async (e) => {
-                                const userIdToDelete = e.currentTarget.dataset.id;
-                                if (confirm('Apakah Anda yakin ingin menghapus pengguna ini dan semua datanya?')) {
-                                    try {
-                                        // Hapus pengguna dari Firestore (bukan Auth)
-                                        await usersRef.doc(userIdToDelete).delete();
-                                        // Hapus transaksi terkait pengguna ini (opsional, bisa jadi koleksi sub)
-                                        const userTransactions = await transactionsRef.where('uid', '==', userIdToDelete).get();
-                                        const batch = db.batch();
-                                        userTransactions.forEach(doc => {
-                                            batch.delete(doc.ref);
-                                        });
-                                        await batch.commit();
-
-                                        loadUsers(); // Muat ulang daftar pengguna
-                                        showError('Pengguna dan data terkait berhasil dihapus!', 'green');
-                                    } catch (error) {
-                                        showError('Gagal menghapus pengguna: ' + error.message);
-                                    }
-                                }
-                            });
-                        });
-                    }
-                } catch (error) {
-                    showError("Gagal memuat daftar pengguna: " + error.message);
-                }
-            }
-        }
-
-        // Memuat postingan
-        async function loadPosts() {
-            const postPreview = document.getElementById("post-preview");
-            if (!postPreview) return;
-            postPreview.innerHTML = ""; // Kosongkan dulu
-            try {
-                const snapshot = await postsRef.orderBy("createdAt", "desc").get();
-                if (snapshot.empty) {
-                    postPreview.innerHTML = '<p class="text-gray-500 text-center col-span-full">Belum ada postingan.</p>';
-                } else {
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        const postDiv = document.createElement("div");
-                        postDiv.className = "border p-4 rounded-lg shadow-sm bg-white";
-                        postDiv.innerHTML = `
-                            <h4 class="text-lg font-semibold text-gray-800">${data.title}</h4>
-                            <p class="text-sm text-gray-600 mb-2">${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString() : 'N/A'}</p>
-                            <p class="text-gray-700 mb-4">${data.content}</p>
-                            ${data.fileUrl && data.fileType ? '<div class="media-preview-container"></div>' : ''}
-                            ${currentUser && currentUser.role === 'admin' ? `<button class="text-red-500 hover:text-red-700 delete-post-btn mt-2" data-id="${doc.id}"><i class="fas fa-trash-alt"></i> Hapus</button>` : ''}
-                        `;
-                        postPreview.appendChild(postDiv);
-
-                        if (data.fileUrl && data.fileType) {
-                            const mediaContainer = postDiv.querySelector('.media-preview-container');
-                            if (mediaContainer) {
-                                const preview = createMediaPreview(data.fileUrl, data.fileType);
-                                mediaContainer.appendChild(preview);
-                            }
-                        }
-                    });
-
-                    // Tambahkan event listener untuk tombol hapus post
-                    document.querySelectorAll('.delete-post-btn').forEach(button => {
-                        button.addEventListener('click', async (e) => {
-                            const postId = e.currentTarget.dataset.id;
-                            if (confirm('Apakah Anda yakin ingin menghapus postingan ini?')) {
-                                try {
-                                    await postsRef.doc(postId).delete();
-                                    loadPosts(); // Muat ulang postingan
-                                    showError('Postingan berhasil dihapus!', 'green');
-                                } catch (error) {
-                                    showError('Gagal menghapus postingan: ' + error.message);
-                                }
-                            }
-                        });
-                    });
-                }
-            } catch (error) {
-                showError("Gagal memuat postingan: " + error.message);
-            }
-        }
-
-        // Memuat agenda
-        async function loadAgenda() {
-            const agendaPreview = document.getElementById("agenda-preview");
-            if (!agendaPreview) return;
-            agendaPreview.innerHTML = ""; // Kosongkan dulu
-            try {
-                const snapshot = await agendaRef.orderBy("createdAt", "desc").get();
-                if (snapshot.empty) {
-                    agendaPreview.innerHTML = '<p class="text-gray-500 text-center col-span-full">Belum ada agenda.</p>';
-                } else {
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        const agendaDiv = document.createElement("div");
-                        agendaDiv.className = "border p-4 rounded-lg shadow-sm bg-white";
-                        agendaDiv.innerHTML = `
-                            <h4 class="text-lg font-semibold text-gray-800">${data.title}</h4>
-                            <p class="text-sm text-gray-600">Tanggal: ${data.date} Pukul: ${data.time}</p>
-                            <p class="text-sm text-gray-600 mb-2">${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString() : 'N/A'}</p>
-                            <p class="text-gray-700 mb-4">${data.description}</p>
-                            ${data.fileUrl && data.fileType ? '<div class="media-preview-container"></div>' : ''}
-                            ${currentUser && currentUser.role === 'admin' ? `<button class="text-red-500 hover:text-red-700 delete-agenda-btn mt-2" data-id="${doc.id}"><i class="fas fa-trash-alt"></i> Hapus</button>` : ''}
-                        `;
-                        agendaPreview.appendChild(agendaDiv);
-
-                        if (data.fileUrl && data.fileType) {
-                            const mediaContainer = agendaDiv.querySelector('.media-preview-container');
-                            if (mediaContainer) {
-                                const preview = createMediaPreview(data.fileUrl, data.fileType);
-                                mediaContainer.appendChild(preview);
-                            }
-                        }
-                    });
-
-                    // Tambahkan event listener untuk tombol hapus agenda
-                    document.querySelectorAll('.delete-agenda-btn').forEach(button => {
-                        button.addEventListener('click', async (e) => {
-                            const agendaId = e.currentTarget.dataset.id;
-                            if (confirm('Apakah Anda yakin ingin menghapus agenda ini?')) {
-                                try {
-                                    await agendaRef.doc(agendaId).delete();
-                                    loadAgenda(); // Muat ulang agenda
-                                    showError('Agenda berhasil dihapus!', 'green');
-                                } catch (error) {
-                                    showError('Gagal menghapus agenda: ' + error.message);
-                                }
-                            }
-                        });
-                    });
-                }
-            } catch (error) {
-                showError("Gagal memuat agenda: " + error.message);
-            }
-        }
-
-
-        // Memuat semua data terkait dashboard
-        async function loadAllData() {
-            await Promise.all([
-                loadTransactions(),
-                currentUser && currentUser.role === 'admin' ? loadUsers() : Promise.resolve(), // Hanya muat pengguna jika admin
-                loadPosts(),
-                loadAgenda()
-            ]);
-        }
-
-        // Memperbarui total income dan expense pengguna di Firestore
-        async function updateUserFinancials(uid) {
-            try {
-                const snapshot = await transactionsRef.where("uid", "==", uid).get();
-                let income = 0;
-                let expense = 0;
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.type === 'income') {
-                        income += data.amount;
-                    } else {
-                        expense += data.amount;
-                    }
-                });
-                await usersRef.doc(uid).update({
-                    totalIncome: income,
-                    totalExpense: expense
-                });
-            } catch (error) {
-                console.error("Error updating user financials:", error);
-            }
-        }
-
-        // --- Event Listeners Autentikasi ---
-
-        // Tampilkan form Register
-        showRegisterBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginForm.classList.add('hidden');
-            registerForm.classList.remove('hidden');
-            showRegisterBtn.classList.add('hidden');
-            showLoginBtn.classList.remove('hidden');
-            authErrorMessage.classList.add('hidden');
-        });
-
-        // Tampilkan form Login
-        showLoginBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            registerForm.classList.add('hidden');
-            loginForm.classList.remove('hidden');
-            showLoginBtn.classList.add('hidden');
-            showRegisterBtn.classList.remove('hidden');
-            authErrorMessage.classList.add('hidden');
-        });
-
-        // Handle Login
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = loginForm['login-email'].value;
-            const password = loginForm['login-password'].value;
-
-            try {
-                await auth.signInWithEmailAndPassword(email, password);
-            } catch (error) {
-                showAuthError(error.message);
-            }
-        });
-
-        // Handle Register
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = registerForm['register-name'].value;
-            const email = registerForm['register-email'].value;
-            const password = registerForm['register-password'].value;
-            const isAdmin = registerForm['register-admin'].checked;
-
-            try {
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-
-                // Simpan data pengguna tambahan di Firestore
-                await usersRef.doc(user.uid).set({
-                    uid: user.uid,
-                    name: name,
-                    email: email,
-                    role: isAdmin ? "admin" : "member",
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    profileImage: "", // Kosong dulu
-                    totalIncome: 0,
-                    totalExpense: 0,
-                    lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            } catch (error) {
-                showAuthError(error.message);
-            }
-        });
-
-        // Handle Logout
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                await auth.signOut();
-            } catch (error) {
-                showError("Gagal logout: " + error.message);
-            }
-        });
-
-        // --- Event Listener Transaksi ---
-        transactionForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentUser) {
-                showError("Anda harus login untuk menambahkan transaksi.");
-                return;
-            }
-
-            const type = transactionForm['transaction-type'].value;
-            const amount = parseFloat(transactionForm['transaction-amount'].value);
-            const category = transactionForm['transaction-category'].value;
-            const description = transactionForm['transaction-description'].value;
-
-            if (isNaN(amount) || amount <= 0) {
-                showError("Jumlah harus berupa angka positif.");
-                return;
-            }
-
-            try {
-                await transactionsRef.add({
-                    uid: currentUser.uid,
-                    type: type,
-                    amount: amount,
-                    category: category,
-                    description: description,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                transactionForm.reset(); // Reset form
-                showError("Transaksi berhasil ditambahkan!", "green");
-                await loadTransactions(); // Muat ulang transaksi
-                await updateUserFinancials(currentUser.uid); // Perbarui total keuangan pengguna
-            } catch (error) {
-                showError("Gagal menambahkan transaksi: " + error.message);
-            }
-        });
-
-        // --- Event Listener Posts (Admin Only) ---
-        postForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentUser || currentUser.role !== 'admin') {
-                showError("Anda tidak memiliki izin untuk membuat postingan.");
-                return;
-            }
-
-            const title = postForm['post-title'].value;
-            const content = postForm['post-content'].value;
-            const file = postFileEl.files[0];
-
-            try {
-                let fileData = null;
-                if (file) {
-                    fileData = await uploadFile(file, 'post_files');
-                }
-
-                await postsRef.add({
-                    uid: currentUser.uid,
-                    title: title,
-                    content: content,
-                    fileUrl: fileData ? fileData.url : null,
-                    fileType: fileData ? fileData.type : null,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                postForm.reset();
-                postFilePreview.innerHTML = ''; // Kosongkan preview
-                showError("Postingan berhasil dibuat!", "green");
-                loadPosts(); // Muat ulang postingan
-            } catch (error) {
-                showError("Gagal membuat postingan: " + error.message);
-            }
-        });
-
-        // Preview file post
-        postFileEl.addEventListener('change', (e) => {
-            postFilePreview.innerHTML = '';
-            const file = e.target.files[0];
-            if (file) {
-                const fileUrl = URL.createObjectURL(file);
-                const preview = createMediaPreview(fileUrl, file.type);
-                postFilePreview.appendChild(preview);
-            }
-        });
-
-        // --- Event Listener Agenda (Admin Only) ---
-        agendaForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentUser || currentUser.role !== 'admin') {
-                showError("Anda tidak memiliki izin untuk membuat agenda.");
-                return;
-            }
-
-            const title = agendaForm['agenda-title'].value;
-            const date = agendaForm['agenda-date'].value;
-            const time = agendaForm['agenda-time'].value;
-            const description = agendaForm['agenda-description'].value;
-            const file = agendaFileEl.files[0];
-
-            try {
-                let fileData = null;
-                if (file) {
-                    fileData = await uploadFile(file, 'agenda_files');
-                }
-
-                await agendaRef.add({
-                    uid: currentUser.uid,
-                    title: title,
-                    date: date,
-                    time: time,
-                    description: description,
-                    fileUrl: fileData ? fileData.url : null,
-                    fileType: fileData ? fileData.type : null,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                agendaForm.reset();
-                agendaFilePreview.innerHTML = ''; // Kosongkan preview
-                showError("Agenda berhasil dibuat!", "green");
-                loadAgenda(); // Muat ulang agenda
-            } catch (error) {
-                showError("Gagal membuat agenda: " + error.message);
-            }
-        });
-
-        // Preview file agenda
-        agendaFileEl.addEventListener('change', (e) => {
-            agendaFilePreview.innerHTML = '';
-            const file = e.target.files[0];
-            if (file) {
-                const fileUrl = URL.createObjectURL(file);
-                const preview = createMediaPreview(fileUrl, file.type);
-                agendaFilePreview.appendChild(preview);
-            }
-        });
-
-        // --- Ekspor Data (Admin Only) ---
-        exportPdfBtn.addEventListener('click', async () => {
-            if (!currentUser || currentUser.role !== 'admin') {
-                showError("Anda tidak memiliki izin untuk mengekspor data.");
-                return;
-            }
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            const tableRows = [];
-            const headers = ['Tanggal', 'Jenis', 'Jumlah', 'Kategori', 'Deskripsi', 'User UID'];
-
-            try {
-                const snapshot = await transactionsRef.orderBy("createdAt", "desc").get();
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    const date = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString() : 'N/A';
-                    const type = data.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
-                    const amount = formatRupiah(data.amount);
-                    const category = data.category;
-                    const description = data.description || '-';
-                    const uid = data.uid;
-                    tableRows.push([date, type, amount, category, description, uid]);
-                });
-
-                doc.autoTable({
-                    head: [headers],
-                    body: tableRows,
-                    startY: 20,
-                    theme: 'grid',
-                    styles: {
-                        fontSize: 8,
-                        cellPadding: 2,
-                        halign: 'center'
-                    },
-                    headStyles: {
-                        fillColor: [139, 92, 246], // Tailwind purple-500
-                        textColor: [255, 255, 255],
-                        fontStyle: 'bold'
-                    },
-                    alternateRowStyles: {
-                        fillColor: [243, 244, 246] // Tailwind gray-100
-                    }
-                });
-
-                doc.save('daftar_transaksi_admin.pdf');
-                showError('Data transaksi berhasil diekspor ke PDF!', 'green');
-            } catch (error) {
-                showError('Gagal mengekspor data ke PDF: ' + error.message);
-            }
-        });
-
-
-        exportExcelBtn.addEventListener('click', async () => {
-            if (!currentUser || currentUser.role !== 'admin') {
-                showError("Anda tidak memiliki izin untuk mengekspor data.");
-                return;
-            }
-
-            try {
-                const snapshot = await transactionsRef.orderBy("createdAt", "desc").get();
-                const data = [];
-                // Headers
-                data.push(['Tanggal', 'Jenis', 'Jumlah', 'Kategori', 'Deskripsi', 'User UID']);
-
-                snapshot.forEach(doc => {
-                    const transaction = doc.data();
-                    const date = transaction.createdAt ? new Date(transaction.createdAt.toDate()).toLocaleString() : 'N/A';
-                    const type = transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
-                    const amount = transaction.amount;
-                    const category = transaction.category;
-                    const description = transaction.description || '-';
-                    const uid = transaction.uid;
-                    data.push([date, type, amount, category, description, uid]);
-                });
-
-                // Create a CSV string
-                let csvContent = "data:text/csv;charset=utf-8,"
-                    + data.map(e => e.join(",")).join("\n");
-
-                // Create a hidden link and trigger download
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", "daftar_transaksi_admin.csv");
-                document.body.appendChild(link); // Required for Firefox
-                link.click();
-                document.body.removeChild(link);
-
-                showError('Data transaksi berhasil diekspor ke Excel (CSV)!', 'green');
-            } catch (error) {
-                showError('Gagal mengekspor data ke Excel: ' + error.message);
-            }
-        });
-
-
-        // --- Observasi Status Autentikasi Firebase ---
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                // Pengguna masuk
-                currentUser = user; // Simpan objek pengguna
-
-                try {
-                    const doc = await usersRef.doc(currentUser.uid).get();
-                    if (doc.exists) {
-                        const userData = doc.data();
-                        currentUser.role = userData.role || 'member'; // Set role pada objek currentUser
-                        userEmailSpan.textContent = userData.email;
-                        userRoleSpan.textContent = userData.role === 'admin' ? 'Admin' : 'Member';
-
-                        // Tampilkan/sembunyikan elemen berdasarkan peran
-                        document.querySelectorAll('.admin-only').forEach(el => {
-                            if (currentUser.role === 'admin') {
-                                el.classList.remove('hidden');
-                            } else {
-                                el.classList.add('hidden');
-                            }
-                        });
-
-                        // Tampilkan dashboard dan elemen UI pengguna
-                        authContainer.classList.add('hidden');
-                        dashboard.classList.remove('hidden');
-                        logoutBtn.classList.remove('hidden');
-                        loginBtn.classList.add('hidden'); // Sembunyikan tombol login jika sudah masuk
-                        userEmailSpan.classList.remove('hidden');
-                        userRoleSpan.classList.remove('hidden');
-
-                        // Perbarui waktu login terakhir
-                        await usersRef.doc(currentUser.uid).update({
-                            lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-
-                        // Muat semua data yang terkait dengan dashboard
-                        await loadAllData();
-
-                    } else {
-                        // Data pengguna tidak ditemukan di Firestore, logout pengguna
-                        showAuthError("Data pengguna tidak ditemukan di Firestore. Silakan daftar ulang atau hubungi admin.");
-                        await auth.signOut();
-                    }
-                } catch (error) {
-                    showError("Gagal memuat data pengguna: " + error.message);
-                    await auth.signOut(); // Logout jika ada masalah saat memuat data pengguna
-                }
+    // Memuat semua pengguna (untuk admin)
+    async function loadAllUsers() {
+        adminUserListTable.innerHTML = '';
+        filterUserDropdown.innerHTML = '<option value="">Semua User</option>'; // Reset dropdown filter
+        try {
+            const snapshot = await usersRef.get();
+            if (snapshot.empty) {
+                adminUserListTable.innerHTML = '<tr><td colspan="4" class="py-4 px-4 text-center text-gray-500">Tidak ada pengguna.</td></tr>';
             } else {
-                // Tidak ada pengguna yang masuk
-                currentUser = null; // Reset objek pengguna
-                authContainer.classList.remove('hidden');
-                dashboard.classList.add('hidden');
-                logoutBtn.classList.add('hidden');
-                loginBtn.classList.remove('hidden'); // Tampilkan tombol login
-                userEmailSpan.classList.add('hidden');
-                userRoleSpan.classList.add('hidden');
-                // Sembunyikan semua elemen admin
-                document.querySelectorAll('.admin-only').forEach(el => {
-                    el.classList.add('hidden');
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const row = adminUserListTable.insertRow();
+                    row.className = "border-b border-gray-200 last:border-b-0";
+                    row.innerHTML = `
+                        <td class="py-3 px-4">${data.name || 'N/A'}</td>
+                        <td class="py-3 px-4">${data.email}</td>
+                        <td class="py-3 px-4 capitalize">${data.role || 'member'}</td>
+                        <td class="py-3 px-4">
+                            <button class="text-red-500 hover:text-red-700 delete-user-btn" data-id="${doc.id}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    `;
+                    // Populate filter dropdown
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = data.email;
+                    filterUserDropdown.appendChild(option);
+                });
+
+                // Tambahkan event listener untuk tombol hapus pengguna
+                document.querySelectorAll('.delete-user-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        const userIdToDelete = e.currentTarget.dataset.id;
+                        if (confirm('Apakah Anda yakin ingin menghapus pengguna ini dan semua datanya?')) {
+                            try {
+                                // Hapus pengguna dari Firestore (Auth tidak langsung, harus manual via Functions atau Admin SDK)
+                                await usersRef.doc(userIdToDelete).delete();
+                                // Hapus transaksi terkait pengguna ini
+                                const userTransactions = await transactionsRef.where('uid', '==', userIdToDelete).get();
+                                const batch = db.batch();
+                                userTransactions.forEach(doc => {
+                                    batch.delete(doc.ref);
+                                });
+                                await batch.commit();
+
+                                loadAllUsers(); // Muat ulang daftar pengguna
+                                loadTransactions(adminTransactionListTable, null, false); // Muat ulang transaksi admin
+                                showSuccess('Pengguna dan data terkait berhasil dihapus!');
+                            } catch (error) {
+                                showError('Gagal menghapus pengguna: ' + error.message);
+                            }
+                        }
+                    });
                 });
             }
-        });
+        } catch (error) {
+            showError("Gagal memuat daftar pengguna: " + error.message);
+        }
+    }
 
-        // Panggil saat halaman dimuat (DOM sudah siap)
-        // loadPosts() dan loadAgenda() sudah dipanggil di loadAllData() yang dipanggil di onAuthStateChanged.
-        // Jika Anda ingin mereka dimuat lebih awal atau secara independen, Anda bisa memanggilnya di sini.
-        // Namun, jika mereka tergantung pada currentUser, lebih baik biarkan di dalam onAuthStateChanged.
-        document.addEventListener('DOMContentLoaded', () => {
-            // Anda bisa menempatkan inisialisasi UI atau event listener lainnya di sini
-        });
+    // Memuat semua postingan (untuk Social Feed)
+    async function loadAllPosts() {
+        allPostsContainer.innerHTML = '';
+        try {
+            const snapshot = await postsRef.orderBy("createdAt", "desc").get();
+            if (snapshot.empty) {
+                allPostsContainer.innerHTML = '<p class="text-gray-500 text-center col-span-full">Belum ada postingan.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const postDiv = document.createElement("div");
+                    postDiv.className = "border p-4 rounded-lg shadow-sm bg-white";
+                    postDiv.innerHTML = `
+                        <h4 class="text-lg font-semibold text-gray-800">${data.title}</h4>
+                        <p class="text-sm text-gray-600 mb-2">Ditulis oleh: ${data.authorName || 'Anonim'} pada ${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString() : 'N/A'}</p>
+                        <p class="text-gray-700 mb-4">${data.content}</p>
+                        ${data.fileUrl && data.fileType ? '<div class="media-preview-container mb-4"></div>' : ''}
+                        ${currentUser && currentUser.role === 'admin' ? `<button class="text-red-500 hover:text-red-700 delete-post-btn mt-2" data-id="${doc.id}"><i class="fas fa-trash-alt"></i> Hapus</button>` : ''}
+                    `;
+                    allPostsContainer.appendChild(postDiv);
 
-    </script>
+                    if (data.fileUrl && data.fileType) {
+                        const mediaContainer = postDiv.querySelector('.media-preview-container');
+                        if (mediaContainer) {
+                            const preview = createMediaPreview(data.fileUrl, data.fileType);
+                            mediaContainer.appendChild(preview);
+                        }
+                    }
+                });
+
+                // Tambahkan event listener untuk tombol hapus post
+                document.querySelectorAll('.delete-post-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        const postId = e.currentTarget.dataset.id;
+                        if (confirm('Apakah Anda yakin ingin menghapus postingan ini?')) {
+                            try {
+                                await postsRef.doc(postId).delete();
+                                loadAllPosts(); // Muat ulang postingan
+                                showSuccess('Postingan berhasil dihapus!');
+                            } catch (error) {
+                                showError('Gagal menghapus postingan: ' + error.message);
+                            }
+                        }
+                    });
+                });
+            }
+        } catch (error) {
+            showError("Gagal memuat postingan: " + error.message);
+        }
+    }
+
+    // Memuat postingan terbaru untuk dashboard
+    async function loadRecentPosts() {
+        recentPostsContainer.innerHTML = '';
+        try {
+            const snapshot = await postsRef.orderBy("createdAt", "desc").limit(3).get(); // Ambil 3 postingan terbaru
+            if (snapshot.empty) {
+                recentPostsContainer.innerHTML = '<p class="text-gray-500 text-center col-span-full">Belum ada postingan terbaru.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const postDiv = document.createElement("div");
+                    postDiv.className = "border p-4 rounded-lg shadow-sm bg-white";
+                    postDiv.innerHTML = `
+                        <h4 class="text-lg font-semibold text-gray-800">${data.title}</h4>
+                        <p class="text-sm text-gray-600 mb-2">Pada ${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
+                        <p class="text-gray-700 line-clamp-3">${data.content}</p>
+                        ${data.fileUrl && data.fileType ? '<div class="media-preview-container mt-2"></div>' : ''}
+                    `;
+                    recentPostsContainer.appendChild(postDiv);
+
+                    if (data.fileUrl && data.fileType) {
+                        const mediaContainer = postDiv.querySelector('.media-preview-container');
+                        if (mediaContainer) {
+                            const preview = createMediaPreview(data.fileUrl, data.fileType);
+                            preview.style.maxHeight = '150px'; // Batasi tinggi pratinjau
+                            preview.style.overflow = 'hidden';
+                            mediaContainer.appendChild(preview);
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            showError("Gagal memuat postingan terbaru: " + error.message);
+        }
+    }
+
+
+    // Memuat semua agenda (untuk halaman Agenda)
+    async function loadAllAgendas() {
+        allAgendasContainer.innerHTML = '';
+        try {
+            const snapshot = await agendaRef.orderBy("date", "asc").get(); // Urutkan berdasarkan tanggal
+            if (snapshot.empty) {
+                allAgendasContainer.innerHTML = '<p class="text-gray-500 text-center col-span-full">Belum ada agenda.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const agendaDiv = document.createElement("div");
+                    agendaDiv.className = "border p-4 rounded-lg shadow-sm bg-white";
+                    agendaDiv.innerHTML = `
+                        <h4 class="text-lg font-semibold text-gray-800">${data.title}</h4>
+                        <p class="text-sm text-gray-600">Tanggal: ${data.date} Pukul: ${data.time}</p>
+                        <p class="text-sm text-gray-600 mb-2">${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString() : 'N/A'}</p>
+                        <p class="text-gray-700 mb-4">${data.description}</p>
+                        ${data.fileUrl && data.fileType ? '<div class="media-preview-container mb-4"></div>' : ''}
+                        ${currentUser && currentUser.role === 'admin' ? `<button class="text-red-500 hover:text-red-700 delete-agenda-btn mt-2" data-id="${doc.id}"><i class="fas fa-trash-alt"></i> Hapus</button>` : ''}
+                    `;
+                    allAgendasContainer.appendChild(agendaDiv);
+
+                    if (data.fileUrl && data.fileType) {
+                        const mediaContainer = agendaDiv.querySelector('.media-preview-container');
+                        if (mediaContainer) {
+                            const preview = createMediaPreview(data.fileUrl, data.fileType);
+                            mediaContainer.appendChild(preview);
+                        }
+                    }
+                });
+
+                // Tambahkan event listener untuk tombol hapus agenda
+                document.querySelectorAll('.delete-agenda-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        const agendaId = e.currentTarget.dataset.id;
+                        if (confirm('Apakah Anda yakin ingin menghapus agenda ini?')) {
+                            try {
+                                await agendaRef.doc(agendaId).delete();
+                                loadAllAgendas(); // Muat ulang agenda
+                                showSuccess('Agenda berhasil dihapus!');
+                            } catch (error) {
+                                showError('Gagal menghapus agenda: ' + error.message);
+                            }
+                        }
+                    });
+                });
+            }
+        } catch (error) {
+            showError("Gagal memuat agenda: " + error.message);
+        }
+    }
+
+    // Memuat agenda mendatang untuk dashboard
+    async function loadUpcomingAgendas() {
+        upcomingAgendasContainer.innerHTML = '';
+        const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+        try {
+            const snapshot = await agendaRef
+                .where("date", ">=", today) // Hanya agenda yang akan datang atau hari ini
+                .orderBy("date", "asc")
+                .orderBy("time", "asc")
+                .limit(3) // Ambil 3 agenda terdekat
+                .get();
+
+            if (snapshot.empty) {
+                upcomingAgendasContainer.innerHTML = '<p class="text-gray-500 text-center col-span-full">Belum ada agenda mendatang.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const agendaDiv = document.createElement("div");
+                    agendaDiv.className = "border p-4 rounded-lg shadow-sm bg-white";
+                    agendaDiv.innerHTML = `
+                        <h4 class="text-lg font-semibold text-gray-800">${data.title}</h4>
+                        <p class="text-sm text-gray-600">Tanggal: ${data.date} Pukul: ${data.time}</p>
+                        <p class="text-gray-700 line-clamp-3 mt-2">${data.description}</p>
+                        ${data.fileUrl && data.fileType ? '<div class="media-preview-container mt-2"></div>' : ''}
+                    `;
+                    upcomingAgendasContainer.appendChild(agendaDiv);
+
+                    if (data.fileUrl && data.fileType) {
+                        const mediaContainer = agendaDiv.querySelector('.media-preview-container');
+                        if (mediaContainer) {
+                            const preview = createMediaPreview(data.fileUrl, data.type);
+                            preview.style.maxHeight = '150px'; // Batasi tinggi pratinjau
+                            preview.style.overflow = 'hidden';
+                            mediaContainer.appendChild(preview);
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            showError("Gagal memuat agenda mendatang: " + error.message);
+        }
+    }
+
+    // Memperbarui total income dan expense pengguna di Firestore
+    async function updateUserFinancials(uid) {
+        try {
+            const snapshot = await transactionsRef.where("uid", "==", uid).get();
+            let income = 0;
+            let expense = 0;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.type === 'income') {
+                    income += data.amount;
+                } else {
+                    expense += data.amount;
+                }
+            });
+            await usersRef.doc(uid).update({
+                totalIncome: income,
+                totalExpense: expense
+            });
+        } catch (error) {
+            console.error("Error updating user financials:", error);
+            showError("Gagal memperbarui keuangan pengguna: " + error.message);
+        }
+    }
+
+    // --- Event Listeners Autentikasi ---
+
+    // Tampilkan form Register
+    showRegisterBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginForm.classList.add('hidden');
+        registerForm.classList.remove('hidden');
+        showRegisterBtn.classList.add('hidden');
+        showLoginBtn.classList.remove('hidden');
+        authErrorMessage.classList.add('hidden');
+    });
+
+    // Tampilkan form Login
+    showLoginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        registerForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+        showLoginBtn.classList.add('hidden');
+        showRegisterBtn.classList.remove('hidden');
+        authErrorMessage.classList.add('hidden');
+    });
+
+    // Handle Login
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = loginForm['login-email'].value;
+        const password = loginForm['login-password'].value;
+
+        try {
+            await auth.signInWithEmailAndPassword(email, password);
+        } catch (error) {
+            showError(error.message); // Menggunakan showError untuk auth error juga
+        }
+    });
+
+    // Handle Register
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = registerForm['register-name'].value;
+        const email = registerForm['register-email'].value;
+        const password = registerForm['register-password'].value;
+        const isAdmin = registerForm['register-admin'].checked;
+
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+
+            await usersRef.doc(user.uid).set({
+                uid: user.uid,
+                name: name,
+                email: email,
+                role: isAdmin ? "admin" : "member",
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                profileImage: "",
+                totalIncome: 0,
+                totalExpense: 0,
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showSuccess("Registrasi berhasil! Silakan login.");
+        } catch (error) {
+            showError(error.message);
+        }
+    });
+
+    // Handle Logout
+    logoutBtn.addEventListener('click', async () => {
+        try {
+            await auth.signOut();
+        } catch (error) {
+            showError("Gagal logout: " + error.message);
+        }
+    });
+
+    // --- Event Listener Transaksi ---
+    transactionForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUser) {
+            showError("Anda harus login untuk menambahkan transaksi.");
+            return;
+        }
+
+        const type = transactionForm['transaction-type'].value;
+        const amount = parseFloat(transactionForm['transaction-amount'].value);
+        const category = transactionForm['transaction-category'].value;
+        const description = transactionForm['transaction-description'].value;
+
+        if (isNaN(amount) || amount <= 0) {
+            showError("Jumlah harus berupa angka positif.");
+            return;
+        }
+
+        try {
+            await transactionsRef.add({
+                uid: currentUser.uid,
+                type: type,
+                amount: amount,
+                category: category,
+                description: description,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            transactionForm.reset(); // Reset form
+            showSuccess("Transaksi berhasil ditambahkan!");
+            // Load transactions for the current user in dashboard
+            await loadTransactions(document.getElementById('transaction-list'), currentUser.uid, true);
+            await updateUserFinancials(currentUser.uid); // Perbarui total keuangan pengguna
+        } catch (error) {
+            showError("Gagal menambahkan transaksi: " + error.message);
+        }
+    });
+
+    // --- Event Listener Posts (Admin Only) ---
+    postForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUser || currentUser.role !== 'admin') {
+            showError("Anda tidak memiliki izin untuk membuat postingan.");
+            return;
+        }
+
+        const title = postForm['post-title'].value;
+        const content = postForm['post-content'].value;
+        const file = postFileEl.files[0];
+
+        try {
+            let fileData = null;
+            if (file) {
+                fileData = await uploadFile(file, 'post_files');
+            }
+
+            await postsRef.add({
+                uid: currentUser.uid,
+                authorName: currentUser.name || currentUser.email, // Ambil nama atau email pengunggah
+                title: title,
+                content: content,
+                fileUrl: fileData ? fileData.url : null,
+                fileType: fileData ? fileData.type : null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            postForm.reset();
+            postFilePreview.innerHTML = ''; // Kosongkan preview
+            showSuccess("Postingan berhasil dibuat!");
+            await loadAllPosts(); // Muat ulang semua postingan
+            await loadRecentPosts(); // Muat ulang postingan terbaru dashboard
+        } catch (error) {
+            showError("Gagal membuat postingan: " + error.message);
+        }
+    });
+
+    // Preview file post
+    postFileEl.addEventListener('change', (e) => {
+        postFilePreview.innerHTML = '';
+        const file = e.target.files[0];
+        if (file) {
+            const fileUrl = URL.createObjectURL(file);
+            const preview = createMediaPreview(fileUrl, file.type);
+            postFilePreview.appendChild(preview);
+        }
+    });
+
+    // --- Event Listener Agenda (Admin Only) ---
+    agendaForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUser || currentUser.role !== 'admin') {
+            showError("Anda tidak memiliki izin untuk membuat agenda.");
+            return;
+        }
+
+        const title = agendaForm['agenda-title'].value;
+        const date = agendaForm['agenda-date'].value;
+        const time = agendaForm['agenda-time'].value;
+        const description = agendaForm['agenda-description'].value;
+        const file = agendaFileEl.files[0];
+
+        try {
+            let fileData = null;
+            if (file) {
+                fileData = await uploadFile(file, 'agenda_files');
+            }
+
+            await agendaRef.add({
+                uid: currentUser.uid,
+                title: title,
+                date: date,
+                time: time,
+                description: description,
+                fileUrl: fileData ? fileData.url : null,
+                fileType: fileData ? fileData.type : null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            agendaForm.reset();
+            agendaFilePreview.innerHTML = ''; // Kosongkan preview
+            showSuccess("Agenda berhasil dibuat!");
+            await loadAllAgendas(); // Muat ulang semua agenda
+            await loadUpcomingAgendas(); // Muat ulang agenda mendatang dashboard
+        } catch (error) {
+            showError("Gagal membuat agenda: " + error.message);
+        }
+    });
+
+    // Preview file agenda
+    agendaFileEl.addEventListener('change', (e) => {
+        agendaFilePreview.innerHTML = '';
+        const file = e.target.files[0];
+        if (file) {
+            const fileUrl = URL.createObjectURL(file);
+            const preview = createMediaPreview(fileUrl, file.type);
+            agendaFilePreview.appendChild(preview);
+        }
+    });
+
+    // --- Ekspor Data (Admin Only) ---
+    exportPdfBtn.addEventListener('click', async () => {
+        if (!currentUser || currentUser.role !== 'admin') {
+            showError("Anda tidak memiliki izin untuk mengekspor data.");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        const tableRows = [];
+        const headers = ['Tanggal', 'Jenis', 'Jumlah', 'Kategori', 'Deskripsi', 'User UID'];
+
+        try {
+            const userIdFilter = filterUserDropdown.value; // Ambil filter user
+            let query = transactionsRef.orderBy("createdAt", "desc");
+            if (userIdFilter) {
+                query = query.where("uid", "==", userIdFilter);
+            }
+
+            const snapshot = await query.get();
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const date = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString() : 'N/A';
+                const type = data.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
+                const amount = formatRupiah(data.amount); // Format Rupiah di PDF
+                const category = data.category;
+                const description = data.description || '-';
+                const uid = data.uid;
+                tableRows.push([date, type, amount, category, description, uid]);
+            });
+
+            doc.autoTable({
+                head: [headers],
+                body: tableRows,
+                startY: 20,
+                theme: 'grid',
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2,
+                    halign: 'left' // Align text left for better readability
+                },
+                headStyles: {
+                    fillColor: [139, 92, 246], // Tailwind purple-500
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold'
+                },
+                alternateRowStyles: {
+                    fillColor: [243, 244, 246] // Tailwind gray-100
+                },
+                 didDrawPage: function(data) {
+                    // Footer
+                    let str = "Halaman " + doc.internal.getNumberOfPages();
+                    doc.setFontSize(10);
+                    doc.text(str, data.settings.margin.left, doc.internal.pageSize.height - 10);
+                }
+            });
+
+            doc.save('daftar_transaksi.pdf');
+            showSuccess('Data transaksi berhasil diekspor ke PDF!');
+        } catch (error) {
+            showError('Gagal mengekspor data ke PDF: ' + error.message);
+        }
+    });
+
+
+    exportExcelBtn.addEventListener('click', async () => {
+        if (!currentUser || currentUser.role !== 'admin') {
+            showError("Anda tidak memiliki izin untuk mengekspor data.");
+            return;
+        }
+
+        try {
+            const userIdFilter = filterUserDropdown.value; // Ambil filter user
+            let query = transactionsRef.orderBy("createdAt", "desc");
+            if (userIdFilter) {
+                query = query.where("uid", "==", userIdFilter);
+            }
+
+            const snapshot = await query.get();
+            const data = [];
+            // Headers
+            data.push(['Tanggal', 'Jenis', 'Jumlah', 'Kategori', 'Deskripsi', 'User UID']);
+
+            snapshot.forEach(doc => {
+                const transaction = doc.data();
+                const date = transaction.createdAt ? new Date(transaction.createdAt.toDate()).toLocaleString() : 'N/A';
+                const type = transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
+                const amount = transaction.amount;
+                const category = transaction.category;
+                const description = transaction.description || '-';
+                const uid = transaction.uid;
+                data.push([date, type, amount, category, description, uid]);
+            });
+
+            // Create a CSV string
+            let csvContent = "data:text/csv;charset=utf-8,"
+                + data.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n"); // Handle commas in data
+
+            // Create a hidden link and trigger download
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "daftar_transaksi.csv");
+            document.body.appendChild(link); // Required for Firefox
+            link.click();
+            document.body.removeChild(link);
+
+            showSuccess('Data transaksi berhasil diekspor ke Excel (CSV)!');
+        } catch (error) {
+            showError('Gagal mengekspor data ke Excel: ' + error.message);
+        }
+    });
+
+
+    // --- Observasi Status Autentikasi Firebase ---
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            // Pengguna masuk
+            currentUser = user;
+
+            try {
+                const doc = await usersRef.doc(currentUser.uid).get();
+                if (doc.exists) {
+                    const userData = doc.data();
+                    currentUser.role = userData.role || 'member'; // Set role pada objek currentUser
+                    currentUser.name = userData.name || currentUser.email; // Set nama pengguna
+
+                    userEmailSpan.textContent = userData.email;
+                    userRoleSpan.textContent = userData.role === 'admin' ? 'Admin' : 'Member';
+
+                    // Tampilkan/sembunyikan elemen berdasarkan peran
+                    document.querySelectorAll('.admin-only').forEach(el => {
+                        if (currentUser.role === 'admin') {
+                            el.classList.remove('hidden');
+                        } else {
+                            el.classList.add('hidden');
+                        }
+                    });
+
+                    // Tampilkan dashboard dan elemen UI pengguna
+                    authContainer.classList.add('hidden');
+                    dashboard.classList.remove('hidden');
+                    logoutBtn.classList.remove('hidden');
+                    loginBtn.classList.add('hidden');
+                    userEmailSpan.classList.remove('hidden');
+                    userRoleSpan.classList.remove('hidden');
+
+                    // Perbarui waktu login terakhir
+                    await usersRef.doc(currentUser.uid).update({
+                        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    // Muat semua data yang terkait dengan dashboard (default: dashboard section)
+                    await loadTransactions(document.getElementById('transaction-list'), currentUser.uid, true); // Transaksi dashboard user
+                    await loadRecentPosts(); // Postingan terbaru dashboard
+                    await loadUpcomingAgendas(); // Agenda mendatang dashboard
+                    showSection('dashboard-section'); // Tampilkan dashboard section secara default
+
+
+                    if (currentUser.role === 'admin') {
+                        // Muat data khusus admin saat masuk ke dashboard
+                        await loadAllUsers(); // Muat daftar user untuk filter dan admin panel
+                        await loadTransactions(adminTransactionListTable, null, false); // Semua transaksi untuk admin panel
+                    }
+                } else {
+                    showError("Data pengguna tidak ditemukan di Firestore. Silakan daftar ulang atau hubungi admin.");
+                    await auth.signOut();
+                }
+            } catch (error) {
+                showError("Gagal memuat data pengguna: " + error.message);
+                await auth.signOut();
+            }
+        } else {
+            // Tidak ada pengguna yang masuk
+            currentUser = null;
+            authContainer.classList.remove('hidden');
+            dashboard.classList.add('hidden');
+            logoutBtn.classList.add('hidden');
+            loginBtn.classList.remove('hidden');
+            userEmailSpan.classList.add('hidden');
+            userRoleSpan.classList.add('hidden');
+            // Sembunyikan semua elemen admin
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.classList.add('hidden');
+            });
+            // Hancurkan instance chart saat logout
+            if (financialChartInstance) financialChartInstance.destroy();
+            if (fullFinanceChartInstance) fullFinanceChartInstance.destroy();
+        }
+    });
+
+    // --- Event Listeners Navigasi ---
+    navDashboardBtn.addEventListener('click', () => {
+        showSection('dashboard-section');
+        loadTransactions(document.getElementById('transaction-list'), currentUser.uid, true); // Pastikan transaksi dashboard terload
+        loadRecentPosts();
+        loadUpcomingAgendas();
+    });
+    navFullFinanceBtn.addEventListener('click', () => {
+        showSection('full-finance-section');
+        // Muat transaksi berdasarkan filter yang dipilih, jika admin
+        const userIdToLoad = currentUser && currentUser.role === 'admin' ? filterUserDropdown.value : currentUser.uid;
+        loadTransactions(fullTransactionList, userIdToLoad, true);
+    });
+    navSocialFeedBtn.addEventListener('click', () => {
+        showSection('social-feed-section');
+        loadAllPosts();
+    });
+    navAgendaBtn.addEventListener('click', () => {
+        showSection('agenda-section');
+        loadAllAgendas();
+    });
+    navAdminPanelBtn.addEventListener('click', () => {
+        showSection('admin-panel-section');
+        if (currentUser && currentUser.role === 'admin') {
+            loadAllUsers(); // Muat ulang daftar pengguna
+            loadTransactions(adminTransactionListTable, null, false); // Muat semua transaksi
+        }
+    });
+
+    // Event listener untuk filter user di Full Finance
+    filterUserDropdown.addEventListener('change', () => {
+        const selectedUserId = filterUserDropdown.value;
+        loadTransactions(fullTransactionList, selectedUserId, true);
+    });
+
+  </script>
 </body>
 </html>
