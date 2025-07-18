@@ -1129,18 +1129,37 @@
     
         // Handle auth state changes
         auth.onAuthStateChanged(user => {
-          if (user) {
-            currentUser = user;
-            loadUserData();
-          } else {
-            // Pengguna keluar
-            currentUser = null;
-            document.getElementById('dashboard').classList.add('hidden');
-            document.getElementById('auth-container').classList.remove('hidden');
-            document.getElementById('logout-btn').classList.add('hidden');
-            document.getElementById('login-btn').classList.remove('hidden');
-            document.getElementById('user-email').classList.add('hidden');
-            document.getElementById('user-role').classList.add('hidden');
+  if (user) {
+    currentUser = user;
+    loadUserData().then(() => {
+      // Setelah data user selesai dimuat
+      if (currentUser.role === 'admin') {
+        // Tampilkan semua elemen admin
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.style.display = 'block';
+        });
+        // Tampilkan tombol transaksi
+        document.getElementById('add-transaction-btn').style.display = 'block';
+        document.getElementById('add-transaction-full-btn').style.display = 'block';
+      } else {
+        // Sembunyikan elemen admin untuk non-admin
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.style.display = 'none';
+        });
+        // Sembunyikan tombol transaksi
+        document.getElementById('add-transaction-btn').style.display = 'none';
+        document.getElementById('add-transaction-full-btn').style.display = 'none';
+      }
+    });
+  } else {
+    // Pengguna keluar
+    currentUser = null;
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('auth-container').classList.remove('hidden');
+    document.getElementById('logout-btn').classList.add('hidden');
+    document.getElementById('login-btn').classList.remove('hidden');
+    document.getElementById('user-email').classList.add('hidden');
+    document.getElementById('user-role').classList.add('hidden');
             
             // Sembunyikan elemen admin
             document.querySelectorAll('.admin-only').forEach(el => {
@@ -1154,46 +1173,73 @@
     
         // ================= USER FUNCTIONS =================
         function loadUserData() {
-          if (!currentUser) return;
-    
-          usersRef.doc(currentUser.uid).get().then(doc => {
-            if (doc.exists) {
-              const userData = doc.data();
-              
-              // Update UI
-              document.getElementById('user-initial').textContent = userData.name.charAt(0);
-              document.getElementById('user-initial-setting').textContent = userData.name.charAt(0);
-              document.getElementById('user-name').textContent = userData.name;
-              document.getElementById('user-email-display').textContent = userData.email;
-              document.getElementById('setting-name').value = userData.name;
-              document.getElementById('setting-email').value = userData.email;
-              
-              // Update role badge
-              const roleBadge = document.getElementById('role-badge');
-              roleBadge.textContent = userData.role === 'admin' ? 'Admin' : 'Member';
-              roleBadge.className = userData.role === 'admin' ? 
-                'role-badge admin-badge' : 'role-badge member-badge';
-              
-              // Update user stats
-              document.getElementById('user-income').textContent = formatRupiah(userData.totalIncome || 0);
-              document.getElementById('user-expense').textContent = formatRupiah(userData.totalExpense || 0);
-              document.getElementById('user-balance').textContent = formatRupiah((userData.totalIncome || 0) - (userData.totalExpense || 0));
-              
-              // Show profile image if exists
-              if (userData.profileImage) {
-                document.getElementById('profile-avatar').classList.add('hidden');
-                document.getElementById('profile-image').classList.remove('hidden');
-                document.getElementById('profile-image').src = userData.profileImage;
-                
-                document.getElementById('profile-avatar-setting').classList.add('hidden');
-                document.getElementById('profile-image-setting').classList.remove('hidden');
-                document.getElementById('profile-image-setting').src = userData.profileImage;
-              } else {
-                document.getElementById('profile-avatar').classList.remove('hidden');
-                document.getElementById('profile-image').classList.add('hidden');
-                document.getElementById('profile-avatar-setting').classList.remove('hidden');
-                document.getElementById('profile-image-setting').classList.add('hidden');
-              }
+  return new Promise((resolve, reject) => {
+    if (!currentUser) {
+      reject("No current user");
+      return;
+    }
+
+    usersRef.doc(currentUser.uid).get().then(doc => {
+      if (doc.exists) {
+        const userData = doc.data();
+        
+        // Simpan data role ke currentUser
+        currentUser.role = userData.role || 'member';
+        
+        // Update UI
+        document.getElementById('user-initial').textContent = userData.name.charAt(0);
+        document.getElementById('user-initial-setting').textContent = userData.name.charAt(0);
+        document.getElementById('user-name').textContent = userData.name;
+        document.getElementById('user-email-display').textContent = userData.email;
+        document.getElementById('setting-name').value = userData.name;
+        document.getElementById('setting-email').value = userData.email;
+        
+        // Update role badge
+        const roleBadge = document.getElementById('role-badge');
+        roleBadge.textContent = userData.role === 'admin' ? 'Admin' : 'Member';
+        roleBadge.className = userData.role === 'admin' ? 
+          'role-badge admin-badge' : 'role-badge member-badge';
+        
+        // Update user stats
+        document.getElementById('user-income').textContent = formatRupiah(userData.totalIncome || 0);
+        document.getElementById('user-expense').textContent = formatRupiah(userData.totalExpense || 0);
+        document.getElementById('user-balance').textContent = formatRupiah((userData.totalIncome || 0) - (userData.totalExpense || 0));
+        
+        // Show profile image if exists
+        if (userData.profileImage) {
+          document.getElementById('profile-avatar').classList.add('hidden');
+          document.getElementById('profile-image').classList.remove('hidden');
+          document.getElementById('profile-image').src = userData.profileImage;
+          
+          document.getElementById('profile-avatar-setting').classList.add('hidden');
+          document.getElementById('profile-image-setting').classList.remove('hidden');
+          document.getElementById('profile-image-setting').src = userData.profileImage;
+        } else {
+          document.getElementById('profile-avatar').classList.remove('hidden');
+          document.getElementById('profile-image').classList.add('hidden');
+          document.getElementById('profile-avatar-setting').classList.remove('hidden');
+          document.getElementById('profile-image-setting').classList.add('hidden');
+        }
+        
+        // Update last login time
+        usersRef.doc(currentUser.uid).update({
+          lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+          resolve(userData); // Resolve dengan data user yang sudah diload
+        });
+      } else {
+        const error = "Data pengguna tidak ditemukan di Firestore";
+        showError(error);
+        reject(error);
+        auth.signOut();
+      }
+    }).catch(error => {
+      showError("Gagal memuat data pengguna: " + error.message);
+      reject(error);
+      auth.signOut();
+    });
+  });
+}
               
               // Show admin elements
               if (userData.role === 'admin') {
@@ -2657,212 +2703,380 @@
                     showError("Anda hanya dapat menghapus akun Anda sendiri.");
                 }
             }
-        })
-
-    // Fungsi helper
-    function showError(msg) {
-      const el = document.getElementById("error-message");
-      el.textContent = msg; el.classList.remove("hidden");
-      setTimeout(() => el.classList.add("hidden"), 4000);
-    }
-    function showSuccess(msg) {
-      const el = document.getElementById("success-message");
-      el.textContent = msg; el.classList.remove("hidden");
-      setTimeout(() => el.classList.add("hidden"), 4000);
-    }
-    function formatRupiah(amount) {
-      return "Rp " + (amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    }
-
-    // Chart Keuangan
-    let financeChart = null;
-    function updateFinanceChart(income, expense) {
-      const ctx = document.getElementById('finance-chart').getContext('2d');
-      if (financeChart) {
-        financeChart.data.datasets[0].data = [income, expense];
-        financeChart.update();
-      } else {
-        financeChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: ['Kas Masuk', 'Kas Keluar'],
-            datasets: [{
-              label: 'Jumlah (Rp)',
-              data: [income, expense],
-              backgroundColor: [
-                'rgba(16,185,129,0.7)',
-                'rgba(239,68,68,0.7)'
-              ],
-              borderColor: [
-                'rgba(16,185,129,1)',
-                'rgba(239,68,68,1)'
-              ],
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return 'Rp ' + context.raw.toLocaleString('id-ID');
+        });
+    
+        // ================= HELPER FUNCTIONS =================
+        function showError(message) {
+          const errorElement = document.getElementById('error-message');
+          errorElement.textContent = message;
+          errorElement.classList.remove('hidden');
+          setTimeout(() => errorElement.classList.add('hidden'), 5000);
+        }
+        
+        function showSuccess(message) {
+          const successElement = document.getElementById('success-message');
+          successElement.textContent = message;
+          successElement.classList.remove('hidden');
+          setTimeout(() => successElement.classList.add('hidden'), 5000);
+        }
+    
+        function formatRupiah(amount) {
+          return 'Rp ' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+        
+        function updateBalance() {
+          // Update user balance
+          usersRef.doc(currentUser.uid).get().then(doc => {
+            if (doc.exists) {
+                const userData = doc.data();
+                const totalBalance = (userData.totalIncome || 0) - (userData.totalExpense || 0);
+                document.getElementById('user-balance').textContent = formatRupiah(totalBalance);
+            }
+          });
+          
+          // Update total QC balance (for admin)
+          if (currentUser.role === 'admin') {
+            usersRef.get().then(snapshot => {
+              let totalIncome = 0;
+              let totalExpense = 0;
+              let userCount = 0;
+              
+              snapshot.forEach(doc => {
+                const userData = doc.data();
+                totalIncome += userData.totalIncome || 0;
+                totalExpense += userData.totalExpense || 0;
+                userCount++;
+              });
+              
+              const totalBalance = totalIncome - totalExpense;
+              
+              document.getElementById('total-saldo').textContent = formatRupiah(totalBalance);
+              document.getElementById('total-income').textContent = formatRupiah(totalIncome);
+              document.getElementById('total-expense').textContent = formatRupiah(totalExpense);
+              document.getElementById('total-users').textContent = userCount;
+              
+              // Update chart
+              updateFinanceChart(totalIncome, totalExpense);
+            });
+          }
+        }
+        
+        function updateFinanceChart(income, expense) {
+          const ctx = document.getElementById('finance-chart').getContext('2d');
+          
+          if (financeChart) {
+            financeChart.data.datasets[0].data = [income, expense];
+            financeChart.update();
+          } else {
+            financeChart = new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: ['Kas Masuk', 'Kas Keluar'],
+                datasets: [{
+                  label: 'Jumlah (Rp)',
+                  data: [income, expense],
+                  backgroundColor: [
+                    'rgba(16, 185, 129, 0.7)',
+                    'rgba(239, 68, 68, 0.7)'
+                  ],
+                  borderColor: [
+                    'rgba(16, 185, 129, 1)',
+                    'rgba(239, 68, 68, 1)'
+                  ],
+                  borderWidth: 1
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    display: false
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: function(context) {
+                        return 'Rp ' + context.raw.toLocaleString('id-ID');
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    ticks: {
+                      callback: function(value) {
+                        return 'Rp ' + value.toLocaleString('id-ID');
+                      }
+                    }
                   }
                 }
               }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  callback: function(value) {
-                    return 'Rp ' + value.toLocaleString('id-ID');
-                  }
-                }
-              }
+            });
+          }
+          
+          // Update full finance chart if it exists
+          if (fullFinanceChart) {
+            fullFinanceChart.data.datasets[0].data = [income, expense];
+            fullFinanceChart.update();
+          }
+        }
+    
+        // ================= INITIALIZATION =================
+        // Tab switching
+        document.getElementById('login-tab').addEventListener('click', () => {
+          document.getElementById('login-form').classList.remove('hidden');
+          document.getElementById('register-form').classList.add('hidden');
+          document.getElementById('reset-form').classList.add('hidden');
+          document.getElementById('login-tab').classList.add('tab-active');
+          document.getElementById('register-tab').classList.remove('tab-active');
+          document.getElementById('reset-tab').classList.remove('tab-active');
+          document.getElementById('error-message').classList.add('hidden');
+          document.getElementById('success-message').classList.add('hidden');
+        });
+        
+        document.getElementById('register-tab').addEventListener('click', () => {
+          document.getElementById('login-form').classList.add('hidden');
+          document.getElementById('register-form').classList.remove('hidden');
+          document.getElementById('reset-form').classList.add('hidden');
+          document.getElementById('login-tab').classList.remove('tab-active');
+          document.getElementById('register-tab').classList.add('tab-active');
+          document.getElementById('reset-tab').classList.remove('tab-active');
+          document.getElementById('error-message').classList.add('hidden');
+          document.getElementById('success-message').classList.add('hidden');
+        });
+        
+        document.getElementById('reset-tab').addEventListener('click', () => {
+          document.getElementById('login-form').classList.add('hidden');
+          document.getElementById('register-form').classList.add('hidden');
+          document.getElementById('reset-form').classList.remove('hidden');
+          document.getElementById('login-tab').classList.remove('tab-active');
+          document.getElementById('register-tab').classList.remove('tab-active');
+          document.getElementById('reset-tab').classList.add('tab-active');
+          document.getElementById('error-message').classList.add('hidden');
+          document.getElementById('success-message').classList.add('hidden');
+        });
+        
+        // Admin checkbox toggle
+        document.getElementById('is-admin').addEventListener('change', (e) => {
+          if (e.target.checked) {
+            document.getElementById('admin-code-container').classList.remove('hidden');
+          } else {
+            document.getElementById('admin-code-container').classList.add('hidden');
+          }
+        });
+        
+        // Dashboard navigation
+        document.getElementById('show-full-kas').addEventListener('click', () => {
+          hideAllSections();
+          document.getElementById('full-kas-section').classList.remove('hidden');
+          loadTransactions();
+        });
+        
+        document.getElementById('show-full-agenda').addEventListener('click', () => {
+          hideAllSections();
+          document.getElementById('full-agenda-section').classList.remove('hidden');
+          loadAgendas();
+        });
+        
+        document.getElementById('show-full-sosial').addEventListener('click', () => {
+          hideAllSections();
+          document.getElementById('full-sosial-section').classList.remove('hidden');
+          loadPosts();
+        });
+        
+        document.getElementById('show-admin').addEventListener('click', () => {
+          hideAllSections();
+          document.getElementById('admin-section').classList.remove('hidden');
+          loadUsers();
+          document.getElementById('users-tab').click();
+        });
+        
+        function hideAllSections() {
+          document.getElementById('full-kas-section').classList.add('hidden');
+          document.getElementById('full-agenda-section').classList.add('hidden');
+          document.getElementById('full-sosial-section').classList.add('hidden');
+          document.getElementById('admin-section').classList.add('hidden');
+          document.getElementById('setting-section').classList.add('hidden');
+        }
+        
+        // Admin tabs
+        document.getElementById('users-tab').addEventListener('click', () => {
+          document.getElementById('users-admin-content').classList.remove('hidden');
+          document.getElementById('transactions-admin-content').classList.add('hidden');
+          document.getElementById('agendas-admin-content').classList.add('hidden');
+          document.getElementById('users-tab').classList.add('tab-active');
+          document.getElementById('transactions-admin-tab').classList.remove('tab-active');
+          document.getElementById('agendas-admin-tab').classList.remove('tab-active');
+          loadUsers();
+        });
+        
+        document.getElementById('transactions-admin-tab').addEventListener('click', () => {
+          document.getElementById('users-admin-content').classList.add('hidden');
+          document.getElementById('transactions-admin-content').classList.remove('hidden');
+          document.getElementById('agendas-admin-content').classList.add('hidden');
+          document.getElementById('users-tab').classList.remove('tab-active');
+          document.getElementById('transactions-admin-tab').classList.add('tab-active');
+          document.getElementById('agendas-admin-tab').classList.remove('tab-active');
+          loadAdminTransactions();
+        });
+        
+        document.getElementById('agendas-admin-tab').addEventListener('click', () => {
+          document.getElementById('users-admin-content').classList.add('hidden');
+          document.getElementById('transactions-admin-content').classList.add('hidden');
+          document.getElementById('agendas-admin-content').classList.remove('hidden');
+          document.getElementById('users-tab').classList.remove('tab-active');
+          document.getElementById('transactions-admin-tab').classList.remove('tab-active');
+          document.getElementById('agendas-admin-tab').classList.add('tab-active');
+          loadAdminAgendas();
+        });
+    
+        // Populate user dropdown for admin transaction creation
+        function populateUserDropdown() {
+          const userDropdown = document.getElementById('transaction-user');
+          userDropdown.innerHTML = '<option value="">Pilih User</option>';
+          
+          usersRef.orderBy('name').get().then(snapshot => {
+            snapshot.forEach(doc => {
+              const user = doc.data();
+              const option = document.createElement('option');
+              option.value = user.uid;
+              option.textContent = user.name;
+              userDropdown.appendChild(option);
+            });
+          });
+        }
+    
+        // Search functionality
+        document.getElementById('admin-user-search').addEventListener('input', (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          const usersList = document.getElementById('users-list');
+          const userItems = usersList.querySelectorAll('.user-list-item');
+          
+          userItems.forEach(item => {
+            const name = item.querySelector('p.font-medium').textContent.toLowerCase();
+            const email = item.querySelector('p.text-sm').textContent.toLowerCase();
+            
+            if (name.includes(searchTerm)) {
+              item.style.display = 'flex';
+            } else if (email.includes(searchTerm)) {
+              item.style.display = 'flex';
+            } else {
+              item.style.display = 'none';
+            }
+          });
+        });
+    
+        document.getElementById('admin-transaction-search').addEventListener('input', (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          const transactionsList = document.getElementById('admin-transactions-list');
+          const transactionItems = transactionsList.querySelectorAll('.transaction-in, .transaction-out');
+          
+          transactionItems.forEach(item => {
+            const description = item.querySelector('h4.font-medium').textContent.toLowerCase();
+            const userName = item.querySelector('p.text-xs').textContent.toLowerCase();
+            
+            if (description.includes(searchTerm)) {
+              item.style.display = 'block';
+            } else if (userName.includes(searchTerm)) {
+              item.style.display = 'block';
+            } else {
+              item.style.display = 'none';
+            }
+          });
+        });
+    
+        document.getElementById('admin-agenda-search').addEventListener('input', (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          const agendasList = document.getElementById('admin-agendas-list');
+          const agendaItems = agendasList.querySelectorAll('.agenda-card');
+          
+          agendaItems.forEach(item => {
+            const title = item.querySelector('h4.font-medium').textContent.toLowerCase();
+            const description = item.querySelector('p.text-gray-300').textContent.toLowerCase();
+            
+            if (title.includes(searchTerm)) {
+              item.style.display = 'block';
+            } else if (description.includes(searchTerm)) {
+              item.style.display = 'block';
+            } else {
+              item.style.display = 'none';
+            }
+          });
+        });
+    
+        // Initialize full finance chart
+        function initFullFinanceChart() {
+  const ctx = document.getElementById('full-finance-chart').getContext('2d');
+  fullFinanceChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Kas Masuk', 'Kas Keluar'],
+      datasets: [{
+        label: 'Jumlah (Rp)',
+        data: [0, 0], // Data awal di-set 0, akan diupdate setelah data dimuat
+        backgroundColor: [
+          'rgba(16, 185, 129, 0.7)', // Hijau untuk kas masuk
+          'rgba(239, 68, 68, 0.7)'    // Merah untuk kas keluar
+        ],
+        borderColor: [
+          'rgba(16, 185, 129, 1)',
+          'rgba(239, 68, 68, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return 'Rp ' + context.raw.toLocaleString('id-ID');
             }
           }
-        });
-      }
-    }
-
-    // Update Saldo & Chart (otomatis)
-    function updateBalanceAndChart() {
-      if (currentUser && currentUser.role === "admin") {
-        usersRef.get().then(snapshot => {
-          let totalIncome = 0, totalExpense = 0, userCount = 0;
-          snapshot.forEach(doc => {
-            const user = doc.data();
-            totalIncome += user.totalIncome || 0;
-            totalExpense += user.totalExpense || 0;
-            userCount++;
-          });
-          const totalBalance = totalIncome - totalExpense;
-          document.getElementById('total-saldo').textContent = formatRupiah(totalBalance);
-          document.getElementById('total-income').textContent = formatRupiah(totalIncome);
-          document.getElementById('total-expense').textContent = formatRupiah(totalExpense);
-          document.getElementById('total-users').textContent = userCount;
-          updateFinanceChart(totalIncome, totalExpense);
-        });
-      }
-      if (currentUser) {
-        usersRef.doc(currentUser.uid).get().then(doc => {
-          if (doc.exists) {
-            const u = doc.data();
-            document.getElementById('user-income').textContent = formatRupiah(u.totalIncome || 0);
-            document.getElementById('user-expense').textContent = formatRupiah(u.totalExpense || 0);
-            document.getElementById('user-balance').textContent = formatRupiah((u.totalIncome || 0) - (u.totalExpense || 0));
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return 'Rp ' + value.toLocaleString('id-ID');
+            }
           }
-        });
+        }
       }
     }
-
-    // Akses Transaksi (admin only)
-    function isAdmin() { return currentUser && currentUser.role === 'admin'; }
-    function setTransactionAccess() {
-      document.querySelectorAll('.admin-only').forEach(el => {
-        el.style.display = isAdmin() ? 'block' : 'none';
-      });
-      const form = document.getElementById('transaction-form');
-      if (form) {
-        form.querySelectorAll('input,select,button').forEach(e => {
-          e.disabled = !isAdmin();
-        });
-      }
-    }
-    function populateUserDropdown() {
-      const userDropdown = document.getElementById('transaction-user');
-      userDropdown.innerHTML = '<option value="">Pilih User</option>';
-      usersRef.orderBy('name').get().then(snapshot => {
-        snapshot.forEach(doc => {
-          const user = doc.data();
-          const option = document.createElement('option');
-          option.value = user.uid; option.textContent = user.name;
-          userDropdown.appendChild(option);
-        });
-      });
-    }
-
-    // Event tambah transaksi (admin only)
-    document.getElementById('add-transaction-btn').addEventListener('click', () => {
-      if (!isAdmin()) { showError("Hanya admin yang dapat menambah transaksi."); return; }
-      document.getElementById('transaction-form').classList.remove('hidden');
-      document.getElementById('transaction-form').reset(); populateUserDropdown();
-    });
-    document.getElementById('add-transaction-full-btn').addEventListener('click', () => {
-      if (!isAdmin()) { showError("Hanya admin yang dapat menambah transaksi."); return; }
-      document.getElementById('transaction-form').classList.remove('hidden');
-      document.getElementById('transaction-form').reset(); populateUserDropdown();
-    });
-    document.getElementById('admin-add-transaction-btn').addEventListener('click', () => {
-      if (!isAdmin()) { showError("Hanya admin yang dapat menambah transaksi."); return; }
-      document.getElementById('transaction-form').classList.remove('hidden');
-      document.getElementById('transaction-form').reset(); populateUserDropdown();
-    });
-
-    // Submit transaksi (admin wajib pilih user)
-    document.getElementById('transaction-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!isAdmin()) { showError("Hanya admin yang dapat menambah transaksi."); return; }
-      const type = document.getElementById('transaction-type').value;
-      const amount = parseFloat(document.getElementById('transaction-amount').value);
-      const description = document.getElementById('transaction-desc').value;
-      const userId = document.getElementById('transaction-user').value;
-      if (!userId) { showError("Pilih user untuk transaksi."); return; }
-      if (isNaN(amount) || amount <= 0) { showError("Jumlah transaksi harus angka positif."); return; }
-      const userDoc = await usersRef.doc(userId).get();
-      const userData = userDoc.data();
-      const newTransaction = {
-        userId: userId,
-        userName: userData.name,
-        type: type,
-        amount: amount,
-        description: description,
-        date: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      // Update Firestore & saldo user
-      await db.runTransaction(async (t) => {
-        const userRef = usersRef.doc(userId);
-        const userDoc = await t.get(userRef);
-        const u = userDoc.data();
-        let totalIncome = u.totalIncome || 0;
-        let totalExpense = u.totalExpense || 0;
-        if (type === 'masuk') { totalIncome += amount; }
-        else { totalExpense += amount; }
-        t.set(transactionsRef.doc(), newTransaction);
-        t.update(userRef, { totalIncome, totalExpense });
-      });
-      showSuccess("Transaksi berhasil ditambahkan!");
-      document.getElementById('transaction-form').classList.add('hidden');
-      document.getElementById('transaction-form').reset();
-      updateBalanceAndChart();
-      // ... (panggil loadTransactions, loadRecentTransactions jika ada)
-    });
-
-    // Auth State Change
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        currentUser = user;
-        usersRef.doc(currentUser.uid).get().then(doc => {
-          if (doc.exists) {
-            currentUser.role = doc.data().role;
-            setTransactionAccess();
-            updateBalanceAndChart();
-            // ... (panggil loadAllData jika perlu)
-          }
-        });
-      } else {
-        currentUser = null;
-        setTransactionAccess();
-      }
-    });
-
-    // Inisialisasi
-    setTransactionAccess();
-    updateBalanceAndChart();
   });
-  </script>
+}
+
+// Fungsi untuk update chart dengan data terbaru
+function updateFinanceChart(income, expense) {
+  if (fullFinanceChart) {
+    fullFinanceChart.data.datasets[0].data = [income, expense];
+    fullFinanceChart.update();
+  }
+  
+  // Update chart kecil di dashboard juga jika ada
+  if (financeChart) {
+    financeChart.data.datasets[0].data = [income, expense];
+    financeChart.update();
+  }
+}
+
+// Panggil saat inisialisasi
+initFullFinanceChart();
+    
+        // Initialize when page loads
+        initFullFinanceChart();
+        populateUserDropdown();
+      
+  });
+</script>
 </body>
 </html>
