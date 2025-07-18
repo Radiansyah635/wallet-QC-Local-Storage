@@ -1821,27 +1821,40 @@ function createMediaPreview(fileUrl, fileType) {
               loadAllData();
               
               // Update last login time
-              usersRef.doc(currentUser.uid).update({
-                lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-              
-    function createMediaPreview(fileUrl, fileType) {
-      const mediaDiv = document.createElement("div");
-      mediaDiv.className = "border p-2 rounded";
+usersRef.doc(currentUser.uid).update({
+  lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+}) // <--- Tambahkan ini: Kurung tutup untuk .update()
+.then(() => {
+    // Opsional: Lakukan sesuatu setelah update berhasil,
+    // misalnya log sukses atau trigger fungsi lain.
+    console.log("Waktu login terakhir berhasil diperbarui!");
+})
+.catch(error => {
+    // Opsional: Tangani error jika update gagal.
+    console.error("Error memperbarui waktu login terakhir:", error);
+});
+; // <--- Opsional: Titik koma untuk mengakhiri statement (praktik baik)
 
-      if (fileType === "image") {
-        const img = document.createElement("img");
-        img.src = fileUrl;
-        img.className = "w-full h-auto rounded";
-        mediaDiv.appendChild(img);
-      } else if (fileType === "video") {
-        const vid = document.createElement("video");
-        vid.src = fileUrl;
-        vid.controls = true;
-        vid.className = "w-full rounded";
-        mediaDiv.appendChild(vid);
-      }
-      return mediaDiv;
-    }
+// Ini adalah fungsi terpisah, pastikan ia berada di luar blok kode di atas
+// atau di dalam cakupan yang tepat (misalnya, di dalam `<script>` tag di HTML Anda).
+function createMediaPreview(fileUrl, fileType) {
+  const mediaDiv = document.createElement("div");
+  mediaDiv.className = "border p-2 rounded";
+
+  if (fileType === "image") {
+    const img = document.createElement("img");
+    img.src = fileUrl;
+    img.className = "w-full h-auto rounded";
+    mediaDiv.appendChild(img);
+  } else if (fileType === "video") {
+    const vid = document.createElement("video");
+    vid.src = fileUrl;
+    vid.controls = true;
+    vid.className = "w-full rounded";
+    mediaDiv.appendChild(vid);
+  }
+  return mediaDiv;
+}
 
     function loadPosts() {
       postsRef.orderBy("createdAt", "desc").get().then(snapshot => {
