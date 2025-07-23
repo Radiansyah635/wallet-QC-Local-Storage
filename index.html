@@ -549,12 +549,12 @@
             <label for="radioInputManual" class="inline-block text-sm">Input Manual</label>
         </div>
 
-        <div id="emailInputContainer" class="mt-4 hidden">
+        <div id="emailInputContainer" class="mt-4 section-hidden">
             <label for="inputEmail" class="block text-sm mb-2">Email User (pisahkan dengan koma jika lebih dari satu):</label>
             <input type="email" id="inputEmail" name="emails" class="input-field" placeholder="contoh@domain.com, lain@domain.com" multiple>
         </div>
 
-        <div id="allUserMessage" class="mt-2 hidden text-sm text-gray-400">
+        <div id="allUserMessage" class="mt-2 section-hidden text-sm text-gray-400">
             <p>Transaksi ini akan dikirim ke semua user yang terdaftar.</p>
         </div>
     </div>
@@ -1028,6 +1028,42 @@ const firebaseConfig = {
       const amount = parseFloat(document.getElementById('transaction-amount').value);
       const description = document.getElementById('transaction-desc').value;
 
+      // Pastikan DOM sudah dimuat sebelum menjalankan script
+document.addEventListener('DOMContentLoaded', function() {
+    // Dapatkan elemen-elemen yang diperlukan
+    const radioSemuaUser = document.getElementById('radioSemuaUser');
+    const radioPilihUser = document.getElementById('radioPilihUser');
+    const radioInputManual = document.getElementById('radioInputManual');
+    const emailInputContainer = document.getElementById('emailInputContainer');
+    const inputEmail = document.getElementById('inputEmail');
+    const allUserMessage = document.getElementById('allUserMessage');
+
+    // Fungsi untuk mengatur tampilan kontainer email
+    function toggleEmailInput() {
+        if (radioSemuaUser.checked) {
+            emailInputContainer.classList.add('section-hidden'); // Sembunyikan field email
+            allUserMessage.classList.remove('section-hidden');  // Tampilkan pesan "Semua User"
+            inputEmail.removeAttribute('required');     // Hapus atribut required
+            inputEmail.value = '';                      // Kosongkan nilai input
+        } else if (radioPilihUser.checked || radioInputManual.checked) {
+            emailInputContainer.classList.remove('section-hidden'); // Tampilkan field email
+            allUserMessage.classList.add('section-hidden');     // Sembunyikan pesan "Semua User"
+            inputEmail.setAttribute('required', 'true'); // Tambahkan atribut required
+        }
+    }
+
+    // Tambahkan event listener ke setiap radio button
+    radioSemuaUser.addEventListener('change', toggleEmailInput);
+    radioPilihUser.addEventListener('change', toggleEmailInput);
+    radioInputManual.addEventListener('change', toggleEmailInput);
+
+    // Inisialisasi tampilan saat form dimuat atau ditampikan
+    // Misalnya, jika Anda ingin "Semua User" terpilih secara default
+    // dan pesannya muncul saat form pertama kali terbuka, Anda bisa set ini:
+    // radioSemuaUser.checked = true;
+    toggleEmailInput(); // Panggil fungsi ini untuk mengatur tampilan awal
+});
+      
       if (isNaN(amount) || amount <= 0) {
         showError("Jumlah transaksi harus angka positif.");
         return;
