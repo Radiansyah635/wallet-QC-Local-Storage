@@ -529,36 +529,7 @@
                   <input type="number" id="transaction-amount" class="input-field" placeholder="1000000" required min="1">
                 </div>
               </div>
-              <div>
-                <label class="block text-sm mb-2">Keterangan</label>
-                <input type="text" id="transaction-desc" class="input-field" placeholder="Deskripsi transaksi" required>
-              </div>
-              <div class="flex justify-end space-x-3">
-                <button type="button" id="cancel-transaction-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
-                  Batal
-                </button>
-                <button type="submit" class="btn-primary">
-                  Simpan Transaksi
-                </button>
-              </div>
-              
-            <form id="transaction-form" class="hidden space-y-4 mb-6">
-  <!-- Field yang sudah ada -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <label class="block text-sm mb-2">Jenis Transaksi</label>
-      <select id="transaction-type" class="input-field">
-        <option value="masuk">Kas Masuk</option>
-        <option value="keluar">Kas Keluar</option>
-      </select>
-    </div>
-    <div>
-      <label class="block text-sm mb-2">Jumlah (Rp)</label>
-      <input type="number" id="transaction-amount" class="input-field" placeholder="1000000" required>
-    </div>
-  </div>
-
-  <!-- Tambahan Field Email -->
+              <!-- Tambahan Field Email -->
   <div>
     <label class="block text-sm mb-2">Penerima Email</label>
     <div class="space-y-3">
@@ -591,23 +562,18 @@
       </div>
     </div>
   </div>
-
-  <!-- Field Keterangan (Existing) -->
-  <div>
-    <label class="block text-sm mb-2">Keterangan</label>
-    <input type="text" id="transaction-desc" class="input-field" placeholder="Deskripsi transaksi" required>
-  </div>
-
-  <!-- Tombol (Existing) -->
-  <div class="flex justify-end space-x-3">
-    <button type="button" id="cancel-transaction-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
-      Batal
-    </button>
-    <button type="submit" class="btn-primary">
-      Simpan Transaksi
-    </button>
-  </div>
-</form>
+              <div>
+                <label class="block text-sm mb-2">Keterangan</label>
+                <input type="text" id="transaction-desc" class="input-field" placeholder="Deskripsi transaksi" required>
+              </div>
+              <div class="flex justify-end space-x-3">
+                <button type="button" id="cancel-transaction-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
+                  Batal
+                </button>
+                <button type="submit" class="btn-primary">
+                  Simpan Transaksi
+                </button>
+              </div>
 
             <div id="transactions-list" class="space-y-4 max-h-[500px] overflow-y-auto">
               <div class="text-center py-10">
@@ -1055,7 +1021,6 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
-const transactionsRef = db.collection('transactions');
 const usersRef = db.collection('users');
 let editingTransactionId = null;
 
