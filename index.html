@@ -1163,7 +1163,89 @@ const firebaseConfig = {
         });
       }
     });
+   firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
+// Load user emails
+function loadUserEmails() {
+  const emailSelect = document.getElementById('user-emails');
+  
+  db.collection('users').get().then((querySnapshot) => {
+    querySnapshot.forEach((doc) => {
+      const user = doc.data();
+      const option = document.createElement('option');
+      option.value = user.email;
+      option.textContent = user.name || user.email;
+      emailSelect.appendChild(option);
+    });
+  });
+}
+
+// Toggle email input fields
+document.querySelectorAll('input[name="email-option"]').forEach((radio) => {
+  radio.addEventListener('change', function() {
+    document.getElementById('email-select-container').classList.add('hidden');
+    document.getElementById('email-manual-container').classList.add('hidden');
+    
+    if (this.value === 'select') {
+      document.getElementById('email-select-container').classList.remove('hidden');
+    } else if (this.value === 'manual') {
+      document.getElementById('email-manual-container').classList.remove('hidden');
+    }
+  });
+});
+
+// Form submission
+document.getElementById('transaction-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  // Get selected email option
+  const emailOption = document.querySelector('input[name="email-option"]:checked').value;
+  let recipients = [];
+  
+  switch(emailOption) {
+    case 'all':
+      const snapshot = await db.collection('users').get();
+      recipients = snapshot.docs.map(doc => doc.data().email);
+      break;
+    case 'select':
+      recipients = Array.from(document.getElementById('user-emails').selectedOptions)
+                      .map(opt => opt.value);
+      break;
+    case 'manual':
+      recipients = document.getElementById('manual-emails').value
+                  .split(',')
+                  .map(email => email.trim())
+                  .filter(email => email);
+      break;
+  }
+  
+  // Save transaction and send emails
+  saveTransaction(recipients);
+});
+
+function saveTransaction(recipients) {
+  const transactionData = {
+    type: document.getElementById('transaction-type').value,
+    amount: document.getElementById('transaction-amount').value,
+    desc: document.getElementById('transaction-desc').value,
+    recipients: recipients,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  
+  db.collection('transactions').add(transactionData)
+    .then(() => {
+      alert('Transaksi berhasil disimpan!');
+      // Trigger email sending if needed
+    })
+    .catch((error) => {
+      console.error("Error saving transaction: ", error);
+    });
+}
+
+// Load users when page loads
+document.addEventListener('DOMContentLoaded', loadUserEmails);
+    
     function editTransaction(id) {
         transactionsRef.doc(id).get().then(doc => {
             if (doc.exists) {
