@@ -1351,25 +1351,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+     function loadTransactions() {
+    const transactionsList = document.getElementById('transactions-list');
+    transactionsList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data transaksi...</p></div>';
 
-    function loadTransactions() {
-      const transactionsList = document.getElementById('transactions-list');
-      transactionsList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data transaksi...</p></div>';
-      
-      transactionsRef.orderBy('date', 'desc').get().then(snapshot => {
+    transactionsRef.orderBy('date', 'desc').get().then(snapshot => {
         transactionsList.innerHTML = '';
-        
+
         if (snapshot.empty) {
-          transactionsList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada transaksi</p>';
-          // --- BARU: Reset saldo user jika tidak ada transaksi ---
-            if (currentUser && currentUser.uid) { // Pastikan user login
+            transactionsList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada transaksi</p>';
+
+            if (currentUser && currentUser.uid) {
                 const userDocRef = usersRef.doc(currentUser.uid);
-                // Gunakan transaction untuk memastikan atomicity
                 db.runTransaction(async (transaction) => {
                     const userDoc = await transaction.get(userDocRef);
                     if (userDoc.exists) {
                         const userData = userDoc.data();
-                        // Hanya reset jika saldo tidak nol untuk menghindari update yang tidak perlu
                         if ((userData.totalIncome || 0) !== 0 || (userData.totalExpense || 0) !== 0) {
                             transaction.update(userDocRef, {
                                 totalIncome: 0,
@@ -1378,68 +1375,63 @@ document.addEventListener('DOMContentLoaded', function() {
                             console.log("Saldo user direset menjadi 0 karena tidak ada transaksi.");
                         }
                     }
-                }).then(() => {
-                    updateBalance(); // Panggil ini setelah saldo direset di Firestore
-                }).catch(error => {
+                })
+                .then(() => {
+                    // Panggil updateBalance() HANYA di sini jika transaksi berhasil di-reset
+                    updateBalance();
+                })
+                .catch(error => {
                     console.error("Gagal mereset saldo user:", error);
+                    // Panggil updateBalance() di sini juga jika ada error reset tapi tetap ingin update UI
+                    // Atau bisa juga tidak memanggilnya jika error reset berarti saldo tidak valid
+                    // updateBalance(); 
                 });
             }
-            // --- AKHIR BARU ---
-            return; // Penting untuk keluar dari fungsi setelah ini
-    }
-          
-        
+            // Penting: JANGAN ada updateBalance() lagi di sini.
+            // Biarkan Promise di atas yang memanggilnya setelah selesai.
+            return; // Keluar dari fungsi setelah menangani kasus kosong
+        }
+
+        // Jika ada transaksi, tampilkan
         snapshot.forEach(doc => {
-          const transaction = doc.data();
-          const transactionDate = transaction.date ? transaction.date.toDate() : new Date();
-          const formattedDate = transactionDate.toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          });
-          
-          const transactionElement = document.createElement('div');
-          transactionElement.className = `p-4 rounded-lg ${transaction.type === 'masuk' ? 'transaction-in' : 'transaction-out'} bg-gray-800/50`;
-          transactionElement.innerHTML = `
-            <div class="flex justify-between items-start">
-              <div>
-                <h4 class="font-medium">${transaction.description}</h4>
-                <p class="text-sm text-gray-400 mt-1">${formattedDate}</p>
-              </div>
-              <div class="text-right">
-                <p class="${transaction.type === 'masuk' ? 'text-green-400' : 'text-red-400'} font-mono font-medium">${transaction.type === 'masuk' ? '+' : '-'} ${formatRupiah(transaction.amount)}</p>
-                <p class="text-xs text-gray-400 mt-1">${transaction.userName}</p>
-              </div>
-            </div>
-            ${currentUser && currentUser.role === 'admin' ? `
-              <div class="action-buttons mt-3">
-                <button class="edit-transaction action-button" data-id="${doc.id}">
-                  <i class="fas fa-edit mr-1"></i> Edit
-                </button>
-                <button class="delete-transaction action-button text-red-400" data-id="${doc.id}">
-                  <i class="fas fa-trash mr-1"></i> Hapus
-                </button>
-              </div>
-            ` : ''}
-          `;
-          
-          transactionsList.appendChild(transactionElement);
+            const transaction = doc.data();
+            const transactionDate = transaction.date ? transaction.date.toDate() : new Date();
+            const formattedDate = transactionDate.toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+
+            const transactionElement = document.createElement('div');
+            transactionElement.className = `p-4 rounded-lg ${transaction.type === 'masuk' ? 'transaction-in' : 'transaction-out'} bg-gray-800/50`;
+            transactionElement.innerHTML = `
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-medium">${transaction.description}</h4>
+                    <p class="text-sm text-gray-400 mt-1">${formattedDate}</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="${transaction.type === 'masuk' ? 'text-green-400' : 'text-red-400'} font-mono font-medium">${transaction.type === 'masuk' ? '+' : '-'} ${formatRupiah(transaction.amount)}</p>
+                    <p class="text-xs text-gray-400 mt-1">${transaction.userName}</p>
+                  </div>
+                </div>
+                ${currentUser && currentUser.role === 'admin' ? `
+                  <div class="action-buttons mt-3">
+                    <button class="edit-transaction action-button" data-id="${doc.id}">
+                      <i class="fas fa-edit mr-1"></i> Edit
+                    </button>
+                    <button class="delete-transaction action-button text-red-400" data-id="${doc.id}">
+                      <i class="fas fa-trash mr-1"></i> Hapus
+                    </button>
+                  </div>
+                ` : ''}
+            `;
+            transactionsList.appendChild(transactionElement);
         });
 
-           // Pastikan updateBalance() dipanggil setelah semua transaksi dimuat atau jika tidak ada transaksi.
+        // Panggil updateBalance() di sini, di akhir .then() utama jika ada transaksi
         updateBalance();
 
-    }).catch(error => {
-        transactionsList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat transaksi: ${error.message}</p>`;
-        // Mungkin juga reset saldo di sini jika error memuat transaksi dianggap kosong
-        if (currentUser && currentUser.uid) {
-            usersRef.doc(currentUser.uid).update({ totalIncome: 0, totalExpense: 0 })
-                .then(() => updateBalance())
-                .catch(err => console.error("Gagal mereset saldo setelah error load:", err));
-        }
-    });
-    }
-        
         // Add event listeners for admin actions (Delegated for dynamically added elements)
         if (currentUser && currentUser.role === 'admin') {
             transactionsList.querySelectorAll('.edit-transaction').forEach(button => {
@@ -1449,9 +1441,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.onclick = (e) => deleteTransaction(e.currentTarget.dataset.id);
             });
         }
-      }).catch(error => {
+
+    }).catch(error => {
         transactionsList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat transaksi: ${error.message}</p>`;
-      });
+        
+        // Panggil updateBalance() di sini jika ada error saat memuat transaksi,
+        // Ini untuk memastikan UI saldo tetap diperbarui meskipun ada error transaksi,
+        // asumsi updateBalance() akan membaca saldo dari userDoc saja.
+        updateBalance();
+
+        // Optional: Anda bisa juga mereset saldo di Firestore jika error memuat transaksi,
+        // tapi ini harus dilakukan dengan hati-hati agar tidak menghapus saldo secara tidak sengaja.
+        // if (currentUser && currentUser.uid) {
+        //     usersRef.doc(currentUser.uid).update({ totalIncome: 0, totalExpense: 0 })
+        //         .then(() => updateBalance())
+        //         .catch(err => console.error("Gagal mereset saldo setelah error load:", err));
+        // }
+    });
+}
+    
 
     document.getElementById('print-transactions').addEventListener('click', () => {
         const { jsPDF } = window.jspdf;
