@@ -516,32 +516,57 @@
             </div>
             
             <form id="transaction-form" class="hidden space-y-4 mb-6">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm mb-2">Jenis Transaksi</label>
-                  <select id="transaction-type" class="input-field">
-                    <option value="masuk">Kas Masuk</option>
-                    <option value="keluar">Kas Keluar</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-sm mb-2">Jumlah (Rp)</label>
-                  <input type="number" id="transaction-amount" class="input-field" placeholder="1000000" required min="1">
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm mb-2">Keterangan</label>
-                <input type="text" id="transaction-desc" class="input-field" placeholder="Deskripsi transaksi" required>
-              </div>
-              <div class="flex justify-end space-x-3">
-                <button type="button" id="cancel-transaction-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
-                  Batal
-                </button>
-                <button type="submit" class="btn-primary">
-                  Simpan Transaksi
-                </button>
-              </div>
-            </form>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm mb-2">Jenis Transaksi</label>
+            <select id="transaction-type" class="input-field">
+                <option value="masuk">Kas Masuk</option>
+                <option value="keluar">Kas Keluar</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm mb-2">Jumlah (Rp)</label>
+            <input type="number" id="transaction-amount" class="input-field" placeholder="1000000" required min="1">
+        </div>
+    </div>
+    <div>
+        <label class="block text-sm mb-2">Keterangan</label>
+        <input type="text" id="transaction-desc" class="input-field" placeholder="Deskripsi transaksi" required>
+    </div>
+
+    <div class="form-group">
+        <label class="block text-sm mb-2">Penerima Email</label>
+        <div>
+            <input type="radio" id="radioSemuaUser" name="penerimaEmail" value="semua_user" class="mr-2">
+            <label for="radioSemuaUser" class="inline-block text-sm">Semua User</label>
+        </div>
+        <div>
+            <input type="radio" id="radioPilihUser" name="penerimaEmail" value="pilih_user" class="mr-2">
+            <label for="radioPilihUser" class="inline-block text-sm">Pilih User Tertentu</label>
+        </div>
+        <div>
+            <input type="radio" id="radioInputManual" name="penerimaEmail" value="input_manual" class="mr-2">
+            <label for="radioInputManual" class="inline-block text-sm">Input Manual</label>
+        </div>
+
+        <div id="emailInputContainer" class="mt-4 hidden">
+            <label for="inputEmail" class="block text-sm mb-2">Email User (pisahkan dengan koma jika lebih dari satu):</label>
+            <input type="email" id="inputEmail" name="emails" class="input-field" placeholder="contoh@domain.com, lain@domain.com" multiple>
+        </div>
+
+        <div id="allUserMessage" class="mt-2 hidden text-sm text-gray-400">
+            <p>Transaksi ini akan dikirim ke semua user yang terdaftar.</p>
+        </div>
+    </div>
+    <div class="flex justify-end space-x-3">
+        <button type="button" id="cancel-transaction-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
+            Batal
+        </button>
+        <button type="submit" class="btn-primary">
+            Simpan Transaksi
+        </button>
+    </div>
+</form>
 
             <div id="transactions-list" class="space-y-4 max-h-[500px] overflow-y-auto">
               <div class="text-center py-10">
