@@ -1361,8 +1361,33 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (snapshot.empty) {
           transactionsList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada transaksi</p>';
-          return;
-        }
+          // --- BARU: Reset saldo user jika tidak ada transaksi ---
+            if (currentUser && currentUser.uid) { // Pastikan user login
+                const userDocRef = usersRef.doc(currentUser.uid);
+                // Gunakan transaction untuk memastikan atomicity
+                db.runTransaction(async (transaction) => {
+                    const userDoc = await transaction.get(userDocRef);
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        // Hanya reset jika saldo tidak nol untuk menghindari update yang tidak perlu
+                        if ((userData.totalIncome || 0) !== 0 || (userData.totalExpense || 0) !== 0) {
+                            transaction.update(userDocRef, {
+                                totalIncome: 0,
+                                totalExpense: 0
+                            });
+                            console.log("Saldo user direset menjadi 0 karena tidak ada transaksi.");
+                        }
+                    }
+                }).then(() => {
+                    updateBalance(); // Panggil ini setelah saldo direset di Firestore
+                }).catch(error => {
+                    console.error("Gagal mereset saldo user:", error);
+                });
+            }
+            // --- AKHIR BARU ---
+            return; // Penting untuk keluar dari fungsi setelah ini
+    }
+          
         
         snapshot.forEach(doc => {
           const transaction = doc.data();
@@ -1400,6 +1425,20 @@ document.addEventListener('DOMContentLoaded', function() {
           
           transactionsList.appendChild(transactionElement);
         });
+
+           // Pastikan updateBalance() dipanggil setelah semua transaksi dimuat atau jika tidak ada transaksi.
+        updateBalance();
+
+    }).catch(error => {
+        transactionsList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat transaksi: ${error.message}</p>`;
+        // Mungkin juga reset saldo di sini jika error memuat transaksi dianggap kosong
+        if (currentUser && currentUser.uid) {
+            usersRef.doc(currentUser.uid).update({ totalIncome: 0, totalExpense: 0 })
+                .then(() => updateBalance())
+                .catch(err => console.error("Gagal mereset saldo setelah error load:", err));
+        }
+    });
+    }
         
         // Add event listeners for admin actions (Delegated for dynamically added elements)
         if (currentUser && currentUser.role === 'admin') {
