@@ -541,6 +541,70 @@
                   Simpan Transaksi
                 </button>
               </div>
+            <form id="transaction-form" class="hidden space-y-4 mb-6">
+  <!-- Existing fields -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm mb-2">Jenis Transaksi</label>
+      <select id="transaction-type" class="input-field">
+        <option value="masuk">Kas Masuk</option>
+        <option value="keluar">Kas Keluar</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm mb-2">Jumlah (Rp)</label>
+      <input type="number" id="transaction-amount" class="input-field" placeholder="1000000" required min="1">
+    </div>
+  </div>
+
+  <!-- New Email Options Field -->
+  <div>
+    <label class="block text-sm mb-2">Notifikasi Email</label>
+    <div class="space-y-3">
+      <!-- Option 1: All Users -->
+      <div class="flex items-center">
+        <input type="radio" id="email-all" name="email-option" value="all" checked class="mr-2">
+        <label for="email-all" class="text-sm">Semua Anggota</label>
+      </div>
+      
+      <!-- Option 2: Select Users -->
+      <div class="flex items-center">
+        <input type="radio" id="email-select" name="email-option" value="select" class="mr-2">
+        <label for="email-select" class="text-sm">Pilih Anggota Tertentu</label>
+      </div>
+      <div id="email-select-container" class="hidden ml-6">
+        <select id="user-emails" class="input-field w-full" multiple>
+          <!-- Will be populated by JavaScript -->
+        </select>
+        <p class="text-xs text-gray-500 mt-1">Gunakan Ctrl/Cmd + klik untuk memilih banyak</p>
+      </div>
+      
+      <!-- Option 3: Manual Input -->
+      <div class="flex items-center">
+        <input type="radio" id="email-manual" name="email-option" value="manual" class="mr-2">
+        <label for="email-manual" class="text-sm">Email Manual</label>
+      </div>
+      <div id="email-manual-container" class="hidden ml-6">
+        <textarea id="manual-emails" class="input-field w-full" placeholder="email1@contoh.com, email2@contoh.com"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Existing Description Field -->
+  <div>
+    <label class="block text-sm mb-2">Keterangan</label>
+    <input type="text" id="transaction-desc" class="input-field" placeholder="Deskripsi transaksi" required>
+  </div>
+
+  <!-- Buttons -->
+  <div class="flex justify-end space-x-3">
+    <button type="button" id="cancel-transaction-btn" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
+      Batal
+    </button>
+    <button type="submit" class="btn-primary">
+      Simpan Transaksi
+    </button>
+  </div>
             </form>
 
             <div id="transactions-list" class="space-y-4 max-h-[500px] overflow-y-auto">
