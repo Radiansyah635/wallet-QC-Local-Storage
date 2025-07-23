@@ -1086,10 +1086,10 @@ document.getElementById('transaction-form').addEventListener('submit', async (e)
   const description = document.getElementById('transaction-desc').value;
   const recipients = getSelectedEmails();
 
-  if (isNaN(amount) {
+  if (isNaN(amount)) {  // ✅ Sudah benar
     showError("Jumlah harus berupa angka");
     return;
-  }
+}
 
   const transactionData = {
     userId: currentUser.uid,
