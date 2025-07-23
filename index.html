@@ -1055,7 +1055,6 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
-const db = firebase.firestore();
 const transactionsRef = db.collection('transactions');
 const usersRef = db.collection('users');
 let editingTransactionId = null;
