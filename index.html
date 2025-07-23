@@ -1452,7 +1452,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }).catch(error => {
         transactionsList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat transaksi: ${error.message}</p>`;
       });
-    }
 
     document.getElementById('print-transactions').addEventListener('click', () => {
         const { jsPDF } = window.jspdf;
