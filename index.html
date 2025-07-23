@@ -1020,16 +1020,16 @@ const firebaseConfig = {
         document.getElementById('transaction-form').classList.add('hidden');
         document.getElementById('transaction-form').reset();
         editingTransactionId = null; // Reset editing state
+      document.getElementById('radioSemuaUser').checked = true;
+    const emailInputContainer = document.getElementById('emailInputContainer');
+    const allUserMessage = document.getElementById('allUserMessage');
+    if(emailInputContainer) emailInputContainer.classList.add('section-hidden');
+    if(allUserMessage) allUserMessage.classList.remove('section-hidden');
     });
 
-    document.getElementById('transaction-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const type = document.getElementById('transaction-type').value;
-      const amount = parseFloat(document.getElementById('transaction-amount').value);
-      const description = document.getElementById('transaction-desc').value;
-
-      // Pastikan DOM sudah dimuat sebelum menjalankan script
-document.addEventListener('DOMContentLoaded', function() {
+    // --- FUNGSI BARU: Inisialisasi Logika Radio Button ---
+// Ini adalah fungsi yang akan mengelola visibilitas field email
+function initializeRadioButtons() {
     // Dapatkan elemen-elemen yang diperlukan
     const radioSemuaUser = document.getElementById('radioSemuaUser');
     const radioPilihUser = document.getElementById('radioPilihUser');
@@ -1038,14 +1038,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputEmail = document.getElementById('inputEmail');
     const allUserMessage = document.getElementById('allUserMessage');
 
+    // --- PENTING: Cek apakah elemen ditemukan. Jika tidak, ada masalah ID atau HTML belum ada. ---
+    if (!radioSemuaUser || !emailInputContainer || !allUserMessage) {
+        console.error("Error: One or more email recipient form elements not found! Make sure their IDs are correct and the HTML is loaded.");
+        return; // Hentikan fungsi jika elemen tidak ditemukan
+    }
+
     // Fungsi untuk mengatur tampilan kontainer email
     function toggleEmailInput() {
+        console.log('toggleEmailInput function called!'); // Debugging
+
         if (radioSemuaUser.checked) {
+            console.log('Semua User selected');
             emailInputContainer.classList.add('section-hidden'); // Sembunyikan field email
             allUserMessage.classList.remove('section-hidden');  // Tampilkan pesan "Semua User"
             inputEmail.removeAttribute('required');     // Hapus atribut required
             inputEmail.value = '';                      // Kosongkan nilai input
         } else if (radioPilihUser.checked || radioInputManual.checked) {
+            console.log('Pilih User Tertentu or Input Manual selected');
             emailInputContainer.classList.remove('section-hidden'); // Tampilkan field email
             allUserMessage.classList.add('section-hidden');     // Sembunyikan pesan "Semua User"
             inputEmail.setAttribute('required', 'true'); // Tambahkan atribut required
@@ -1053,30 +1063,88 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Tambahkan event listener ke setiap radio button
-    radioSemuaUser.addEventListener('change', toggleEmailInput);
-    radioPilihUser.addEventListener('change', toggleEmailInput);
-    radioInputManual.addEventListener('change', toggleEmailInput);
+    // Penting: Gunakan data-attribute untuk menghindari duplikasi listener jika fungsi ini dipanggil berkali-kali
+    if (!radioSemuaUser.dataset.listenerAdded) { // Hanya tambahkan jika belum ditambahkan
+        radioSemuaUser.addEventListener('change', toggleEmailInput);
+        radioPilihUser.addEventListener('change', toggleEmailInput);
+        radioInputManual.addEventListener('change', toggleEmailInput);
+        
+        // Tandai bahwa listener sudah ditambahkan
+        radioSemuaUser.dataset.listenerAdded = 'true';
+        radioPilihUser.dataset.listenerAdded = 'true';
+        radioInputManual.dataset.listenerAdded = 'true';
+    }
 
     // Inisialisasi tampilan saat form dimuat atau ditampikan
-    // Misalnya, jika Anda ingin "Semua User" terpilih secara default
-    // dan pesannya muncul saat form pertama kali terbuka, Anda bisa set ini:
-    // radioSemuaUser.checked = true;
-    toggleEmailInput(); // Panggil fungsi ini untuk mengatur tampilan awal
+    // Panggil fungsi ini untuk mengatur tampilan awal berdasarkan radio button yang terpilih (jika ada)
+    toggleEmailInput();
+    console.log('Initial radio button toggle executed.');
+}
+
+// --- PENTING: Panggil initializeRadioButtons() saat DOM sudah siap ---
+// Ini akan memastikan event listener ditambahkan ke radio button bahkan jika form sudah terlihat dari awal.
+// Atau jika form awalnya hidden, ini akan tetap menambahkan listener sehingga saat 'add-transaction-btn' diklik,
+// dan 'initializeRadioButtons()' dipanggil, listener tidak akan diduplikasi.
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded: Initializing form listeners.');
+    // Panggil inisialisasi saat DOMContentLoaded.
+    // Jika form disembunyikan dan baru muncul setelah klik 'add-transaction-btn',
+    // fungsi ini akan memastikan listener sudah terpasang.
+    // toggleEmailInput() di dalam initializeRadioButtons() akan menangani tampilan awal.
+    initializeRadioButtons();
 });
+
+    document.getElementById('transaction-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const type = document.getElementById('transaction-type').value;
+      const amount = parseFloat(document.getElementById('transaction-amount').value);
+      const description = document.getElementById('transaction-desc').value;
+      
+      // --- Ambil nilai email di sini ---
+    const radioPenerimaTerpilih = document.querySelector('input[name="penerimaEmail"]:checked');
+    let selectedRecipientType = null;
+    let recipientEmails = []; // Array untuk menyimpan email penerima
+
+    if (radioPenerimaTerpilih) {
+        selectedRecipientType = radioPenerimaTerpilih.value;
+        if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
+            const inputEmailValue = document.getElementById('inputEmail').value;
+            // Pisahkan email berdasarkan koma dan trim spasi
+            recipientEmails = inputEmailValue.split(',').map(email => email.trim()).filter(email => email !== '');
+        }
+        // Untuk 'semua_user', kita tidak perlu mengambil email dari input,
+        // melainkan akan mengambil semua user dari database saat memproses transaksi.
+    } else {
+        showError("Pilih jenis penerima email.");
+        return;
+    }
+    // --- Akhir pengambilan nilai email ---
+
+    if (isNaN(amount) || amount <= 0) {
+        showError("Jumlah transaksi harus angka positif.");
+        return;
+    }
+
+    const transactionData = {
+        userId: currentUser.uid,
+        userName: document.getElementById('user-name').textContent,
+        type: type,
+        amount: amount,
+        description: description,
+        date: firebase.firestore.FieldValue.serverTimestamp(),
+        // Tambahkan data penerima ke transactionData
+        recipientType: selectedRecipientType,
+        recipientEmails: recipientEmails // Akan kosong jika 'semua_user' dipilih
+    };
+
+      
       
       if (isNaN(amount) || amount <= 0) {
         showError("Jumlah transaksi harus angka positif.");
         return;
       }
 
-      const transactionData = {
-        userId: currentUser.uid,
-        userName: document.getElementById('user-name').textContent, // Mengambil nama dari UI
-        type: type,
-        amount: amount,
-        description: description,
-        date: firebase.firestore.FieldValue.serverTimestamp()
-      };
+      
 
       if (editingTransactionId) {
         // Mode Edit
@@ -1127,39 +1195,106 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         // Mode Tambah
         db.runTransaction(async (transaction) => {
-          const newTransactionRef = transactionsRef.doc(); // Create new doc reference
-          
-          const userDocRef = usersRef.doc(currentUser.uid);
-          const userDoc = await transaction.get(userDocRef);
-          const userData = userDoc.data();
+            const newTransactionRef = transactionsRef.doc();
+            
+            // --- Logika Update Saldo ---
+            // Ini adalah bagian yang perlu dimodifikasi untuk menangani 'Semua User' atau 'User Tertentu'
+            if (selectedRecipientType === 'semua_user') {
+                // Ambil semua user dari Firebase/Firestore
+                const allUsersSnapshot = await usersRef.get(); // Asumsi usersRef adalah collection reference ke user Anda
+                const batch = db.batch(); // Gunakan batch write untuk update banyak user sekaligus
 
-          let newTotalIncome = userData.totalIncome || 0;
-          let newTotalExpense = userData.totalExpense || 0;
+                allUsersSnapshot.forEach(userDoc => {
+                    const userRef = usersRef.doc(userDoc.id);
+                    const userData = userDoc.data();
+                    let newTotalIncome = userData.totalIncome || 0;
+                    let newTotalExpense = userData.totalExpense || 0;
 
-          if (type === 'masuk') {
-            newTotalIncome += amount;
-          } else {
-            newTotalExpense += amount;
-          }
+                    if (type === 'masuk') {
+                        newTotalIncome += amount;
+                    } else {
+                        newTotalExpense += amount;
+                    }
+                    batch.update(userRef, {
+                        totalIncome: newTotalIncome,
+                        totalExpense: newTotalExpense
+                    });
+                });
+                batch.set(newTransactionRef, transactionData); // Simpan juga transaksi ke koleksi transaksi
+                await batch.commit(); // Komit semua update di batch
+                
+            } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
+                if (recipientEmails.length === 0) {
+                    throw new Error("Harap masukkan setidaknya satu email penerima.");
+                }
 
-          transaction.set(newTransactionRef, transactionData);
-          transaction.update(userDocRef, {
-            totalIncome: newTotalIncome,
-            totalExpense: newTotalExpense
-          });
+                const batch = db.batch();
+                // Untuk setiap email yang diinput, cari UID user dan update saldonya
+                for (const email of recipientEmails) {
+                    // Cari user berdasarkan email. Ini mungkin memerlukan indeks di Firestore
+                    // atau Anda bisa menyimpan email sebagai field di dokumen user dan meng-query-nya.
+                    // Contoh query (membutuhkan indeks tunggal 'email' di Firestore):
+                    const userQuerySnapshot = await usersRef.where('email', '==', email).limit(1).get();
+                    
+                    if (userQuerySnapshot.empty) {
+                        console.warn(`User with email ${email} not found.`);
+                        continue; // Lewati user ini jika tidak ditemukan
+                    }
+
+                    const userDoc = userQuerySnapshot.docs[0];
+                    const userRef = usersRef.doc(userDoc.id);
+                    const userData = userDoc.data();
+
+                    let newTotalIncome = userData.totalIncome || 0;
+                    let newTotalExpense = userData.totalExpense || 0;
+
+                    if (type === 'masuk') {
+                        newTotalIncome += amount;
+                    } else {
+                        newTotalExpense += amount;
+                    }
+                    batch.update(userRef, {
+                        totalIncome: newTotalIncome,
+                        totalExpense: newTotalExpense
+                    });
+                }
+                batch.set(newTransactionRef, transactionData); // Simpan transaksi
+                await batch.commit(); // Komit semua update di batch
+            } else {
+                // Ini untuk transaksi ke diri sendiri (admin) jika tidak ada penerima khusus dipilih
+                const userDocRef = usersRef.doc(currentUser.uid);
+                const userDoc = await transaction.get(userDocRef);
+                const userData = userDoc.data();
+
+                let newTotalIncome = userData.totalIncome || 0;
+                let newTotalExpense = userData.totalExpense || 0;
+
+                if (type === 'masuk') {
+                    newTotalIncome += amount;
+                } else {
+                    newTotalExpense += amount;
+                }
+
+                transaction.set(newTransactionRef, transactionData);
+                transaction.update(userDocRef, {
+                    totalIncome: newTotalIncome,
+                    totalExpense: newTotalExpense
+                });
+            }
         })
         .then(() => {
-          showSuccess("Transaksi berhasil ditambahkan!");
-          document.getElementById('transaction-form').classList.add('hidden');
-          document.getElementById('transaction-form').reset();
-          loadTransactions(); // Reload transactions to update UI
-          updateBalance(); // Update dashboard balance
+            showSuccess("Transaksi berhasil ditambahkan!");
+            document.getElementById('transaction-form').classList.add('hidden');
+            document.getElementById('transaction-form').reset();
+            loadTransactions(); // Reload transactions to update UI
+            updateBalance(); // Update dashboard balance
         })
         .catch((error) => {
-          showError("Gagal menambahkan transaksi: " + error.message);
+            showError("Gagal menambahkan transaksi: " + error.message);
         });
-      }
-    });
+    }
+});
+    
 
     function editTransaction(id) {
         transactionsRef.doc(id).get().then(doc => {
