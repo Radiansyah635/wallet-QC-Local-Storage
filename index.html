@@ -1370,17 +1370,19 @@ db.runTransaction(async (transaction) => {
     transactionsList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data transaksi...</p></div>';
 
     transactionsRef.orderBy('date', 'desc').get().then(snapshot => {
-        transactionsList.innerHTML = '';
+        transactionsList.innerHTML = ''; // Kosongkan daftar transaksi
 
         if (snapshot.empty) {
             transactionsList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada transaksi</p>';
 
+            // --- Logika Reset Saldo User ---
             if (currentUser && currentUser.uid) {
                 const userDocRef = usersRef.doc(currentUser.uid);
                 db.runTransaction(async (transaction) => {
                     const userDoc = await transaction.get(userDocRef);
                     if (userDoc.exists) {
                         const userData = userDoc.data();
+                        // Hanya update jika saldo memang tidak 0, untuk menghindari write yang tidak perlu
                         if ((userData.totalIncome || 0) !== 0 || (userData.totalExpense || 0) !== 0) {
                             transaction.update(userDocRef, {
                                 totalIncome: 0,
@@ -1390,23 +1392,50 @@ db.runTransaction(async (transaction) => {
                         }
                     }
                 })
-                .then(() => {
-                    // Panggil updateBalance() HANYA di sini jika transaksi berhasil di-reset
-                    updateBalance();
-                })
                 .catch(error => {
                     console.error("Gagal mereset saldo user:", error);
-                    // Panggil updateBalance() di sini juga jika ada error reset tapi tetap ingin update UI
-                    // Atau bisa juga tidak memanggilnya jika error reset berarti saldo tidak valid
-                    // updateBalance(); 
                 });
             }
-            // Penting: JANGAN ada updateBalance() lagi di sini.
-            // Biarkan Promise di atas yang memanggilnya setelah selesai.
-            return; // Keluar dari fungsi setelah menangani kasus kosong
+
+            // --- BARU: Logika Reset Saldo Global ---
+            // Ini akan memastikan global_metrics juga 0 jika tidak ada transaksi sama sekali
+            db.runTransaction(async (transaction) => {
+                const globalMetricsDocRef = appDataRef; // Pastikan appDataRef global dan benar
+                const globalMetricsDoc = await transaction.get(globalMetricsDocRef);
+                if (globalMetricsDoc.exists) {
+                    const globalData = globalMetricsDoc.data();
+                    // Hanya update jika saldo global memang tidak 0
+                    if ((globalData.totalAppIncome || 0) !== 0 || (globalData.totalAppExpense || 0) !== 0) {
+                        transaction.update(globalMetricsDocRef, {
+                            totalAppIncome: 0,
+                            totalAppExpense: 0,
+                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp() // Update timestamp
+                        });
+                        console.log("Saldo global direset menjadi 0 karena tidak ada transaksi.");
+                    }
+                } else {
+                    // Jika dokumen global_metrics belum ada, buat dengan nilai 0
+                    transaction.set(globalMetricsDocRef, {
+                        totalAppIncome: 0,
+                        totalAppExpense: 0,
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log("Dokumen global_metrics diinisialisasi ke 0.");
+                }
+            })
+            .catch(error => {
+                console.error("Gagal mereset/menginisialisasi saldo global:", error);
+            });
+
+            // Panggil updateBalance() HANYA SEKALI di akhir, setelah semua async operation selesai
+            // Ini adalah tempat terbaik karena ia akan membaca data terbaru dari Firestore
+            // setelah potensi reset saldo user dan global selesai.
+            updateBalance();
+
+            return; // Penting: Keluar dari fungsi jika tidak ada transaksi
         }
 
-        // Jika ada transaksi, tampilkan
+        // --- Jika Ada Transaksi, Tampilkan ---
         snapshot.forEach(doc => {
             const transaction = doc.data();
             const transactionDate = transaction.date ? transaction.date.toDate() : new Date();
@@ -1426,7 +1455,7 @@ db.runTransaction(async (transaction) => {
                   </div>
                   <div class="text-right">
                     <p class="${transaction.type === 'masuk' ? 'text-green-400' : 'text-red-400'} font-mono font-medium">${transaction.type === 'masuk' ? '+' : '-'} ${formatRupiah(transaction.amount)}</p>
-                    <p class="text-xs text-gray-400 mt-1">${transaction.userName}</p>
+                    <p class="text-xs text-gray-400 mt-1">Oleh: ${transaction.userName}</p>
                   </div>
                 </div>
                 ${currentUser && currentUser.role === 'admin' ? `
@@ -1443,10 +1472,10 @@ db.runTransaction(async (transaction) => {
             transactionsList.appendChild(transactionElement);
         });
 
-        // Panggil updateBalance() di sini, di akhir .then() utama jika ada transaksi
+        // Panggil updateBalance() HANYA SEKALI di sini jika ada transaksi
         updateBalance();
 
-        // Add event listeners for admin actions (Delegated for dynamically added elements)
+        // Add event listeners for admin actions
         if (currentUser && currentUser.role === 'admin') {
             transactionsList.querySelectorAll('.edit-transaction').forEach(button => {
                 button.onclick = (e) => editTransaction(e.currentTarget.dataset.id);
@@ -1458,19 +1487,9 @@ db.runTransaction(async (transaction) => {
 
     }).catch(error => {
         transactionsList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat transaksi: ${error.message}</p>`;
-        
-        // Panggil updateBalance() di sini jika ada error saat memuat transaksi,
-        // Ini untuk memastikan UI saldo tetap diperbarui meskipun ada error transaksi,
-        // asumsi updateBalance() akan membaca saldo dari userDoc saja.
+        console.error("Gagal memuat transaksi:", error);
+        // Tetap panggil updateBalance() di sini agar UI saldo tidak kosong jika ada error
         updateBalance();
-
-        // Optional: Anda bisa juga mereset saldo di Firestore jika error memuat transaksi,
-        // tapi ini harus dilakukan dengan hati-hati agar tidak menghapus saldo secara tidak sengaja.
-        // if (currentUser && currentUser.uid) {
-        //     usersRef.doc(currentUser.uid).update({ totalIncome: 0, totalExpense: 0 })
-        //         .then(() => updateBalance())
-        //         .catch(err => console.error("Gagal mereset saldo setelah error load:", err));
-        // }
     });
 }
     
