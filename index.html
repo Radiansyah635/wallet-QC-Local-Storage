@@ -1195,7 +1195,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
       } else {
         // Mode Tambah
-        // Mode Tambah
 db.runTransaction(async (transaction) => {
     const newTransactionRef = transactionsRef.doc();
     
@@ -1306,17 +1305,6 @@ db.runTransaction(async (transaction) => {
     showError("Gagal menambahkan transaksi: " + error.message);
 });
 
-          
-        .then(() => {
-            showSuccess("Transaksi berhasil ditambahkan!");
-            document.getElementById('transaction-form').classList.add('hidden');
-            document.getElementById('transaction-form').reset();
-            loadTransactions(); // Reload transactions to update UI
-            updateBalance(); // Update dashboard balance
-        })
-        .catch((error) => {
-            showError("Gagal menambahkan transaksi: " + error.message);
-        });
     }
 });
     
