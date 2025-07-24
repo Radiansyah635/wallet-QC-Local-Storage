@@ -1282,6 +1282,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         })
+
+         // --- BARU: Update Saldo Global ---
+    const globalMetricsDoc = await transaction.get(appDataRef); // Ambil dokumen global_metrics
+    let globalData = globalMetricsDoc.data();
+
+    let newTotalAppIncome = (globalData && globalData.totalAppIncome) || 0;
+    let newTotalAppExpense = (globalData && globalData.totalAppExpense) || 0;
+
+    if (type === 'masuk') {
+        newTotalAppIncome += amount;
+    } else {
+        newTotalAppExpense += amount;
+    }
+
+    transaction.update(appDataRef, {
+        totalAppIncome: newTotalAppIncome,
+        totalAppExpense: newTotalAppExpense,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // --- Simpan Transaksi Baru (jika belum ada) ---
+    const newTransactionRef = transactionsRef.doc(); // Buat referensi transaksi baru
+    transaction.set(newTransactionRef, transactionData); // Simpan transaksi
+
+    // ... (Jika Anda punya logika batch update untuk banyak user,
+    //      pastikan appDataRef update juga masuk dalam batch/transaction yang sama) ...
+})
+
+          
         .then(() => {
             showSuccess("Transaksi berhasil ditambahkan!");
             document.getElementById('transaction-form').classList.add('hidden');
