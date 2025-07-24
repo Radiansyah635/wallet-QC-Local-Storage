@@ -2059,6 +2059,13 @@ function setupTransactionActions() {
         e.preventDefault();
         const content = document.getElementById('post-content').value;
 
+        // PENTING: Pengecekan currentUser di sini
+    if (!currentUser || !currentUser.uid) {
+        showError("Anda harus login untuk membuat postingan.");
+        console.error("Authentication error: currentUser is null or has no UID during post creation.");
+        return;
+    }
+      
         if (!content && !selectedPostFile) {
             showError("Postingan tidak boleh kosong!");
             return;
@@ -2227,6 +2234,11 @@ postsRef.doc(postId).collection('likes').get().then(likesSnapshot => {
     }
 
     async function toggleLike(postId) {
+      if (!currentUser || !currentUser.uid) {
+        showError("Anda harus login untuk menyukai postingan.");
+        console.error("Authentication error: currentUser is null or has no UID during like toggle.");
+        return;
+    }
         const likeRef = postsRef.doc(postId).collection('likes').doc(currentUser.uid);
         const postDocRef = postsRef.doc(postId);
 
@@ -2250,6 +2262,12 @@ postsRef.doc(postId).collection('likes').get().then(likesSnapshot => {
         e.preventDefault();
         const postId = e.currentTarget.dataset.id;
         const commentContent = e.currentTarget.querySelector('input').value;
+
+      if (!currentUser || !currentUser.uid) {
+        showError("Anda harus login untuk menambahkan komentar.");
+        console.error("Authentication error: currentUser is null or has no UID during comment add.");
+        return;
+    }
 
         if (!commentContent.trim()) {
             showError("Komentar tidak boleh kosong!");
