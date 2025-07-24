@@ -1195,101 +1195,90 @@ document.addEventListener('DOMContentLoaded', function() {
 
       } else {
         // Mode Tambah
-        db.runTransaction(async (transaction) => {
-            const newTransactionRef = transactionsRef.doc();
-            
-            // --- Logika Update Saldo ---
-            // Ini adalah bagian yang perlu dimodifikasi untuk menangani 'Semua User' atau 'User Tertentu'
-            if (selectedRecipientType === 'semua_user') {
-                // Ambil semua user dari Firebase/Firestore
-                const allUsersSnapshot = await usersRef.get(); // Asumsi usersRef adalah collection reference ke user Anda
-                const batch = db.batch(); // Gunakan batch write untuk update banyak user sekaligus
+        // Mode Tambah
+db.runTransaction(async (transaction) => {
+    const newTransactionRef = transactionsRef.doc();
+    
+    // --- Logika Update Saldo User ---
+    if (selectedRecipientType === 'semua_user') {
+        // Ambil semua user dari Firebase/Firestore
+        const allUsersSnapshot = await usersRef.get();
+        
+        allUsersSnapshot.forEach(userDoc => {
+            const userRef = usersRef.doc(userDoc.id);
+            const userData = userDoc.data();
+            let newTotalIncome = userData.totalIncome || 0;
+            let newTotalExpense = userData.totalExpense || 0;
 
-                allUsersSnapshot.forEach(userDoc => {
-                    const userRef = usersRef.doc(userDoc.id);
-                    const userData = userDoc.data();
-                    let newTotalIncome = userData.totalIncome || 0;
-                    let newTotalExpense = userData.totalExpense || 0;
-
-                    if (type === 'masuk') {
-                        newTotalIncome += amount;
-                    } else {
-                        newTotalExpense += amount;
-                    }
-                    batch.update(userRef, {
-                        totalIncome: newTotalIncome,
-                        totalExpense: newTotalExpense
-                    });
-                });
-                batch.set(newTransactionRef, transactionData); // Simpan juga transaksi ke koleksi transaksi
-                await batch.commit(); // Komit semua update di batch
-                
-            } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
-                if (recipientEmails.length === 0) {
-                    throw new Error("Harap masukkan setidaknya satu email penerima.");
-                }
-
-                const batch = db.batch();
-                // Untuk setiap email yang diinput, cari UID user dan update saldonya
-                for (const email of recipientEmails) {
-                    // Cari user berdasarkan email. Ini mungkin memerlukan indeks di Firestore
-                    // atau Anda bisa menyimpan email sebagai field di dokumen user dan meng-query-nya.
-                    // Contoh query (membutuhkan indeks tunggal 'email' di Firestore):
-                    const userQuerySnapshot = await usersRef.where('email', '==', email).limit(1).get();
-                    
-                    if (userQuerySnapshot.empty) {
-                        console.warn(`User with email ${email} not found.`);
-                        continue; // Lewati user ini jika tidak ditemukan
-                    }
-
-                    const userDoc = userQuerySnapshot.docs[0];
-                    const userRef = usersRef.doc(userDoc.id);
-                    const userData = userDoc.data();
-
-                    let newTotalIncome = userData.totalIncome || 0;
-                    let newTotalExpense = userData.totalExpense || 0;
-
-                    if (type === 'masuk') {
-                        newTotalIncome += amount;
-                    } else {
-                        newTotalExpense += amount;
-                    }
-                    batch.update(userRef, {
-                        totalIncome: newTotalIncome,
-                        totalExpense: newTotalExpense
-                    });
-                }
-                batch.set(newTransactionRef, transactionData); // Simpan transaksi
-                await batch.commit(); // Komit semua update di batch
+            if (type === 'masuk') {
+                newTotalIncome += amount;
             } else {
-                // Ini untuk transaksi ke diri sendiri (admin) jika tidak ada penerima khusus dipilih
-                const userDocRef = usersRef.doc(currentUser.uid);
-                const userDoc = await transaction.get(userDocRef);
-                const userData = userDoc.data();
-
-                let newTotalIncome = userData.totalIncome || 0;
-                let newTotalExpense = userData.totalExpense || 0;
-
-                if (type === 'masuk') {
-                    newTotalIncome += amount;
-                } else {
-                    newTotalExpense += amount;
-                }
-
-                transaction.set(newTransactionRef, transactionData);
-                transaction.update(userDocRef, {
-                    totalIncome: newTotalIncome,
-                    totalExpense: newTotalExpense
-                });
+                newTotalExpense += amount;
             }
-        })
+            transaction.update(userRef, {
+                totalIncome: newTotalIncome,
+                totalExpense: newTotalExpense
+            });
+        });
+        
+    } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
+        if (recipientEmails.length === 0) {
+            throw new Error("Harap masukkan setidaknya satu email penerima.");
+        }
 
-         // --- BARU: Update Saldo Global ---
-    const globalMetricsDoc = await transaction.get(appDataRef); // Ambil dokumen global_metrics
-    let globalData = globalMetricsDoc.data();
+        // Untuk setiap email yang diinput, cari UID user dan update saldonya
+        for (const email of recipientEmails) {
+            const userQuerySnapshot = await usersRef.where('email', '==', email).limit(1).get();
+            
+            if (userQuerySnapshot.empty) {
+                console.warn(`User with email ${email} not found.`);
+                continue;
+            }
 
-    let newTotalAppIncome = (globalData && globalData.totalAppIncome) || 0;
-    let newTotalAppExpense = (globalData && globalData.totalAppExpense) || 0;
+            const userDoc = userQuerySnapshot.docs[0];
+            const userRef = usersRef.doc(userDoc.id);
+            const userData = userDoc.data();
+
+            let newTotalIncome = userData.totalIncome || 0;
+            let newTotalExpense = userData.totalExpense || 0;
+
+            if (type === 'masuk') {
+                newTotalIncome += amount;
+            } else {
+                newTotalExpense += amount;
+            }
+            transaction.update(userRef, {
+                totalIncome: newTotalIncome,
+                totalExpense: newTotalExpense
+            });
+        }
+    } else {
+        // Ini untuk transaksi ke diri sendiri (admin)
+        const userDocRef = usersRef.doc(currentUser.uid);
+        const userDoc = await transaction.get(userDocRef);
+        const userData = userDoc.data();
+
+        let newTotalIncome = userData.totalIncome || 0;
+        let newTotalExpense = userData.totalExpense || 0;
+
+        if (type === 'masuk') {
+            newTotalIncome += amount;
+        } else {
+            newTotalExpense += amount;
+        }
+
+        transaction.update(userDocRef, {
+            totalIncome: newTotalIncome,
+            totalExpense: newTotalExpense
+        });
+    }
+
+    // --- Update Saldo Global ---
+    const globalMetricsDoc = await transaction.get(appDataRef);
+    let globalData = globalMetricsDoc.data() || {};
+
+    let newTotalAppIncome = globalData.totalAppIncome || 0;
+    let newTotalAppExpense = globalData.totalAppExpense || 0;
 
     if (type === 'masuk') {
         newTotalAppIncome += amount;
@@ -1303,13 +1292,19 @@ document.addEventListener('DOMContentLoaded', function() {
         lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // --- Simpan Transaksi Baru (jika belum ada) ---
-    const newTransactionRef = transactionsRef.doc(); // Buat referensi transaksi baru
-    transaction.set(newTransactionRef, transactionData); // Simpan transaksi
-
-    // ... (Jika Anda punya logika batch update untuk banyak user,
-    //      pastikan appDataRef update juga masuk dalam batch/transaction yang sama) ...
+    // --- Simpan Transaksi Baru ---
+    transaction.set(newTransactionRef, transactionData);
 })
+.then(() => {
+    showSuccess("Transaksi berhasil ditambahkan!");
+    document.getElementById('transaction-form').classList.add('hidden');
+    document.getElementById('transaction-form').reset();
+    loadTransactions(); // Reload transactions to update UI
+    updateBalance(); // Update dashboard balance
+})
+.catch((error) => {
+    showError("Gagal menambahkan transaksi: " + error.message);
+});
 
           
         .then(() => {
