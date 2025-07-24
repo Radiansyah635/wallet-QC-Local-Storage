@@ -2670,7 +2670,471 @@ async function deletePost(postId, fileUrl) {
 
 
     // ================= HELPER FUNCTIONS =================
+// ================= HELPER FUNCTIONS (Pastikan ini ada dan sudah sesuai dengan revisi sebelumnya) =================
 
+// Fungsi updateBalance yang sudah kita revisi sebelumnya, pastikan ini ada di kode Anda
+function updateBalance(totalIncome = 0, totalExpense = 0) { // Beri nilai default untuk keamanan
+    const balance = totalIncome - totalExpense;
+
+    // --- Update elemen-elemen di bagian atas (Kas Masuk, Kas Keluar, Total Saldo) ---
+    const userIncomeElement = document.getElementById('user-income');
+    const userExpenseElement = document.getElementById('user-expense');
+    const userTotalBalanceElement = document.getElementById('user-total-balance');
+
+    if (userIncomeElement) {
+        userIncomeElement.textContent = formatRupiah(totalIncome);
+    } else {
+        console.warn("Elemen HTML dengan ID 'user-income' tidak ditemukan.");
+    }
+    if (userExpenseElement) {
+        userExpenseElement.textContent = formatRupiah(totalExpense);
+    } else {
+        console.warn("Elemen HTML dengan ID 'user-expense' tidak ditemukan.");
+    }
+    if (userTotalBalanceElement) {
+        userTotalBalanceElement.textContent = formatRupiah(balance);
+    } else {
+        console.warn("Elemen HTML dengan ID 'user-total-balance' tidak ditemukan.");
+    }
+
+    // --- Update elemen-elemen di 'Solana Card' (Pemasukan, Pengeluaran, Total Saldo besar) ---
+    const incomeAmountElement = document.getElementById('income-amount');
+    const expenseAmountElement = document.getElementById('expense-amount');
+    const totalSaldoElement = document.getElementById('total-saldo');
+
+    if (incomeAmountElement) {
+        incomeAmountElement.textContent = '+ ' + formatRupiah(totalIncome);
+    } else {
+        console.warn("Elemen HTML dengan ID 'income-amount' (Solana Card) tidak ditemukan.");
+    }
+    if (expenseAmountElement) {
+        expenseAmountElement.textContent = '- ' + formatRupiah(totalExpense);
+    } else {
+        console.warn("Elemen HTML dengan ID 'expense-amount' (Solana Card) tidak ditemukan.");
+    }
+    if (totalSaldoElement) {
+        totalSaldoElement.textContent = formatRupiah(balance);
+    } else {
+        console.warn("Elemen HTML dengan ID 'total-saldo' (Solana Card) tidak ditemukan.");
+    }
+
+    // Perbarui chart keuangan (pastikan fungsi ini ada)
+    if (typeof updateFinanceChart === 'function') {
+        updateFinanceChart(totalIncome, totalExpense);
+    }
+}
+
+// ... (fungsi showError, showSuccess, formatRupiah, resetUserBalance, formatRecipients, setupTransactionActions lainnya) ...
+
+
+// ================= EVENT LISTENER UNTUK SUBMIT FORM TRANSAKSI =================
+document.getElementById('transaction-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const type = document.getElementById('transaction-type').value;
+    const amount = parseFloat(document.getElementById('transaction-amount').value);
+    const description = document.getElementById('transaction-desc').value;
+    const selectedRecipientType = document.querySelector('input[name="recipient-type"]:checked').value;
+    const recipientEmailsInput = document.getElementById('recipient-emails-input').value;
+    
+    // Pastikan currentUser tersedia
+    if (!currentUser || !currentUser.uid || !currentUser.displayName || !currentUser.email || !currentUser.role) {
+        showError("Data user tidak lengkap. Silakan login ulang.");
+        return;
+    }
+
+    // Validasi input
+    if (isNaN(amount) || amount <= 0) {
+        showError("Jumlah harus angka positif.");
+        return;
+    }
+    if (!description.trim()) {
+        showError("Deskripsi tidak boleh kosong.");
+        return;
+    }
+
+    let recipientEmails = [];
+    if (selectedRecipientType === 'semua_user') {
+        recipientEmails.push('ALL_USERS');
+    } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
+        recipientEmails = recipientEmailsInput.split(',').map(email => email.trim()).filter(email => email);
+        if (recipientEmails.length === 0) {
+            showError("Harap masukkan setidaknya satu email penerima.");
+            return;
+        }
+    }
+
+    const transactionData = {
+        userId: currentUser.uid,
+        userName: currentUser.displayName,
+        userEmail: currentUser.email, // Tambahkan email user yang membuat transaksi
+        type,
+        amount,
+        description,
+        date: firebase.firestore.FieldValue.serverTimestamp(), // Gunakan server timestamp
+        recipients: recipientEmails.length > 0 ? recipientEmails : [],
+        recipientType: selectedRecipientType
+    };
+
+    // --- REVISI UTAMA: STRUKTUR TRANSAKSI FIRESTORE UNTUK ADD MODE ---
+    // Mode Tambah
+    try {
+        await db.runTransaction(async (transaction) => {
+            console.log("Starting add new transaction transaction...");
+
+            const newTransactionRef = transactionsRef.doc(); // Referensi dokumen transaksi baru
+
+            // --- FASE 1: SEMUA OPERASI BACA ---
+            // Baca data saldo global terlebih dahulu
+            const globalMetricsDocRef = appDataRef;
+            const globalMetricsDoc = await transaction.get(globalMetricsDocRef);
+            let globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
+
+            let usersToUpdate = []; // Array untuk menyimpan referensi dan data user yang perlu diperbarui
+
+            if (selectedRecipientType === 'semua_user') {
+                console.log("Reading all users' balances for 'semua_user' transaction.");
+                const allUsersSnapshot = await usersRef.get(); // Baca semua user
+                console.log(`Found ${allUsersSnapshot.size} users to update.`);
+
+                if (allUsersSnapshot.empty) {
+                    console.warn("No users found in 'users' collection to update for 'semua_user'.");
+                }
+                allUsersSnapshot.docs.forEach(userDoc => {
+                    usersToUpdate.push({ ref: usersRef.doc(userDoc.id), data: userDoc.data() });
+                });
+            } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
+                console.log(`Reading selected users' balances for ${recipientEmails.length} recipients.`);
+                const userReadPromises = recipientEmails.map(async (email) => {
+                    const userQuerySnapshot = await usersRef.where('email', '==', email).limit(1).get();
+                    if (!userQuerySnapshot.empty) {
+                        const userDoc = userQuerySnapshot.docs[0];
+                        return { ref: usersRef.doc(userDoc.id), data: userDoc.data() };
+                    }
+                    console.warn(`User with email ${email} not found. Skipping read for update.`);
+                    return null;
+                });
+                const fetchedUsers = await Promise.all(userReadPromises);
+                usersToUpdate = fetchedUsers.filter(u => u !== null); // Filter out nulls
+                
+                if (usersToUpdate.length === 0) {
+                    throw new Error("Tidak ada user penerima yang valid ditemukan.");
+                }
+
+            } else {
+                // Ini untuk transaksi ke diri sendiri (admin)
+                console.log("Reading current user's balance.");
+                const currentUserDocRef = usersRef.doc(currentUser.uid);
+                const currentUserDoc = await transaction.get(currentUserDocRef);
+                if (!currentUserDoc.exists) {
+                    throw new Error("Dokumen user saat ini tidak ditemukan.");
+                }
+                usersToUpdate.push({ ref: currentUserDocRef, data: currentUserDoc.data() });
+            }
+
+            // --- FASE 2: SEMUA OPERASI TULIS ---
+
+            // 1. Simpan Transaksi Baru
+            console.log("Saving new transaction with ID:", newTransactionRef.id);
+            transaction.set(newTransactionRef, transactionData);
+
+            // 2. Update Saldo User/Users yang Terlibat
+            for (const user of usersToUpdate) {
+                let newTotalIncome = user.data.totalIncome || 0;
+                let newTotalExpense = user.data.totalExpense || 0;
+
+                if (type === 'masuk') {
+                    newTotalIncome += amount;
+                } else {
+                    newTotalExpense += amount;
+                }
+                console.log(`Updating user ${user.ref.id} (${user.data.email || user.data.name || 'N/A'}): Income=${newTotalIncome}, Expense=${newTotalExpense}`);
+                transaction.update(user.ref, {
+                    totalIncome: newTotalIncome,
+                    totalExpense: newTotalExpense
+                });
+            }
+
+            // 3. Update Saldo Global
+            console.log("Updating global balance.");
+            let newTotalAppIncome = globalData.totalAppIncome;
+            let newTotalAppExpense = globalData.totalAppExpense;
+
+            if (type === 'masuk') {
+                newTotalAppIncome += amount;
+            } else {
+                newTotalAppExpense += amount;
+            }
+            console.log(`New global balance: Income=${newTotalAppIncome}, Expense=${newTotalAppExpense}`);
+            transaction.update(globalMetricsDocRef, {
+                totalAppIncome: newTotalAppIncome,
+                totalAppExpense: newTotalAppExpense,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        showSuccess("Transaksi berhasil ditambahkan!");
+    } catch (error) {
+        showError("Gagal menambahkan transaksi: " + error.message);
+        console.error("Firestore transaction failed (Add Mode):", error);
+    } finally {
+        document.getElementById('transaction-form').classList.add('hidden');
+        document.getElementById('transaction-form').reset();
+        loadTransactions(); // Reload transactions untuk memperbarui UI
+        // updateBalance(); // updateBalance akan dipanggil dari loadTransactions()
+    }
+});
+
+// ================= LOAD TRANSACTIONS =================
+function loadTransactions() {
+    const transactionsList = document.getElementById('transactions-list');
+
+    transactionsList.innerHTML = `
+        <div class="text-center py-10">
+            <div class="loading mx-auto"></div>
+            <p class="mt-3 text-gray-400">Memuat data transaksi...</p>
+        </div>
+    `;
+
+    transactionsRef.orderBy('date', 'desc').get().then(async (snapshot) => {
+        transactionsList.innerHTML = '';
+
+        let totalIncome = 0;
+        let totalExpense = 0;
+
+        // Handle empty state
+        if (snapshot.empty) {
+            transactionsList.innerHTML = `
+                <p class="text-center py-6 text-gray-400">Belum ada transaksi</p>
+            `;
+
+            // --- Perbaikan di sini: Pastikan reset saldo user/global selesai sebelum updateBalance ---
+            let resetPromises = [];
+            if (currentUser?.uid) {
+                resetPromises.push(resetUserBalance(currentUser.uid)
+                    .then(() => console.log("Saldo user direset ke 0 karena tidak ada transaksi."))
+                    .catch(error => console.error("Gagal mereset saldo user:", error))
+                );
+            }
+            // Juga reset saldo global jika tidak ada transaksi sama sekali
+            resetPromises.push(
+                db.runTransaction(async (transaction) => {
+                    const globalMetricsDocRef = appDataRef;
+                    const globalMetricsDoc = await transaction.get(globalMetricsDocRef); // Baca global_metrics
+                    if (globalMetricsDoc.exists) {
+                        const globalData = globalMetricsDoc.data();
+                        if ((globalData.totalAppIncome || 0) !== 0 || (globalData.totalAppExpense || 0) !== 0) {
+                            transaction.update(globalMetricsDocRef, {
+                                totalAppIncome: 0,
+                                totalAppExpense: 0,
+                                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                            console.log("Saldo global direset menjadi 0 karena tidak ada transaksi.");
+                        }
+                    } else {
+                        transaction.set(globalMetricsDocRef, { // Inisialisasi jika belum ada
+                            totalAppIncome: 0,
+                            totalAppExpense: 0,
+                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        console.log("Dokumen global_metrics diinisialisasi ke 0.");
+                    }
+                })
+                .catch(error => console.error("Gagal mereset/menginisialisasi saldo global:", error))
+            );
+
+            await Promise.all(resetPromises); // Tunggu semua operasi reset selesai
+
+            updateBalance(0, 0); // Panggil updateBalance dengan 0,0 setelah semua reset selesai
+            return;
+        }
+
+        // Tampilkan transaksi
+        snapshot.forEach(doc => {
+            const transaction = doc.data();
+
+            // Hitung total (ini akan dilakukan setelah loop)
+            if (transaction.type === 'masuk') {
+                totalIncome += transaction.amount;
+            } else {
+                totalExpense += transaction.amount;
+            }
+
+            // Format tanggal
+            const transactionDate = transaction.date?.toDate() || new Date();
+            const formattedDate = transactionDate.toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+
+            // Buat elemen transaksi
+            const transactionElement = document.createElement('div');
+            transactionElement.className = `p-4 rounded-lg mb-3 ${
+                transaction.type === 'masuk'
+                    ? 'bg-green-50 border border-green-100'
+                    : 'bg-red-50 border border-red-100'
+            }`;
+
+            transactionElement.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h4 class="font-medium text-gray-800">${transaction.description}</h4>
+                        <p class="text-sm text-gray-500 mt-1">${formattedDate}</p>
+                        ${transaction.recipients ? `
+                            <p class="text-xs text-gray-400 mt-2">
+                                <i class="fas fa-envelope mr-1"></i>
+                                ${formatRecipients(transaction.recipients)}
+                            </p>
+                        ` : ''}
+                    </div>
+                    <div class="text-right">
+                        <p class="${
+                            transaction.type === 'masuk'
+                                ? 'text-green-600'
+                                : 'text-red-600'
+                        } font-mono font-medium">
+                            ${transaction.type === 'masuk' ? '+' : '-'}
+                            ${formatRupiah(transaction.amount)}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">${transaction.userName}</p>
+                    </div>
+                </div>
+                ${currentUser?.role === 'admin' ? `
+                    <div class="flex gap-2 mt-3">
+                        <button class="edit-transaction px-3 py-1 bg-blue-50 text-blue-600 rounded text-sm"
+                                data-id="${doc.id}">
+                            <i class="fas fa-edit mr-1"></i> Edit
+                        </button>
+                        <button class="delete-transaction px-3 py-1 bg-red-50 text-red-600 rounded text-sm"
+                                data-id="${doc.id}">
+                            <i class="fas fa-trash mr-1"></i> Hapus
+                        </button>
+                    </div>
+                ` : ''}
+            `;
+
+            transactionsList.appendChild(transactionElement);
+        });
+
+        // Panggil updateBalance dengan totalIncome dan totalExpense yang sudah dihitung
+        updateBalance(totalIncome, totalExpense);
+
+        // Setup event listeners untuk admin
+        setupTransactionActions();
+
+    }).catch(error => {
+        console.error("Error loading transactions:", error);
+        transactionsList.innerHTML = `
+            <p class="text-center py-6 text-red-500">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                Gagal memuat transaksi: ${error.message}
+            </p>
+        `;
+        updateBalance(0, 0); // Tetap update saldo meskipun ada error
+    });
+}
+
+// ================= DELETE TRANSACTION (Perbaikan kecil) =================
+function deleteTransaction(id) {
+    if (confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+        db.runTransaction(async (transaction) => {
+            // --- FASE 1: SEMUA OPERASI BACA ---
+            const transactionDocRef = transactionsRef.doc(id);
+            const transactionDoc = await transaction.get(transactionDocRef);
+
+            if (!transactionDoc.exists) {
+                throw new Error("Transaksi tidak ditemukan.");
+            }
+            const transactionData = transactionDoc.data();
+
+            // Baca data saldo global
+            const globalMetricsDocRef = appDataRef;
+            const globalMetricsDoc = await transaction.get(globalMetricsDocRef);
+            let globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
+
+            // Kumpulkan user yang perlu di-update saldonya karena transaksi ini dihapus
+            let usersToRevert = [];
+
+            // Logika untuk menentukan user mana yang saldonya terpengaruh oleh transaksi ini
+            if (transactionData.recipientType === 'semua_user' || transactionData.recipients.includes('ALL_USERS')) {
+                // Jika transaksi ini sebelumnya mempengaruhi semua user, maka baca semua user
+                const allUsersSnapshot = await usersRef.get();
+                allUsersSnapshot.docs.forEach(userDoc => {
+                    usersToRevert.push({ ref: usersRef.doc(userDoc.id), data: userDoc.data() });
+                });
+            } else if (transactionData.recipients && transactionData.recipients.length > 0) {
+                // Jika transaksi ini mempengaruhi user spesifik, baca user-user tersebut
+                const recipientReadPromises = transactionData.recipients.map(async (email) => {
+                    const userQuerySnapshot = await usersRef.where('email', '==', email).limit(1).get();
+                    if (!userQuerySnapshot.empty) {
+                        const userDoc = userQuerySnapshot.docs[0];
+                        return { ref: usersRef.doc(userDoc.id), data: userDoc.data() };
+                    }
+                    console.warn(`User with email ${email} associated with deleted transaction not found.`);
+                    return null;
+                });
+                const fetchedRecipients = await Promise.all(recipientReadPromises);
+                usersToRevert = fetchedRecipients.filter(u => u !== null);
+            } else {
+                // Jika transaksi hanya untuk pembuatnya (admin), baca user itu sendiri
+                const userDocRef = usersRef.doc(transactionData.userId); // userId dari transaksi
+                const userDoc = await transaction.get(userDocRef);
+                if (userDoc.exists) {
+                    usersToRevert.push({ ref: userDocRef, data: userDoc.data() });
+                }
+            }
+            
+            // --- FASE 2: SEMUA OPERASI TULIS ---
+
+            // 1. Revert saldo user/users yang terkait
+            for (const user of usersToRevert) {
+                let newTotalIncome = user.data.totalIncome || 0;
+                let newTotalExpense = user.data.totalExpense || 0;
+
+                if (transactionData.type === 'masuk') {
+                    newTotalIncome -= transactionData.amount; // Kurangi karena transaksi masuk dihapus
+                } else {
+                    newTotalExpense -= transactionData.amount; // Kurangi karena transaksi keluar dihapus
+                }
+                transaction.update(user.ref, {
+                    totalIncome: newTotalIncome,
+                    totalExpense: newTotalExpense
+                });
+                console.log(`Reverting user ${user.ref.id}: Income=${newTotalIncome}, Expense=${newTotalExpense}`);
+            }
+
+            // 2. Revert saldo global
+            let newTotalAppIncome = globalData.totalAppIncome;
+            let newTotalAppExpense = globalData.totalAppExpense;
+
+            if (transactionData.type === 'masuk') {
+                newTotalAppIncome -= transactionData.amount;
+            } else {
+                newTotalAppExpense -= transactionData.amount;
+            }
+            transaction.update(globalMetricsDocRef, {
+                totalAppIncome: newTotalAppIncome,
+                totalAppExpense: newTotalAppExpense,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`Reverting global balance: Income=${newTotalAppIncome}, Expense=${newTotalAppExpense}`);
+
+            // 3. Hapus transaksi
+            transaction.delete(transactionDocRef);
+            console.log(`Deleting transaction with ID: ${id}`);
+        })
+        .then(() => {
+            showSuccess("Transaksi berhasil dihapus!");
+            loadTransactions(); // Reload transactions untuk memperbarui UI
+            // updateBalance(); // updateBalance akan dipanggil dari loadTransactions()
+        })
+        .catch((error) => {
+            showError("Gagal menghapus transaksi: " + error.message);
+            console.error("Firestore transaction failed (Delete Mode):", error);
+        });
+    }
+}
     // ================= HELPER FUNCTIONS =================
 // ... (fungsi showError, showSuccess, formatRupiah, updateFinanceChart Anda yang sudah ada di sini) ...
 
