@@ -2130,9 +2130,29 @@ function setupTransactionActions() {
           }
 
           // Fetch likes for this post
-          postsRef.doc(postId).collection('likes').get().then(likesSnapshot => {
-            const likedByCurrentUser = likesSnapshot.docs.some(likeDoc => likeDoc.id === currentUser.uid);
-            const likesCount = likesSnapshot.size;
+postsRef.doc(postId).collection('likes').get().then(likesSnapshot => {
+    let likedByCurrentUser = false; // Inisialisasi dengan false
+    let likesCount = likesSnapshot.size;
+
+    // Tambahkan pengecekan ini:
+    if (currentUser && currentUser.uid) {
+        likedByCurrentUser = likesSnapshot.docs.some(likeDoc => likeDoc.id === currentUser.uid);
+    } else {
+        console.warn(`[Load Posts] Current user not available for like check on post ${postId}.`);
+        // Jika tidak ada user login, otomatis tidak ada yang me-like dari user saat ini
+        likedByCurrentUser = false;
+    }
+
+    // ... (lanjutkan dengan logika Anda untuk menggunakan likedByCurrentUser dan likesCount)
+    // Contoh:
+    // Update UI atau data post dengan likedByCurrentUser dan likesCount
+    // Misalnya, jika ini ada di dalam loop forEach untuk setiap post:
+    // postElement.querySelector('.like-button').classList.toggle('liked', likedByCurrentUser);
+    // postElement.querySelector('.likes-count').textContent = likesCount;
+
+}).catch(error => {
+    console.error(`Error fetching likes for post ${postId}:`, error);
+});
 
             // Fetch comments for this post
             postsRef.doc(postId).collection('comments').orderBy('createdAt').get().then(commentsSnapshot => {
