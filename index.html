@@ -793,6 +793,7 @@ const firebaseConfig = {
     const transactionsRef = db.collection("transactions");
     const agendasRef = db.collection("agendas");
     const postsRef = db.collection("posts");
+    const appDataRef = db.collection('app_data').doc('global_metrics');
     // commentsRef dan likesRef akan menjadi subkoleksi, tidak perlu referensi top-level di sini
     // const commentsRef = db.collection("comments"); 
     // const likesRef = db.collection("likes");
