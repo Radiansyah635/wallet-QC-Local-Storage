@@ -2329,34 +2329,80 @@ document.addEventListener('DOMContentLoaded', function() {
       return 'Rp ' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     }
     
-    function updateBalance() {
-      // Hitung total saldo dari transaksi berdasarkan transaksi user yang login (atau semua jika admin)
-      let totalIncome = 0;
-      let totalExpense = 0;
-      
-      // Ambil data totalIncome dan totalExpense langsung dari dokumen pengguna
-      usersRef.doc(currentUser.uid).get().then(doc => {
-        if (doc.exists) {
-            const userData = doc.data();
-            totalIncome = userData.totalIncome || 0;
-            totalExpense = userData.totalExpense || 0;
-            
-            const totalBalance = totalIncome - totalExpense;
-            
-            // Update UI
-            document.getElementById('total-saldo').textContent = formatRupiah(totalBalance);
-            document.getElementById('income-amount').textContent = '+ ' + formatRupiah(totalIncome);
-            document.getElementById('expense-amount').textContent = '- ' + formatRupiah(totalExpense);
-            
-            // Update chart
-            updateFinanceChart(totalIncome, totalExpense);
-        } else {
-            showError("Data saldo pengguna tidak ditemukan.");
-        }
-      }).catch(error => {
-        showError("Gagal mengambil saldo: " + error.message);
-      });
+    // Pastikan appDataRef sudah didefinisikan secara global, contoh:
+// const db = firebase.firestore();
+// const appDataRef = db.collection('app_data').doc('global_metrics');
+
+function updateBalance() {
+    // --- Bagian 1: Update Saldo Profil User ---
+    if (currentUser && currentUser.uid) {
+        usersRef.doc(currentUser.uid).get().then(doc => {
+            if (doc.exists) {
+                const userData = doc.data();
+                const userIncome = userData.totalIncome || 0;
+                const userExpense = userData.totalExpense || 0;
+                // const userNetBalance = userIncome - userExpense; // Jika ingin ditampilkan di profil juga
+
+                // Asumsi ID elemen di profil Anda adalah 'profile-kas-masuk' dan 'profile-kas-keluar'
+                // Anda perlu menyesuaikan ID ini sesuai dengan HTML profil Anda
+                document.getElementById('profile-kas-masuk').textContent = formatRupiah(userIncome);
+                document.getElementById('profile-kas-keluar').textContent = formatRupiah(userExpense);
+                // Jika ada elemen untuk menampilkan total saldo di profil, tambahkan di sini
+                // document.getElementById('profile-total-user-saldo').textContent = formatRupiah(userNetBalance);
+
+            } else {
+                console.warn("Data saldo pengguna (profil) tidak ditemukan untuk UID:", currentUser.uid);
+                // showWarning("Data saldo profil pengguna tidak ditemukan."); // Opsional
+                document.getElementById('profile-kas-masuk').textContent = formatRupiah(0);
+                document.getElementById('profile-kas-keluar').textContent = formatRupiah(0);
+            }
+        }).catch(error => {
+            console.error("Gagal mengambil saldo profil:", error);
+            showError("Gagal memuat saldo profil: " + error.message);
+        });
     }
+
+
+    // --- Bagian 2: Update Saldo Keseluruhan Aplikasi (Global Balance) ---
+    appDataRef.get().then(doc => {
+        if (doc.exists) {
+            const globalData = doc.data();
+            const totalAppIncome = globalData.totalAppIncome || 0;
+            const totalAppExpense = globalData.totalAppExpense || 0;
+            const totalAppBalance = totalAppIncome - totalAppExpense;
+
+            // Update UI untuk "Total Saldo" yang besar
+            // Anda perlu menyesuaikan ID elemen ini di HTML dashboard Anda
+            document.getElementById('total-saldo').textContent = formatRupiah(totalAppBalance); // Ini untuk total saldo keseluruhan
+            document.getElementById('income-amount').textContent = '+ ' + formatRupiah(totalAppIncome); // Ini untuk pemasukan keseluruhan
+            document.getElementById('expense-amount').textContent = '- ' + formatRupiah(totalAppExpense); // Ini untuk pengeluaran keseluruhan
+
+            // Update chart, yang sekarang akan menggunakan total keseluruhan
+            updateFinanceChart(totalAppIncome, totalAppExpense);
+
+        } else {
+            console.warn("Dokumen global_metrics tidak ditemukan. Menginisialisasi dengan 0.");
+            // Jika dokumen global_metrics tidak ada, buat dan inisialisasi
+            appDataRef.set({ totalAppIncome: 0, totalAppExpense: 0, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() })
+                .then(() => {
+                    console.log("Dokumen global_metrics berhasil diinisialisasi.");
+                    // Setelah diinisialisasi, update UI ke 0
+                    document.getElementById('total-saldo').textContent = formatRupiah(0);
+                    document.getElementById('income-amount').textContent = '+ ' + formatRupiah(0);
+                    document.getElementById('expense-amount').textContent = '- ' + formatRupiah(0);
+                    updateFinanceChart(0, 0);
+                })
+                .catch(error => {
+                    console.error("Gagal menginisialisasi global_metrics:", error);
+                    showError("Gagal memuat saldo keseluruhan: " + error.message);
+                });
+        }
+    }).catch(error => {
+        console.error("Gagal mengambil saldo global:", error);
+        showError("Gagal memuat saldo keseluruhan: " + error.message);
+    });
+    }
+    
     
     function updateFinanceChart(income, expense) {
       if (!financeChart) {
