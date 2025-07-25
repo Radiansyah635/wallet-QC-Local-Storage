@@ -930,6 +930,7 @@ function setupTransactionActions() {
 // Event listener untuk login
 document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+   console.log("Login form submitted!");
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
 
