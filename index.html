@@ -1071,120 +1071,82 @@ document.getElementById('transaction-form')?.addEventListener('submit', async (e
         // 5. Aplikasikan dampak transaksi baru.
         showError("Fungsi edit transaksi yang mempengaruhi saldo belum sepenuhnya diimplementasikan. Harap hapus dan buat ulang.");
         return;
+               } else {
+  // Mode Tambah Transaksi
+  db.runTransaction(async (transaction) => {
+    const newTransactionRef = transactionsRef.doc();
+
+    const recipients = selectedRecipientType === 'semua_user'
+      ? ['ALL_USERS']
+      : recipientEmails;
+
+    transactionData.recipients = recipients; // <-- penting
+
+    if (selectedRecipientType === 'semua_user') {
+      const allUsersSnapshot = await usersRef.get();
+      for (const userDoc of allUsersSnapshot.docs) {
+        const userRef = usersRef.doc(userDoc.id);
+        const userData = userDoc.data();
+
+        let income = userData.totalIncome || 0;
+        let expense = userData.totalExpense || 0;
+        if (type === 'masuk') income += amount;
+        else expense += amount;
+
+        transaction.update(userRef, {
+          totalIncome: income,
+          totalExpense: expense
+        });
+      }
     } else {
-        // Mode Tambah
-        try {
-            await db.runTransaction(async (transaction) => {
-                console.log("Starting add new transaction transaction...");
+      for (const email of recipientEmails) {
+        const userQuery = await usersRef.where('email', '==', email).limit(1).get();
+        if (!userQuery.empty) {
+          const userDoc = userQuery.docs[0];
+          const userRef = usersRef.doc(userDoc.id);
+          const userData = userDoc.data();
 
-                const newTransactionRef = transactionsRef.doc(); // Referensi dokumen transaksi baru
+          let income = userData.totalIncome || 0;
+          let expense = userData.totalExpense || 0;
+          if (type === 'masuk') income += amount;
+          else expense += amount;
 
-                // --- FASE 1: SEMUA OPERASI BACA ---
-                // Baca data saldo global terlebih dahulu
-                const globalMetricsDocRef = appDataRef;
-                const globalMetricsDoc = await transaction.get(globalMetricsDocRef);
-                let globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
-
-                let usersToUpdate = []; // Array untuk menyimpan referensi dan data user yang perlu diperbarui
-
-                if (selectedRecipientType === 'semua_user') {
-                    console.log("Reading all users' balances for 'semua_user' transaction.");
-                    const allUsersSnapshot = await usersRef.get(); // Baca semua user
-                    console.log(`Found ${allUsersSnapshot.size} users to update.`);
-
-                    if (allUsersSnapshot.empty) {
-                        console.warn("No users found in 'users' collection to update for 'semua_user'.");
-                    }
-                    allUsersSnapshot.docs.forEach(userDoc => {
-                        usersToUpdate.push({ ref: usersRef.doc(userDoc.id), data: userDoc.data() });
-                    });
-                } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
-                    console.log(`Reading selected users' balances for ${recipientEmails.length} recipients.`);
-                    const userReadPromises = recipientEmails.map(async (email) => {
-                        const userQuerySnapshot = await usersRef.where('email', '==', email).limit(1).get();
-                        if (!userQuerySnapshot.empty) {
-                            const userDoc = userQuerySnapshot.docs[0];
-                            return { ref: usersRef.doc(userDoc.id), data: userDoc.data() };
-                        }
-                        console.warn(`User with email ${email} not found. Skipping read for update.`);
-                        return null;
-                    });
-                    const fetchedUsers = await Promise.all(userReadPromises);
-                    usersToUpdate = fetchedUsers.filter(u => u !== null); // Filter out nulls
-
-                    if (usersToUpdate.length === 0) {
-                        throw new Error("Tidak ada user penerima yang valid ditemukan.");
-                    }
-
-                } else {
-                    // Ini untuk transaksi ke diri sendiri (admin)
-                    console.log("Reading current user's balance.");
-                    const currentUserDocRef = usersRef.doc(currentUser.uid);
-                    const currentUserDoc = await transaction.get(currentUserDocRef);
-                    if (!currentUserDoc.exists) {
-                        throw new Error("Dokumen user saat ini tidak ditemukan.");
-                    }
-                    usersToUpdate.push({ ref: currentUserDocRef, data: currentUserDoc.data() });
-                }
-
-                // --- FASE 2: SEMUA OPERASI TULIS ---
-
-                // 1. Simpan Transaksi Baru
-                console.log("Saving new transaction with ID:", newTransactionRef.id);
-                transaction.set(newTransactionRef, transactionData);
-
-                // 2. Update Saldo User/Users yang Terlibat
-                for (const user of usersToUpdate) {
-                    let newTotalIncome = user.data.totalIncome || 0;
-                    let newTotalExpense = user.data.totalExpense || 0;
-
-                    if (type === 'masuk') {
-                        newTotalIncome += amount;
-                    } else {
-                        newTotalExpense += amount;
-                    }
-                    console.log(`Updating user ${user.ref.id} (${user.data.email || user.data.name || 'N/A'}): Income=${newTotalIncome}, Expense=${newTotalExpense}`);
-                    transaction.update(user.ref, {
-                        totalIncome: newTotalIncome,
-                        totalExpense: newTotalExpense
-                    });
-                }
-
-                // 3. Update Saldo Global
-                console.log("Updating global balance.");
-                let newTotalAppIncome = globalData.totalAppIncome;
-                let newTotalAppExpense = globalData.totalAppExpense;
-
-                if (type === 'masuk') {
-                    newTotalAppIncome += amount;
-                } else {
-                    newTotalAppExpense += amount;
-                }
-                transaction.update(globalMetricsDocRef, {
-                    totalAppIncome: newTotalAppIncome,
-                    totalAppExpense: newTotalAppExpense,
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            });
-
-            showSuccess("Transaksi berhasil ditambahkan!");
-        } catch (error) {
-            showError("Gagal menambahkan transaksi: " + error.message);
-            console.error("Firestore transaction failed (Add Mode):", error);
-        } finally {
-            document.getElementById('transaction-form').classList.add('hidden');
-            document.getElementById('transaction-form').reset();
-            // Setelah transaksi, muat ulang yang relevan
-            if (currentUser?.role === 'admin') {
-                loadAdminTransactions(); // Admin mungkin ingin melihat semua transaksi
-                loadUserData(); // Admin juga perlu mengupdate saldo pribadi mereka
-            } else {
-                loadTransactions(); // User biasa hanya melihat transaksi mereka
-                loadUserData(); // User biasa perlu mengupdate saldo pribadi mereka
-            }
+          transaction.update(userRef, {
+            totalIncome: income,
+            totalExpense: expense
+          });
+        } else {
+          console.warn(`Email ${email} tidak ditemukan`);
         }
+      }
     }
-});
+
+    const globalDoc = await transaction.get(appDataRef);
+    const globalData = globalDoc.data() || {};
+    let totalAppIncome = globalData.totalAppIncome || 0;
+    let totalAppExpense = globalData.totalAppExpense || 0;
+    if (type === 'masuk') totalAppIncome += amount;
+    else totalAppExpense += amount;
+
+    transaction.update(appDataRef, {
+      totalAppIncome,
+      totalAppExpense,
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    transaction.set(newTransactionRef, transactionData);
+  })
+  .then(() => {
+    showSuccess("Transaksi berhasil ditambahkan!");
+    document.getElementById('transaction-form').classList.add('hidden');
+    document.getElementById('transaction-form').reset();
+    loadTransactions();
+  })
+  .catch((error) => {
+    showError("Gagal menambahkan transaksi: " + error.message);
+    console.error(error); // penting!
+  });
+          }
 
 
 // Fungsi untuk mengambil data transaksi untuk diedit (belum mengimplementasikan logika update saldo)
