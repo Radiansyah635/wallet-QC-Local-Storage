@@ -1390,49 +1390,7 @@ document.getElementById('print-transactions')?.addEventListener('click', () => {
 });
 
 // ==================== CHART.JS INTEGRATION (Asumsi Anda memiliki elemen canvas dengan ID 'finance-chart') ====================
-let financeChart;
-function updateFinanceChart(income, expense) {
-    const ctx = document.getElementById('finance-chart')?.getContext('2d');
-    if (!ctx) {
-        console.warn("Elemen canvas 'finance-chart' tidak ditemukan.");
-        return;
-    }
 
-    const data = {
-        labels: ['Pemasukan', 'Pengeluaran'],
-        datasets: [{
-            data: [income, expense],
-            backgroundColor: ['#4CAF50', '#F44336'], // Green for income, Red for expense
-            hoverOffset: 4
-        }]
-    };
-
-    if (financeChart) {
-        financeChart.data = data;
-        financeChart.update();
-    } else {
-        financeChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: data,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(tooltipItem) {
-                                return tooltipItem.label + ': ' + formatRupiah(tooltipItem.raw);
-                            }
-                        }
-                    }
-                }
-            },
-        });
-    }
-}
 
 
 // ================= AGENDA FUNCTIONS =================
