@@ -2735,8 +2735,13 @@ document.getElementById('transaction-form').addEventListener('submit', async (e)
     const amount = parseFloat(document.getElementById('transaction-amount').value);
     const description = document.getElementById('transaction-desc').value;
     const selectedRecipientType = document.querySelector('input[name="recipient-type"]:checked').value;
-    const recipientEmailsInput = document.getElementById('recipient-emails-input').value;
-    
+    const inputEmailElement = document.getElementById('inputEmail');
+if (!inputEmailElement) {
+  showError("Input Email tidak ditemukan.");
+  return;
+}
+const recipientEmailsInput = inputEmailElement.value;
+
     // Pastikan currentUser tersedia
     if (!currentUser || !currentUser.uid || !currentUser.displayName || !currentUser.email || !currentUser.role) {
         showError("Data user tidak lengkap. Silakan login ulang.");
