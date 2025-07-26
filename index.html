@@ -2880,8 +2880,11 @@ document.getElementById('transaction-form').addEventListener('submit', async (e)
     } finally {
         document.getElementById('transaction-form').classList.add('hidden');
         document.getElementById('transaction-form').reset();
-        loadTransactions(); // Reload transactions untuk memperbarui UI
-        // updateBalance(); // updateBalance akan dipanggil dari loadTransactions()
+        loadTransactions(); // Memuat ulang transaksi untuk pengguna
+        loadAdminTransactions(); // <--- TAMBAHKAN INI UNTUK MEMPERBARUI TAB ADMIN TRANSAKSI
+        loadUserData(); // <--- TAMBAHKAN INI UNTUK MEMASTIKAN SALDO USER DI UI DIPERBARUI
+        renderCharts(); // <--- TAMBAHKAN INI UNTUK MEMPERBARUI GRAFIK
+        // updateBalance(); // Jika updateBalance dipanggil dari loadTransactions() atau loadUserData(), ini tidak perlu
     }
 });
 
