@@ -2670,57 +2670,57 @@ async function deletePost(postId, fileUrl) {
 
 
     // ================= HELPER FUNCTIONS =================
-// ================= HELPER FUNCTIONS (Pastikan ini ada dan sudah sesuai dengan revisi sebelumnya) =================
+// ================= HELPER FUNCTIONS =================
+async function updateBalance() {
+    try {
+        // 1. Ambil data saldo global dari Firestore
+        const globalMetricsDoc = await appDataRef.get();
+        const globalData = globalMetricsDoc.data() || { 
+            totalAppIncome: 0, 
+            totalAppExpense: 0 
+        };
+        
+        const globalIncome = globalData.totalAppIncome || 0;
+        const globalExpense = globalData.totalAppExpense || 0;
+        const globalBalance = globalIncome - globalExpense;
 
-// Fungsi updateBalance yang sudah kita revisi sebelumnya, pastikan ini ada di kode Anda
-function updateBalance(totalIncome = 0, totalExpense = 0) { // Beri nilai default untuk keamanan
-    const balance = totalIncome - totalExpense;
+        // 2. Jika user sedang login, ambil saldo individualnya
+        if (currentUser) {
+            const userDoc = await usersRef.doc(currentUser.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                const userIncome = userData.totalIncome || 0;
+                const userExpense = userData.totalExpense || 0;
+                const userBalance = userIncome - userExpense;
 
-    // --- Update elemen-elemen di bagian atas (Kas Masuk, Kas Keluar, Total Saldo) ---
-    const userIncomeElement = document.getElementById('user-income');
-    const userExpenseElement = document.getElementById('user-expense');
-    const userTotalBalanceElement = document.getElementById('user-total-balance');
+                // Tampilan utama (display card besar) - gunakan saldo USER
+                document.getElementById('income-amount').textContent = '+ ' + formatRupiah(userIncome);
+                document.getElementById('expense-amount').textContent = '- ' + formatRupiah(userExpense);
+                document.getElementById('total-saldo').textContent = formatRupiah(userBalance);
 
-    if (userIncomeElement) {
-        userIncomeElement.textContent = formatRupiah(totalIncome);
-    } else {
-        console.warn("Elemen HTML dengan ID 'user-income' tidak ditemukan.");
-    }
-    if (userExpenseElement) {
-        userExpenseElement.textContent = formatRupiah(totalExpense);
-    } else {
-        console.warn("Elemen HTML dengan ID 'user-expense' tidak ditemukan.");
-    }
-    if (userTotalBalanceElement) {
-        userTotalBalanceElement.textContent = formatRupiah(balance);
-    } else {
-        console.warn("Elemen HTML dengan ID 'user-total-balance' tidak ditemukan.");
-    }
+                // Tampilan profil - tampilkan SALDO GLOBAL jika admin, USER jika bukan
+                const isAdmin = userData.role === 'admin';
+                document.getElementById('user-income').textContent = formatRupiah(isAdmin ? globalIncome : userIncome);
+                document.getElementById('user-expense').textContent = formatRupiah(isAdmin ? globalExpense : userExpense);
+                document.getElementById('user-total-balance').textContent = formatRupiah(isAdmin ? globalBalance : userBalance);
+                
+                // Jika admin, tambahkan label informasi
+                if (isAdmin) {
+                    document.getElementById('user-income').nextElementSibling.textContent = '(Total Semua User)';
+                    document.getElementById('user-expense').nextElementSibling.textContent = '(Total Semua User)';
+                    document.getElementById('user-total-balance').nextElementSibling.textContent = '(Total Semua User)';
+                }
+            }
+        }
 
-    // --- Update elemen-elemen di 'Solana Card' (Pemasukan, Pengeluaran, Total Saldo besar) ---
-    const incomeAmountElement = document.getElementById('income-amount');
-    const expenseAmountElement = document.getElementById('expense-amount');
-    const totalSaldoElement = document.getElementById('total-saldo');
-
-    if (incomeAmountElement) {
-        incomeAmountElement.textContent = '+ ' + formatRupiah(totalIncome);
-    } else {
-        console.warn("Elemen HTML dengan ID 'income-amount' (Solana Card) tidak ditemukan.");
-    }
-    if (expenseAmountElement) {
-        expenseAmountElement.textContent = '- ' + formatRupiah(totalExpense);
-    } else {
-        console.warn("Elemen HTML dengan ID 'expense-amount' (Solana Card) tidak ditemukan.");
-    }
-    if (totalSaldoElement) {
-        totalSaldoElement.textContent = formatRupiah(balance);
-    } else {
-        console.warn("Elemen HTML dengan ID 'total-saldo' (Solana Card) tidak ditemukan.");
-    }
-
-    // Perbarui chart keuangan (pastikan fungsi ini ada)
-    if (typeof updateFinanceChart === 'function') {
-        updateFinanceChart(totalIncome, totalExpense);
+        // 3. Update grafik keuangan dengan data GLOBAL
+        if (financeChart) {
+            financeChart.data.datasets[0].data = [globalIncome, globalExpense];
+            financeChart.update();
+        }
+    } catch (error) {
+        console.error("Gagal memperbarui saldo:", error);
+        showError("Gagal memuat data saldo. Silakan refresh halaman.");
     }
 }
 
