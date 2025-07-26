@@ -2730,166 +2730,142 @@ function updateBalance(totalIncome = 0, totalExpense = 0) { // Beri nilai defaul
 // ================= EVENT LISTENER UNTUK SUBMIT FORM TRANSAKSI =================
 document.getElementById('transaction-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    console.log("Submit transaction event fired.");
 
     const type = document.getElementById('transaction-type').value;
     const amount = parseFloat(document.getElementById('transaction-amount').value);
     const description = document.getElementById('transaction-desc').value;
-    const selectedRecipientType = document.querySelector('input[name="recipient-type"]:checked').value;
-    const inputEmailElement = document.getElementById('inputEmail');
-if (!inputEmailElement) {
-  showError("Input Email tidak ditemukan.");
-  return;
-}
-const recipientEmailsInput = inputEmailElement.value;
 
-    // Pastikan currentUser tersedia
-    if (!currentUser || !currentUser.uid || !currentUser.displayName || !currentUser.email || !currentUser.role) {
-        showError("Data user tidak lengkap. Silakan login ulang.");
+    const radioPenerimaTerpilih = document.querySelector('input[name="penerimaEmail"]:checked');
+    let selectedRecipientType = null;
+    let recipientEmails = [];
+
+    if (radioPenerimaTerpilih) {
+        selectedRecipientType = radioPenerimaTerpilih.value;
+        if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
+            const inputEmailValue = document.getElementById('inputEmail').value;
+            recipientEmails = inputEmailValue.split(',').map(email => email.trim()).filter(email => email);
+        } else if (selectedRecipientType === 'semua_user') {
+            recipientEmails = ['ALL_USERS'];
+        }
+    } else {
+        showError("Pilih jenis penerima email.");
         return;
     }
 
-    // Validasi input
+    // Validation checks
     if (isNaN(amount) || amount <= 0) {
-        showError("Jumlah harus angka positif.");
+        showError("Jumlah transaksi harus angka positif.");
         return;
     }
     if (!description.trim()) {
-        showError("Deskripsi tidak boleh kosong.");
+        showError("Deskripsi transaksi tidak boleh kosong.");
         return;
     }
-
-    let recipientEmails = [];
-    if (selectedRecipientType === 'semua_user') {
-        recipientEmails.push('ALL_USERS');
-    } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
-        recipientEmails = recipientEmailsInput.split(',').map(email => email.trim()).filter(email => email);
-        if (recipientEmails.length === 0) {
-            showError("Harap masukkan setidaknya satu email penerima.");
-            return;
-        }
+    if (!currentUser || !currentUser.uid) {
+        showError("Anda harus login untuk melakukan transaksi.");
+        return;
     }
 
     const transactionData = {
         userId: currentUser.uid,
-        userName: currentUser.displayName,
-        userEmail: currentUser.email, // Tambahkan email user yang membuat transaksi
-        type,
-        amount,
-        description,
-        date: firebase.firestore.FieldValue.serverTimestamp(), // Gunakan server timestamp
-        recipients: recipientEmails.length > 0 ? recipientEmails : [],
-        recipientType: selectedRecipientType
+        userName: document.getElementById('user-name').textContent,
+        type: type,
+        amount: amount,
+        description: description,
+        date: firebase.firestore.FieldValue.serverTimestamp(),
+        recipients: recipientEmails
     };
 
-    // --- REVISI UTAMA: STRUKTUR TRANSAKSI FIRESTORE UNTUK ADD MODE ---
-    // Mode Tambah
     try {
         await db.runTransaction(async (transaction) => {
-            console.log("Starting add new transaction transaction...");
-
-            const newTransactionRef = transactionsRef.doc(); // Referensi dokumen transaksi baru
-
-            // --- FASE 1: SEMUA OPERASI BACA ---
-            // Baca data saldo global terlebih dahulu
-            const globalMetricsDocRef = appDataRef;
-            const globalMetricsDoc = await transaction.get(globalMetricsDocRef);
+            console.log("Starting transaction...");
+            
+            // PHASE 1: ALL READS FIRST
+            const newTransactionRef = transactionsRef.doc(); // Create ref for new transaction
+            
+            // Get global metrics
+            const globalMetricsDoc = await transaction.get(appDataRef);
             let globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
-
-            let usersToUpdate = []; // Array untuk menyimpan referensi dan data user yang perlu diperbarui
-
+            
+            // Get users to update based on recipient type
+            let usersToUpdate = [];
+            
             if (selectedRecipientType === 'semua_user') {
-                console.log("Reading all users' balances for 'semua_user' transaction.");
-                const allUsersSnapshot = await usersRef.get(); // Baca semua user
-                console.log(`Found ${allUsersSnapshot.size} users to update.`);
-
-                if (allUsersSnapshot.empty) {
-                    console.warn("No users found in 'users' collection to update for 'semua_user'.");
-                }
+                const allUsersSnapshot = await usersRef.get();
                 allUsersSnapshot.docs.forEach(userDoc => {
-                    usersToUpdate.push({ ref: usersRef.doc(userDoc.id), data: userDoc.data() });
+                    usersToUpdate.push({
+                        ref: usersRef.doc(userDoc.id),
+                        data: userDoc.data()
+                    });
                 });
             } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
-                console.log(`Reading selected users' balances for ${recipientEmails.length} recipients.`);
-                const userReadPromises = recipientEmails.map(async (email) => {
-                    const userQuerySnapshot = await usersRef.where('email', '==', email).limit(1).get();
-                    if (!userQuerySnapshot.empty) {
-                        const userDoc = userQuerySnapshot.docs[0];
-                        return { ref: usersRef.doc(userDoc.id), data: userDoc.data() };
+                // Get specific users by email
+                for (const email of recipientEmails) {
+                    const userQuery = await usersRef.where('email', '==', email).limit(1).get();
+                    if (!userQuery.empty) {
+                        const userDoc = userQuery.docs[0];
+                        usersToUpdate.push({
+                            ref: usersRef.doc(userDoc.id),
+                            data: userDoc.data()
+                        });
                     }
-                    console.warn(`User with email ${email} not found. Skipping read for update.`);
-                    return null;
-                });
-                const fetchedUsers = await Promise.all(userReadPromises);
-                usersToUpdate = fetchedUsers.filter(u => u !== null); // Filter out nulls
-                
-                if (usersToUpdate.length === 0) {
-                    throw new Error("Tidak ada user penerima yang valid ditemukan.");
                 }
-
             } else {
-                // Ini untuk transaksi ke diri sendiri (admin)
-                console.log("Reading current user's balance.");
-                const currentUserDocRef = usersRef.doc(currentUser.uid);
-                const currentUserDoc = await transaction.get(currentUserDocRef);
-                if (!currentUserDoc.exists) {
-                    throw new Error("Dokumen user saat ini tidak ditemukan.");
-                }
-                usersToUpdate.push({ ref: currentUserDocRef, data: currentUserDoc.data() });
+                // Default to current user
+                const currentUserDoc = await transaction.get(usersRef.doc(currentUser.uid));
+                usersToUpdate.push({
+                    ref: usersRef.doc(currentUser.uid),
+                    data: currentUserDoc.data()
+                });
             }
 
-            // --- FASE 2: SEMUA OPERASI TULIS ---
-
-            // 1. Simpan Transaksi Baru
-            console.log("Saving new transaction with ID:", newTransactionRef.id);
+            // PHASE 2: ALL WRITES
+            // 1. Create new transaction
             transaction.set(newTransactionRef, transactionData);
-
-            // 2. Update Saldo User/Users yang Terlibat
+            
+            // 2. Update user balances
             for (const user of usersToUpdate) {
-                let newTotalIncome = user.data.totalIncome || 0;
-                let newTotalExpense = user.data.totalExpense || 0;
-
+                let newIncome = user.data.totalIncome || 0;
+                let newExpense = user.data.totalExpense || 0;
+                
                 if (type === 'masuk') {
-                    newTotalIncome += amount;
+                    newIncome += amount;
                 } else {
-                    newTotalExpense += amount;
+                    newExpense += amount;
                 }
-                console.log(`Updating user ${user.ref.id} (${user.data.email || user.data.name || 'N/A'}): Income=${newTotalIncome}, Expense=${newTotalExpense}`);
+                
                 transaction.update(user.ref, {
-                    totalIncome: newTotalIncome,
-                    totalExpense: newTotalExpense
+                    totalIncome: newIncome,
+                    totalExpense: newExpense
                 });
             }
-
-            // 3. Update Saldo Global
-            console.log("Updating global balance.");
-            let newTotalAppIncome = globalData.totalAppIncome;
-            let newTotalAppExpense = globalData.totalAppExpense;
-
+            
+            // 3. Update global metrics
+            let newAppIncome = globalData.totalAppIncome || 0;
+            let newAppExpense = globalData.totalAppExpense || 0;
+            
             if (type === 'masuk') {
-                newTotalAppIncome += amount;
+                newAppIncome += amount;
             } else {
-                newTotalAppExpense += amount;
+                newAppExpense += amount;
             }
-            console.log(`New global balance: Income=${newTotalAppIncome}, Expense=${newTotalAppExpense}`);
-            transaction.update(globalMetricsDocRef, {
-                totalAppIncome: newTotalAppIncome,
-                totalAppExpense: newTotalAppExpense,
+            
+            transaction.update(appDataRef, {
+                totalAppIncome: newAppIncome,
+                totalAppExpense: newAppExpense,
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
             });
         });
 
         showSuccess("Transaksi berhasil ditambahkan!");
-    } catch (error) {
-        showError("Gagal menambahkan transaksi: " + error.message);
-        console.error("Firestore transaction failed (Add Mode):", error);
-    } finally {
         document.getElementById('transaction-form').classList.add('hidden');
         document.getElementById('transaction-form').reset();
-        // Pastikan Anda memanggil fungsi-fungsi ini untuk memperbarui UI
         loadTransactions();
-        loadAdminTransactions(); // Penting untuk tampilan admin
-        loadUserData();          // Penting untuk saldo di profil & display utama
-        renderCharts();          // Penting untuk grafik
+        updateBalance();
+    } catch (error) {
+        showError("Gagal menambahkan transaksi: " + error.message);
+        console.error("Transaction error:", error);
     }
 });
 // ================= LOAD TRANSACTIONS =================
