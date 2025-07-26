@@ -2737,8 +2737,7 @@ document.getElementById('transaction-form').addEventListener('submit', async (e)
     const selectedRecipientType = document.querySelector('input[name="recipient-type"]:checked').value;
     const recipientEmailsInput = document.getElementById('recipient-emails-input').value;
     
-    async function addTransaction() {
-    // ... (kode validasi input dan persiapan transactionData yang sudah ada) ...
+   
 
     if (!currentUser || !currentUser.uid || !currentUser.displayName || !currentUser.email || !currentUser.role) {
         showError("Data user tidak lengkap. Silakan login ulang.");
