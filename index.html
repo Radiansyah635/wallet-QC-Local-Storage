@@ -2672,8 +2672,6 @@ async function deletePost(postId, fileUrl) {
 // ... (fungsi showError, showSuccess, formatRupiah, updateFinanceChart Anda yang sudah ada di sini) ...
 
 // ================= HELPER FUNCTIONS =================
-let financeChart = null; // Pastikan variabel ini di-deklarasi di scope global
-
 async function initFinanceChart() {
     const ctx = document.getElementById('finance-chart').getContext('2d');
     financeChart = new Chart(ctx, {
