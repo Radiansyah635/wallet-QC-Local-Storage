@@ -2728,6 +2728,7 @@ function updateBalance(totalIncome = 0, totalExpense = 0) { // Beri nilai defaul
 
 
 // ================= EVENT LISTENER UNTUK SUBMIT FORM TRANSAKSI =================
+// ================= EVENT LISTENER UNTUK SUBMIT FORM TRANSAKSI =================
 document.getElementById('transaction-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -2737,8 +2738,7 @@ document.getElementById('transaction-form').addEventListener('submit', async (e)
     const selectedRecipientType = document.querySelector('input[name="recipient-type"]:checked').value;
     const recipientEmailsInput = document.getElementById('recipient-emails-input').value;
     
-   
-
+    // Pastikan currentUser tersedia
     if (!currentUser || !currentUser.uid || !currentUser.displayName || !currentUser.email || !currentUser.role) {
         showError("Data user tidak lengkap. Silakan login ulang.");
         return;
@@ -2768,107 +2768,85 @@ document.getElementById('transaction-form').addEventListener('submit', async (e)
     const transactionData = {
         userId: currentUser.uid,
         userName: currentUser.displayName,
-        userEmail: currentUser.email,
+        userEmail: currentUser.email, // Tambahkan email user yang membuat transaksi
         type,
         amount,
         description,
-        date: firebase.firestore.FieldValue.serverTimestamp(),
+        date: firebase.firestore.FieldValue.serverTimestamp(), // Gunakan server timestamp
         recipients: recipientEmails.length > 0 ? recipientEmails : [],
         recipientType: selectedRecipientType
     };
 
-    let userRefsToUpdate = []; // Ini akan menyimpan referensi dokumen user yang akan diperbarui
-
-    // --- FASE BARU: MENGAMBIL REFERENSI USER (DI LUAR TRANSAKSI) ---
-    try {
-        if (selectedRecipientType === 'semua_user') {
-            console.log("Fetching all user references for 'semua_user' transaction (outside transaction).");
-            const allUsersSnapshot = await usersRef.get(); // Lakukan GET di luar transaksi
-            if (!allUsersSnapshot.empty) {
-                allUsersSnapshot.docs.forEach(doc => {
-                    userRefsToUpdate.push(usersRef.doc(doc.id)); // Simpan referensi dokumen
-                });
-            } else {
-                console.warn("No users found in 'users' collection for 'semua_user'.");
-            }
-        } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
-            console.log(`Fetching selected user references for ${recipientEmails.length} recipients (outside transaction).`);
-            const userFetchPromises = recipientEmails.map(async (email) => {
-                const userQuerySnapshot = await usersRef.where('email', '==', email).limit(1).get(); // GET di luar transaksi
-                if (!userQuerySnapshot.empty) {
-                    return usersRef.doc(userQuerySnapshot.docs[0].id); // Kembalikan referensi dokumen
-                }
-                console.warn(`User with email ${email} not found. Skipping reference fetch.`);
-                return null;
-            });
-            const fetchedRefs = await Promise.all(userFetchPromises);
-            userRefsToUpdate = fetchedRefs.filter(ref => ref !== null);
-
-            if (userRefsToUpdate.length === 0) {
-                throw new Error("Tidak ada user penerima yang valid ditemukan.");
-            }
-        } else {
-            // Untuk transaksi ke diri sendiri (admin)
-            console.log("Adding current user's reference for update.");
-            userRefsToUpdate.push(usersRef.doc(currentUser.uid));
-        }
-    } catch (error) {
-        showError("Gagal menyiapkan data penerima: " + error.message);
-        console.error("Error fetching user references:", error);
-        return; // Hentikan eksekusi jika gagal mendapatkan referensi
-    }
-
-
-    // --- MEMULAI FIRESTORE TRANSACTION (di sini semua bacaan harus pakai transaction.get) ---
+    // --- REVISI UTAMA: STRUKTUR TRANSAKSI FIRESTORE UNTUK ADD MODE ---
+    // Mode Tambah
     try {
         await db.runTransaction(async (transaction) => {
             console.log("Starting add new transaction transaction...");
 
             const newTransactionRef = transactionsRef.doc(); // Referensi dokumen transaksi baru
 
-            // --- FASE 1: SEMUA OPERASI BACA (DALAM TRANSAKSI) ---
-            // Baca data saldo global
+            // --- FASE 1: SEMUA OPERASI BACA ---
+            // Baca data saldo global terlebih dahulu
             const globalMetricsDocRef = appDataRef;
             const globalMetricsDoc = await transaction.get(globalMetricsDocRef);
             let globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
 
-            // Baca data saldo user yang akan diperbarui
-            let usersDataToUpdate = [];
-            for (const userRef of userRefsToUpdate) {
-                const userDoc = await transaction.get(userRef); // <--- GUNAKAN transaction.get() DI SINI!
-                if (userDoc.exists) {
-                    usersDataToUpdate.push({ ref: userRef, data: userDoc.data() });
-                } else {
-                    console.warn(`Dokumen user ${userRef.id} tidak ditemukan dalam transaksi. Mungkin user dihapus.`);
+            let usersToUpdate = []; // Array untuk menyimpan referensi dan data user yang perlu diperbarui
+
+            if (selectedRecipientType === 'semua_user') {
+                console.log("Reading all users' balances for 'semua_user' transaction.");
+                const allUsersSnapshot = await usersRef.get(); // Baca semua user
+                console.log(`Found ${allUsersSnapshot.size} users to update.`);
+
+                if (allUsersSnapshot.empty) {
+                    console.warn("No users found in 'users' collection to update for 'semua_user'.");
                 }
-            }
-            
-            // Tambahkan data user saat ini jika belum termasuk (untuk transaksi ke diri sendiri)
-            if (selectedRecipientType === 'sendiri' && !usersDataToUpdate.some(u => u.ref.id === currentUser.uid)) {
+                allUsersSnapshot.docs.forEach(userDoc => {
+                    usersToUpdate.push({ ref: usersRef.doc(userDoc.id), data: userDoc.data() });
+                });
+            } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
+                console.log(`Reading selected users' balances for ${recipientEmails.length} recipients.`);
+                const userReadPromises = recipientEmails.map(async (email) => {
+                    const userQuerySnapshot = await usersRef.where('email', '==', email).limit(1).get();
+                    if (!userQuerySnapshot.empty) {
+                        const userDoc = userQuerySnapshot.docs[0];
+                        return { ref: usersRef.doc(userDoc.id), data: userDoc.data() };
+                    }
+                    console.warn(`User with email ${email} not found. Skipping read for update.`);
+                    return null;
+                });
+                const fetchedUsers = await Promise.all(userReadPromises);
+                usersToUpdate = fetchedUsers.filter(u => u !== null); // Filter out nulls
+                
+                if (usersToUpdate.length === 0) {
+                    throw new Error("Tidak ada user penerima yang valid ditemukan.");
+                }
+
+            } else {
+                // Ini untuk transaksi ke diri sendiri (admin)
+                console.log("Reading current user's balance.");
                 const currentUserDocRef = usersRef.doc(currentUser.uid);
                 const currentUserDoc = await transaction.get(currentUserDocRef);
-                 if (currentUserDoc.exists) {
-                    usersDataToUpdate.push({ ref: currentUserDocRef, data: currentUserDoc.data() });
-                } else {
-                    throw new Error("Dokumen user saat ini tidak ditemukan untuk update.");
+                if (!currentUserDoc.exists) {
+                    throw new Error("Dokumen user saat ini tidak ditemukan.");
                 }
+                usersToUpdate.push({ ref: currentUserDocRef, data: currentUserDoc.data() });
             }
 
-
-            // --- FASE 2: SEMUA OPERASI TULIS (DALAM TRANSAKSI) ---
+            // --- FASE 2: SEMUA OPERASI TULIS ---
 
             // 1. Simpan Transaksi Baru
             console.log("Saving new transaction with ID:", newTransactionRef.id);
             transaction.set(newTransactionRef, transactionData);
 
             // 2. Update Saldo User/Users yang Terlibat
-            for (const user of usersDataToUpdate) { // Gunakan usersDataToUpdate yang sudah dibaca dalam transaksi
+            for (const user of usersToUpdate) {
                 let newTotalIncome = user.data.totalIncome || 0;
                 let newTotalExpense = user.data.totalExpense || 0;
 
                 if (type === 'masuk') {
                     newTotalIncome += amount;
-                } else { // type === 'keluar'
+                } else {
                     newTotalExpense += amount;
                 }
                 console.log(`Updating user ${user.ref.id} (${user.data.email || user.data.name || 'N/A'}): Income=${newTotalIncome}, Expense=${newTotalExpense}`);
@@ -2885,7 +2863,7 @@ document.getElementById('transaction-form').addEventListener('submit', async (e)
 
             if (type === 'masuk') {
                 newTotalAppIncome += amount;
-            } else { // type === 'keluar'
+            } else {
                 newTotalAppExpense += amount;
             }
             console.log(`New global balance: Income=${newTotalAppIncome}, Expense=${newTotalAppExpense}`);
@@ -2894,12 +2872,9 @@ document.getElementById('transaction-form').addEventListener('submit', async (e)
                 totalAppExpense: newTotalAppExpense,
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
             });
-
-            console.log("New transaction added and balances updated successfully!");
-        }); // Penutup db.runTransaction
+        });
 
         showSuccess("Transaksi berhasil ditambahkan!");
-
     } catch (error) {
         showError("Gagal menambahkan transaksi: " + error.message);
         console.error("Firestore transaction failed (Add Mode):", error);
@@ -2912,7 +2887,7 @@ document.getElementById('transaction-form').addEventListener('submit', async (e)
         loadUserData();          // Penting untuk saldo di profil & display utama
         renderCharts();          // Penting untuk grafik
     }
-    }
+});
 // ================= LOAD TRANSACTIONS =================
 function loadTransactions() {
     const transactionsList = document.getElementById('transactions-list');
