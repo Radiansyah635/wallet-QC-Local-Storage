@@ -3121,60 +3121,46 @@ function deleteTransaction(id) {
     // ================= HELPER FUNCTIONS =================
 // ... (fungsi showError, showSuccess, formatRupiah, updateFinanceChart Anda yang sudah ada di sini) ...
 
-// >>> INI ADALAH FUNGSI YANG HILANG DAN HARUS ANDA TAMBAHKAN <<<
-function updateBalance(totalIncome = 0, totalExpense = 0) { // Beri nilai default untuk keamanan
-    const balance = totalIncome - totalExpense; // Hitung total saldo
+async function updateBalance() {
+    try {
+        // Ambil metrik global untuk total saldo
+        const globalMetricsDoc = await appDataRef.get();
+        const globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
+        
+        const totalIncome = globalData.totalAppIncome || 0;
+        const totalExpense = globalData.totalAppExpense || 0;
+        const totalBalance = totalIncome - totalExpense;
 
-    // --- Update elemen-elemen di bagian 'Profil User' (Kas Masuk, Kas Keluar, Total Saldo) ---
-    const userIncomeElement = document.getElementById('user-income');
-    const userExpenseElement = document.getElementById('user-expense');
-    const userTotalBalanceElement = document.getElementById('user-total-balance'); // <-- PERBAIKAN DI SINI!
+        // Perbarui tampilan total saldo (Solana Card)
+        document.getElementById('income-amount').textContent = '+ ' + formatRupiah(totalIncome);
+        document.getElementById('expense-amount').textContent = '- ' + formatRupiah(totalExpense);
+        document.getElementById('total-saldo').textContent = formatRupiah(totalBalance);
 
-    if (userIncomeElement) {
-        userIncomeElement.textContent = formatRupiah(totalIncome);
-    } else {
-        console.warn("Elemen HTML dengan ID 'user-income' (Profil User) tidak ditemukan.");
-    }
-    if (userExpenseElement) {
-        userExpenseElement.textContent = formatRupiah(totalExpense);
-    } else {
-        console.warn("Elemen HTML dengan ID 'user-expense' (Profil User) tidak ditemukan.");
-    }
-    if (userTotalBalanceElement) {
-        userTotalBalanceElement.textContent = formatRupiah(balance);
-    } else {
-        console.warn("Elemen HTML dengan ID 'user-total-balance' (Profil User) tidak ditemukan.");
-    }
-
-    // --- Update elemen-elemen di 'Solana Card' (Pemasukan, Pengeluaran, Total Saldo besar) ---
-    // Pastikan ID-ID ini ada di HTML Anda yang relevan dengan bagian display
-    const incomeAmountElement = document.getElementById('income-amount');
-    const expenseAmountElement = document.getElementById('expense-amount');
-    const totalSaldoElement = document.getElementById('total-saldo');
-
-    if (incomeAmountElement) {
-        incomeAmountElement.textContent = '+ ' + formatRupiah(totalIncome);
-    } else {
-        console.warn("Elemen HTML dengan ID 'income-amount' (Display Card) tidak ditemukan.");
-    }
-    if (expenseAmountElement) {
-        expenseAmountElement.textContent = '- ' + formatRupiah(totalExpense);
-    } else {
-        console.warn("Elemen HTML dengan ID 'expense-amount' (Display Card) tidak ditemukan.");
-    }
-    if (totalSaldoElement) {
-        totalSaldoElement.textContent = formatRupiah(balance);
-    } else {
-        console.warn("Elemen HTML dengan ID 'total-saldo' (Display Card) tidak ditemukan.");
-    }
-
-    // Perbarui chart keuangan (pastikan fungsi ini ada dan menerima totalIncome, totalExpense)
-    if (typeof updateFinanceChart === 'function') {
-        updateFinanceChart(totalIncome, totalExpense);
-    } else {
-        console.error("Fungsi updateFinanceChart tidak ditemukan atau bukan fungsi.");
-    }
+        // Perbarui juga grafik keuangan
+        if (financeChart) {
+            financeChart.data.datasets[0].data = [totalIncome, totalExpense];
+            financeChart.update();
         }
+
+        // Ambil saldo pengguna saat ini jika sudah login
+        if (currentUser) {
+            const userDoc = await usersRef.doc(currentUser.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                const userIncome = userData.totalIncome || 0;
+                const userExpense = userData.totalExpense || 0;
+                const userBalance = userIncome - userExpense;
+
+                // Perbarui tampilan profil pengguna
+                document.getElementById('user-income').textContent = formatRupiah(userIncome);
+                document.getElementById('user-expense').textContent = formatRupiah(userExpense);
+                document.getElementById('user-total-balance').textContent = formatRupiah(userBalance);
+            }
+        }
+    } catch (error) {
+        console.error("Error saat memperbarui saldo:", error);
+    }
+}
 
 // ... (fungsi resetUserBalance, formatRecipients, setupTransactionActions, dan lainnya setelah ini) ...
 
