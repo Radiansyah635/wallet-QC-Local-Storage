@@ -3215,8 +3215,6 @@ async function updateBalance() {
     }
 }
 
-// ... (fungsi resetUserBalance, formatRecipients, setupTransactionActions, dan lainnya setelah ini) ...
-
 // ... kemudian di bawahnya ada inisialisasi Firebase, dan fungsi loadTransactions, loadPosts, dll.
     function showError(message) {
       const errorElement = document.getElementById('error-message');
@@ -3234,60 +3232,6 @@ async function updateBalance() {
 
     function formatRupiah(amount) {
       return 'Rp ' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    }
-    
-    function updateFinanceChart(income, expense) {
-      if (!financeChart) {
-        const ctx = document.getElementById('finance-chart').getContext('2d');
-        financeChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: ['Kas Masuk', 'Kas Keluar'],
-            datasets: [{
-              label: 'Jumlah (Rp)',
-              data: [income, expense],
-              backgroundColor: [
-                'rgba(16, 185, 129, 0.7)',
-                'rgba(239, 68, 68, 0.7)'
-              ],
-              borderColor: [
-                'rgba(16, 185, 129, 1)',
-                'rgba(239, 68, 68, 1)'
-              ],
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return 'Rp ' + context.raw.toLocaleString('id-ID');
-                  }
-                }
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  callback: function(value) {
-                    return 'Rp ' + value.toLocaleString('id-ID');
-                  }
-                }
-              }
-            }
-          }
-        });
-      } else {
-        financeChart.data.datasets[0].data = [income, expense];
-        financeChart.update();
-      }
     }
     
     // ================= INITIALIZATION =================
