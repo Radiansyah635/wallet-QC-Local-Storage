@@ -3142,40 +3142,59 @@ function deleteTransaction(id) {
 // ... (fungsi showError, showSuccess, formatRupiah, updateFinanceChart Anda yang sudah ada di sini) ...
 
 // >>> INI ADALAH FUNGSI YANG HILANG DAN HARUS ANDA TAMBAHKAN <<<
-function updateBalance() {
-    // Fungsi ini bertanggung jawab untuk membaca total pemasukan dan pengeluaran,
-    // menghitung saldo, dan memperbarui elemen UI yang menampilkan saldo.
+function updateBalance(totalIncome = 0, totalExpense = 0) { // Beri nilai default untuk keamanan
+    const balance = totalIncome - totalExpense; // Hitung total saldo
 
-    // Contoh: Asumsikan Anda memiliki elemen HTML dengan ID 'total-income-display',
-    // 'total-expense-display', dan 'current-balance-display'
-    const totalIncomeElement = document.getElementById('user-income'); // Sesuaikan dengan ID HTML Anda
-    const totalExpenseElement = document.getElementById('user-expense'); // Sesuaikan dengan ID HTML Anda
-    const currentBalanceElement = document.getElementById('user-balance'); // Sesuaikan dengan ID HTML Anda
+    // --- Update elemen-elemen di bagian 'Profil User' (Kas Masuk, Kas Keluar, Total Saldo) ---
+    const userIncomeElement = document.getElementById('user-income');
+    const userExpenseElement = document.getElementById('user-expense');
+    const userTotalBalanceElement = document.getElementById('user-total-balance'); // <-- PERBAIKAN DI SINI!
 
-    if (totalIncomeElement && totalExpenseElement && currentBalanceElement) {
-        // Ambil nilai teks, hapus 'Rp ' dan titik/koma format Rupiah
-        // Misalnya, dari 'Rp 10.000' menjadi 10000
-        const incomeText = totalIncomeElement.textContent;
-        const expenseText = totalExpenseElement.textContent;
-
-        // Gunakan regex untuk menghapus 'Rp ', titik, dan koma lalu parse sebagai float
-        const income = parseFloat(incomeText.replace('Rp ', '').replace(/\./g, '').replace(',', '.'));
-        const expense = parseFloat(expenseText.replace('Rp ', '').replace(/\./g, '').replace(',', '.'));
-
-        // Pastikan hasil parsing adalah angka valid
-        if (!isNaN(income) && !isNaN(expense)) {
-            const balance = income - expense;
-            currentBalanceElement.textContent = formatRupiah(balance); // Gunakan formatRupiah untuk menampilkan
-            updateFinanceChart(income, expense); // Jika Anda ingin memperbarui chart juga
-        } else {
-            console.error("Gagal mengurai nilai pendapatan atau pengeluaran ke angka.");
-            currentBalanceElement.textContent = formatRupiah(0); // Setel ke 0 jika gagal
-            updateFinanceChart(0,0);
-        }
+    if (userIncomeElement) {
+        userIncomeElement.textContent = formatRupiah(totalIncome);
     } else {
-        console.warn("Salah satu elemen UI untuk saldo tidak ditemukan. Pastikan ID HTML sudah benar.");
+        console.warn("Elemen HTML dengan ID 'user-income' (Profil User) tidak ditemukan.");
     }
-}
+    if (userExpenseElement) {
+        userExpenseElement.textContent = formatRupiah(totalExpense);
+    } else {
+        console.warn("Elemen HTML dengan ID 'user-expense' (Profil User) tidak ditemukan.");
+    }
+    if (userTotalBalanceElement) {
+        userTotalBalanceElement.textContent = formatRupiah(balance);
+    } else {
+        console.warn("Elemen HTML dengan ID 'user-total-balance' (Profil User) tidak ditemukan.");
+    }
+
+    // --- Update elemen-elemen di 'Solana Card' (Pemasukan, Pengeluaran, Total Saldo besar) ---
+    // Pastikan ID-ID ini ada di HTML Anda yang relevan dengan bagian display
+    const incomeAmountElement = document.getElementById('income-amount');
+    const expenseAmountElement = document.getElementById('expense-amount');
+    const totalSaldoElement = document.getElementById('total-saldo');
+
+    if (incomeAmountElement) {
+        incomeAmountElement.textContent = '+ ' + formatRupiah(totalIncome);
+    } else {
+        console.warn("Elemen HTML dengan ID 'income-amount' (Display Card) tidak ditemukan.");
+    }
+    if (expenseAmountElement) {
+        expenseAmountElement.textContent = '- ' + formatRupiah(totalExpense);
+    } else {
+        console.warn("Elemen HTML dengan ID 'expense-amount' (Display Card) tidak ditemukan.");
+    }
+    if (totalSaldoElement) {
+        totalSaldoElement.textContent = formatRupiah(balance);
+    } else {
+        console.warn("Elemen HTML dengan ID 'total-saldo' (Display Card) tidak ditemukan.");
+    }
+
+    // Perbarui chart keuangan (pastikan fungsi ini ada dan menerima totalIncome, totalExpense)
+    if (typeof updateFinanceChart === 'function') {
+        updateFinanceChart(totalIncome, totalExpense);
+    } else {
+        console.error("Fungsi updateFinanceChart tidak ditemukan atau bukan fungsi.");
+    }
+        }
 
 // ... (fungsi resetUserBalance, formatRecipients, setupTransactionActions, dan lainnya setelah ini) ...
 
