@@ -878,105 +878,121 @@
     }
 
     // ================= AUTHENTICATION FUNCTIONS =================
-    function initAuthListeners() {
-      // Login form
-      document.getElementById('login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
-        
-        try {
-          await auth.signInWithEmailAndPassword(email, password);
-          showSuccess("Login berhasil!");
-        } catch (error) {
-          showError(error.message);
-        }
-      });
+   function initAuthListeners() {
+  // Login form
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    
+    try {
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
 
-      // Register form
-      document.getElementById('register-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('register-name').value;
-        const email = document.getElementById('register-email').value;
-        const password = document.getElementById('register-password').value;
-        const isAdmin = document.getElementById('is-admin').checked;
-        const adminCode = document.getElementById('admin-code').value;
-        
-        if (isAdmin && adminCode !== "admin123") {
-          showError("Kode admin salah!");
-          return;
-        }
+      if (!user.emailVerified) {
+        showError("Email belum diverifikasi. Silakan cek inbox atau folder spam.");
+        await auth.signOut();
+        return;
+      }
 
-        try {
-          const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-          currentUser = userCredential.user;
-          
-          await usersRef.doc(currentUser.uid).set({
-            uid: currentUser.uid,
-            name: name,
-            email: email,
-            role: isAdmin ? "admin" : "member",
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            profileImage: "",
-            totalIncome: 0,
-            totalExpense: 0
-          });
-
-          showSuccess("Pendaftaran berhasil! Selamat datang.");
-          document.getElementById('register-form').reset();
-          document.getElementById('admin-code-container').classList.add('hidden');
-          document.getElementById('is-admin').checked = false;
-        } catch (error) {
-          showError(error.message);
-        }
-      });
-
-      // Reset password form
-      document.getElementById('reset-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('reset-email').value;
-        
-        try {
-          await auth.sendPasswordResetEmail(email);
-          showSuccess("Email reset password telah dikirim!");
-          document.getElementById('reset-form').reset();
-        } catch (error) {
-          showError(error.message);
-        }
-      });
-
-      // Logout button
-      document.getElementById('logout-btn').addEventListener('click', async () => {
-        try {
-          await auth.signOut();
-          showSuccess("Anda telah berhasil logout.");
-        } catch (error) {
-          showError("Gagal logout: " + error.message);
-        }
-      });
-
-      // Auth state listener
-      auth.onAuthStateChanged(async user => {
-        if (user) {
-          currentUser = user;
-          await loadUserData();
-        } else {
-          currentUser = null;
-          document.getElementById('dashboard').classList.add('hidden');
-          document.getElementById('auth-container').classList.remove('hidden');
-          document.getElementById('logout-btn').classList.add('hidden');
-          document.getElementById('login-btn').classList.remove('hidden');
-          document.getElementById('user-email').classList.add('hidden');
-          document.getElementById('user-role').classList.add('hidden');
-          
-          document.querySelectorAll('.admin-only').forEach(el => {
-            el.style.display = 'none';
-          });
-
-          document.getElementById('login-tab').click();
-        }
-      });
+      showSuccess("Login berhasil!");
+    } catch (error) {
+      showError(error.message);
     }
+  });
+
+  // Register form
+  document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('register-name').value;
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    const isAdmin = document.getElementById('is-admin').checked;
+    const adminCode = document.getElementById('admin-code').value;
+
+    if (isAdmin && adminCode !== "admin123") {
+      showError("Kode admin salah!");
+      return;
+    }
+
+    try {
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+
+      // Kirim email verifikasi
+      await user.sendEmailVerification();
+
+      // Simpan data user di Firestore
+      await usersRef.doc(user.uid).set({
+        uid: user.uid,
+        name: name,
+        email: email,
+        role: isAdmin ? "admin" : "member",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        profileImage: "",
+        totalIncome: 0,
+        totalExpense: 0
+      });
+
+      showSuccess("Pendaftaran berhasil! Silakan verifikasi email Anda sebelum login.");
+      document.getElementById('register-form').reset();
+      document.getElementById('admin-code-container').classList.add('hidden');
+      document.getElementById('is-admin').checked = false;
+
+      // Logout langsung setelah daftar (biar user gak bisa langsung masuk)
+      await auth.signOut();
+    } catch (error) {
+      showError(error.message);
+    }
+  });
+
+  // Reset password form
+  document.getElementById('reset-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('reset-email').value;
+    
+    try {
+      await auth.sendPasswordResetEmail(email);
+      showSuccess("Email reset password telah dikirim!");
+      document.getElementById('reset-form').reset();
+    } catch (error) {
+      showError(error.message);
+    }
+  });
+
+  // Logout button
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    try {
+      await auth.signOut();
+      showSuccess("Anda telah berhasil logout.");
+    } catch (error) {
+      showError("Gagal logout: " + error.message);
+    }
+  });
+
+  // Auth state listener
+  auth.onAuthStateChanged(async user => {
+    if (user && user.emailVerified) {
+      currentUser = user;
+      await loadUserData();
+    } else {
+      currentUser = null;
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('auth-container').classList.remove('hidden');
+      document.getElementById('logout-btn').classList.add('hidden');
+      document.getElementById('login-btn').classList.remove('hidden');
+      document.getElementById('user-email').classList.add('hidden');
+      document.getElementById('user-role').classList.add('hidden');
+      
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = 'none';
+      });
+
+      document.getElementById('login-tab').click();
+    }
+  });
+}
+
 
     // ================= USER MANAGEMENT =================
     async function loadUserData() {
