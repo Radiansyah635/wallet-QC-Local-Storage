@@ -1233,35 +1233,20 @@
 });
 
       // Print transactions button
-     // ================= FUNGSI CETAK LAPORAN TRANSAKSI =================
+     // ================= FUNGSI CETAK PDF YANG FIX =================
 document.getElementById('print-transactions').addEventListener('click', async () => {
   try {
-    // 1. CEK DAN MUAT LIBRARY JSPDF JIKA BELUM ADA
-    if (!window.jspdf || !window.jspdf.jsPDF) {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-        script.onload = () => {
-          // Inisialisasi jsPDF setelah script dimuat
-          window.jsPDF = window.jspdf.jsPDF;
-          resolve();
-        };
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-
-      // Muat plugin autotable
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.autotable.min.js';
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
+    // 1. LOAD LIBRARY JIKA BELUM ADA
+    if (!window.jspdf || !window.jspdf.jsPDF || !window.jspdf.autoTable) {
+      await loadScriptsSequentially([
+        'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.autotable.min.js'
+      ]);
     }
 
-    // 2. BUAT DOKUMEN PDF
-    const doc = new window.jspdf.jsPDF();
+    // 2. INISIALISASI PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
     
     // 3. HEADER LAPORAN
     doc.setFont('helvetica', 'bold');
@@ -1270,7 +1255,7 @@ document.getElementById('print-transactions').addEventListener('click', async ()
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(12);
-    doc.text(`Dicetak pada: ${new Date().toLocaleDateString('id-ID', {
+    doc.text(`Dicetak: ${new Date().toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -1278,35 +1263,29 @@ document.getElementById('print-transactions').addEventListener('click', async ()
       minute: '2-digit'
     })}`, 105, 23, { align: 'center' });
 
-    // 4. AMBIL DATA DARI FIRESTORE
+    // 4. AMBIL DATA TRANSAKSI
     const snapshot = await transactionsRef.orderBy('date', 'desc').get();
-    const dataTransaksi = snapshot.docs.map(doc => {
-      const transaksi = doc.data();
-      const tanggal = transaksi.date?.toDate() || new Date();
-      
+    const tableData = snapshot.docs.map(doc => {
+      const t = doc.data();
       return [
-        tanggal.toLocaleDateString('id-ID'),
-        transaksi.userName,
-        transaksi.description,
-        transaksi.type === 'masuk' ? formatRupiah(transaksi.amount) : '-',
-        transaksi.type === 'keluar' ? formatRupiah(transaksi.amount) : '-'
+        t.date?.toDate().toLocaleDateString('id-ID') || '-',
+        t.userName || '-',
+        t.description || '-',
+        t.type === 'masuk' ? formatRupiah(t.amount) : '-',
+        t.type === 'keluar' ? formatRupiah(t.amount) : '-'
       ];
     });
 
-    // 5. BUAT TABEL DI PDF
+    // 5. BUAT TABEL
     doc.autoTable({
       startY: 30,
-      head: [['TANGGAL', 'NAMA', 'DESKRIPSI', 'MASUK', 'KELUAR']],
-      body: dataTransaksi,
+      head: [['TANGGAL', 'NAMA', 'KETERANGAN', 'MASUK', 'KELUAR']],
+      body: tableData,
+      theme: 'grid',
       headStyles: {
         fillColor: [59, 89, 152],
         textColor: 255,
         fontStyle: 'bold'
-      },
-      styles: {
-        fontSize: 9,
-        cellPadding: 4,
-        halign: 'left'
       },
       columnStyles: {
         0: { cellWidth: 25 },
@@ -1314,18 +1293,41 @@ document.getElementById('print-transactions').addEventListener('click', async ()
         2: { cellWidth: 70 },
         3: { cellWidth: 30, halign: 'right' },
         4: { cellWidth: 30, halign: 'right' }
+      },
+      styles: {
+        fontSize: 9,
+        cellPadding: 4,
+        overflow: 'linebreak'
       }
     });
 
     // 6. SIMPAN PDF
-    doc.save(`Laporan_Transaksi_${new Date().getTime()}.pdf`);
+    const fileName = `Laporan_QC_${new Date().toISOString().slice(0,10)}.pdf`;
+    doc.save(fileName);
     showSuccess("Laporan berhasil diunduh!");
 
   } catch (error) {
-    console.error("Error saat membuat PDF:", error);
-    showError("Gagal membuat laporan: " + error.message);
+    console.error("Error PDF:", error);
+    showError(`Gagal membuat laporan: ${error.message}`);
   }
 });
+
+// FUNGSI BANTUAN UNTUK LOAD SCRIPT
+function loadScriptsSequentially(scriptUrls) {
+  return scriptUrls.reduce((promise, url) => {
+    return promise.then(() => loadSingleScript(url));
+  }, Promise.resolve());
+}
+
+function loadSingleScript(url) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error(`Gagal memuat script: ${url}`));
+    document.head.appendChild(script);
+  });
+}
     }
 
     async function loadTransactions() {
