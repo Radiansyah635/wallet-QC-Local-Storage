@@ -1233,22 +1233,34 @@
 });
 
       // Print transactions button
-     // ================= FUNGSI CETAK PDF YANG FIX =================
 document.getElementById('print-transactions').addEventListener('click', async () => {
   try {
-    // 1. LOAD LIBRARY JIKA BELUM ADA
+    // 1. LOAD LIBRARY DENGAN FALLBACK
     if (!window.jspdf || !window.jspdf.jsPDF || !window.jspdf.autoTable) {
-      await loadScriptsSequentially([
-        'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-        'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.autotable.min.js'
-      ]);
+      try {
+        await loadScriptsSequentially([
+          'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+          'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js'
+        ]);
+      } catch (e) {
+        console.warn("Gagal memuat dari CDN utama, mencoba alternatif...");
+        await loadScriptsSequentially([
+          'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js',
+          'https://unpkg.com/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js'
+        ]);
+      }
     }
 
-    // 2. INISIALISASI PDF
+    // 2. PASTIKAN LIBRARY TERLOAD DENGAN BENAR
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      throw new Error("Library jsPDF gagal dimuat");
+    }
+
+    // 3. INISIALISASI PDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // 3. HEADER LAPORAN
+    // 4. HEADER LAPORAN
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
     doc.text('LAPORAN TRANSAKSI WALLET QC', 105, 15, { align: 'center' });
@@ -1263,45 +1275,61 @@ document.getElementById('print-transactions').addEventListener('click', async ()
       minute: '2-digit'
     })}`, 105, 23, { align: 'center' });
 
-    // 4. AMBIL DATA TRANSAKSI
+    // 5. AMBIL DATA TRANSAKSI - PASTIKAN transactionsRef ADA
+    if (!transactionsRef) {
+      throw new Error("Referensi transaksi tidak ditemukan");
+    }
+    
     const snapshot = await transactionsRef.orderBy('date', 'desc').get();
     const tableData = snapshot.docs.map(doc => {
       const t = doc.data();
       return [
-        t.date?.toDate().toLocaleDateString('id-ID') || '-',
+        t.date?.toDate()?.toLocaleDateString('id-ID') || '-',
         t.userName || '-',
         t.description || '-',
-        t.type === 'masuk' ? formatRupiah(t.amount) : '-',
-        t.type === 'keluar' ? formatRupiah(t.amount) : '-'
+        t.type === 'masuk' ? formatRupiah(t.amount || 0) : '-',
+        t.type === 'keluar' ? formatRupiah(t.amount || 0) : '-'
       ];
     });
 
-    // 5. BUAT TABEL
-    doc.autoTable({
-      startY: 30,
-      head: [['TANGGAL', 'NAMA', 'KETERANGAN', 'MASUK', 'KELUAR']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: {
-        fillColor: [59, 89, 152],
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 70 },
-        3: { cellWidth: 30, halign: 'right' },
-        4: { cellWidth: 30, halign: 'right' }
-      },
-      styles: {
-        fontSize: 9,
-        cellPadding: 4,
-        overflow: 'linebreak'
-      }
-    });
+    // 6. VALIDASI DATA SEBELUM BUAT TABEL
+    if (!tableData.length) {
+      throw new Error("Tidak ada data transaksi yang ditemukan");
+    }
 
-    // 6. SIMPAN PDF
+    // 7. BUAT TABEL DENGAN ERROR HANDLING
+    try {
+      doc.autoTable({
+        startY: 30,
+        head: [['TANGGAL', 'NAMA', 'KETERANGAN', 'MASUK', 'KELUAR']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [59, 89, 152],
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 70 },
+          3: { cellWidth: 30, halign: 'right' },
+          4: { cellWidth: 30, halign: 'right' }
+        },
+        styles: {
+          fontSize: 9,
+          cellPadding: 4,
+          overflow: 'linebreak'
+        },
+        didDrawPage: () => {
+          // Callback untuk handling setelah menggambar
+        }
+      });
+    } catch (tableError) {
+      throw new Error(`Gagal membuat tabel: ${tableError.message}`);
+    }
+
+    // 8. SIMPAN PDF
     const fileName = `Laporan_QC_${new Date().toISOString().slice(0,10)}.pdf`;
     doc.save(fileName);
     showSuccess("Laporan berhasil diunduh!");
@@ -1309,25 +1337,13 @@ document.getElementById('print-transactions').addEventListener('click', async ()
   } catch (error) {
     console.error("Error PDF:", error);
     showError(`Gagal membuat laporan: ${error.message}`);
+    
+    // Untuk debugging lebih lanjut
+    if (error.stack) {
+      console.error("Stack trace:", error.stack);
+    }
   }
 });
-
-// FUNGSI BANTUAN UNTUK LOAD SCRIPT
-function loadScriptsSequentially(scriptUrls) {
-  return scriptUrls.reduce((promise, url) => {
-    return promise.then(() => loadSingleScript(url));
-  }, Promise.resolve());
-}
-
-function loadSingleScript(url) {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = url;
-    script.onload = resolve;
-    script.onerror = () => reject(new Error(`Gagal memuat script: ${url}`));
-    document.head.appendChild(script);
-  });
-}
     }
 
     async function loadTransactions() {
