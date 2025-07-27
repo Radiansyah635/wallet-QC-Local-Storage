@@ -1233,28 +1233,42 @@
 });
 
       // Print transactions button
-      // ================= CETAK LAPORAN TRANSAKSI =================
+     // ================= FUNGSI CETAK LAPORAN TRANSAKSI =================
 document.getElementById('print-transactions').addEventListener('click', async () => {
   try {
-    // 1. MEMUAT LIBRARY JSPDF (Jika belum dimuat)
-    if (typeof jsPDF === 'undefined') {
-      // Muat library jsPDF dari CDN
-      await muatScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-      
-      // Muat plugin autotable dari CDN
-      await muatScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.autotable.min.js');
-      
-      showSuccess("Library PDF siap digunakan!");
+    // 1. CEK DAN MUAT LIBRARY JSPDF JIKA BELUM ADA
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = () => {
+          // Inisialisasi jsPDF setelah script dimuat
+          window.jsPDF = window.jspdf.jsPDF;
+          resolve();
+        };
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+
+      // Muat plugin autotable
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.autotable.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
     }
 
-    // 2. INISIALISASI DOKUMEN PDF
-    const { jsPDF } = window.jspdf; // Ambil jsPDF dari global scope
-    const doc = new jsPDF(); // Buat dokumen baru
+    // 2. BUAT DOKUMEN PDF
+    const doc = new window.jspdf.jsPDF();
     
-    // 3. SETTING JUDUL DAN TANGGAL
+    // 3. HEADER LAPORAN
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text("LAPORAN TRANSAKSI WALLET QC", 105, 15, { align: 'center' });
+    doc.text('LAPORAN TRANSAKSI WALLET QC', 105, 15, { align: 'center' });
     
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(12);
     doc.text(`Dicetak pada: ${new Date().toLocaleDateString('id-ID', {
       day: 'numeric',
@@ -1264,76 +1278,54 @@ document.getElementById('print-transactions').addEventListener('click', async ()
       minute: '2-digit'
     })}`, 105, 23, { align: 'center' });
 
-    // 4. MENGAMBIL DATA TRANSAKSI DARI FIRESTORE
+    // 4. AMBIL DATA DARI FIRESTORE
     const snapshot = await transactionsRef.orderBy('date', 'desc').get();
-    const dataTransaksi = [];
-    
-    // Format data untuk tabel
-    snapshot.forEach(doc => {
+    const dataTransaksi = snapshot.docs.map(doc => {
       const transaksi = doc.data();
       const tanggal = transaksi.date?.toDate() || new Date();
       
-      dataTransaksi.push([
-        tanggal.toLocaleDateString('id-ID'), // Kolom 1: Tanggal
-        transaksi.userName,                  // Kolom 2: Nama User
-        transaksi.description,               // Kolom 3: Deskripsi
-        // Kolom 4 & 5: Nominal (Masuk/Keluar)
+      return [
+        tanggal.toLocaleDateString('id-ID'),
+        transaksi.userName,
+        transaksi.description,
         transaksi.type === 'masuk' ? formatRupiah(transaksi.amount) : '-',
         transaksi.type === 'keluar' ? formatRupiah(transaksi.amount) : '-'
-      ]);
+      ];
     });
 
-    // 5. MEMBUAT TABEL DI PDF
+    // 5. BUAT TABEL DI PDF
     doc.autoTable({
-      startY: 30, // Posisi mulai tabel
-      head: [['TANGGAL', 'NAMA USER', 'DESKRIPSI', 'UANG MASUK', 'UANG KELUAR']],
+      startY: 30,
+      head: [['TANGGAL', 'NAMA', 'DESKRIPSI', 'MASUK', 'KELUAR']],
       body: dataTransaksi,
-      theme: 'grid', // Gaya tabel
       headStyles: {
-        fillColor: [59, 89, 152], // Warna header biru
-        textColor: [255, 255, 255], // Teks putih
+        fillColor: [59, 89, 152],
+        textColor: 255,
         fontStyle: 'bold'
       },
       styles: {
         fontSize: 9,
         cellPadding: 4,
-        halign: 'left' // Rata kiri default
+        halign: 'left'
       },
       columnStyles: {
-        0: { cellWidth: 25 }, // Lebar kolom Tanggal
-        1: { cellWidth: 30 }, // Lebar kolom Nama
-        2: { cellWidth: 70 }, // Lebar kolom Deskripsi
-        3: { cellWidth: 30, halign: 'right' }, // Rata kanan nominal
-        4: { cellWidth: 30, halign: 'right' }  // Rata kanan nominal
-      },
-      didDrawCell: (data) => {
-        // Format khusus untuk kolom nominal
-        if (data.column.index === 3 || data.column.index === 4) {
-          data.cell.text = data.cell.text.replace(/\./g, ','); // Format angka Indonesia
-        }
+        0: { cellWidth: 25 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 70 },
+        3: { cellWidth: 30, halign: 'right' },
+        4: { cellWidth: 30, halign: 'right' }
       }
     });
 
-    // 6. MENYIMPAN PDF
-    doc.save(`Laporan_Transaksi_QC_${new Date().getTime()}.pdf`);
+    // 6. SIMPAN PDF
+    doc.save(`Laporan_Transaksi_${new Date().getTime()}.pdf`);
     showSuccess("Laporan berhasil diunduh!");
-    
+
   } catch (error) {
-    console.error("Gagal membuat PDF:", error);
-    showError(`Gagal membuat laporan: ${error.message}`);
+    console.error("Error saat membuat PDF:", error);
+    showError("Gagal membuat laporan: " + error.message);
   }
 });
-
-// Fungsi bantuan untuk memuat script eksternal
-function muatScript(url) {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = url;
-    script.onload = resolve;
-    script.onerror = () => reject(new Error(`Gagal memuat script: ${url}`));
-    document.head.appendChild(script);
-  });
-}
     }
 
     async function loadTransactions() {
