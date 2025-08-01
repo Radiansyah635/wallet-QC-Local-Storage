@@ -81,6 +81,23 @@
       border-color: var(--primary-purple);
       box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
     }
+
+    /* Tambahkan di CSS Anda untuk styling notifikasi */
+.small-text {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+
+.btn-small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
     
     .tab-active {
       background: rgba(139, 92, 246, 0.2);
@@ -878,30 +895,22 @@
     }
 
     // ================= AUTHENTICATION FUNCTIONS =================
-   function initAuthListeners() {
-  // Login form
-  document.getElementById('login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-    
-    try {
-      const userCredential = await auth.signInWithEmailAndPassword(email, password);
-      const user = userCredential.user;
+    function initAuthListeners() {
+      // Login form
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        
+        try {
+          await auth.signInWithEmailAndPassword(email, password);
+          showSuccess("Login berhasil!");
+        } catch (error) {
+          showError(error.message);
+        }
+      });
 
-      if (!user.emailVerified) {
-        showError("Email belum diverifikasi. Silakan cek inbox atau folder spam.");
-        await auth.signOut();
-        return;
-      }
-
-      showSuccess("Login berhasil!");
-    } catch (error) {
-      showError(error.message);
-    }
-  });
-
-  // Register form
+      // Register form - Diperbarui dengan notifikasi lebih baik
   document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('register-name').value;
@@ -916,11 +925,20 @@
     }
 
     try {
+      // Tampilkan loading state
+      const registerBtn = document.getElementById('register-btn');
+      const originalText = registerBtn.innerHTML;
+      registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftarkan...';
+      registerBtn.disabled = true;
+
       const userCredential = await auth.createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
-      // Kirim email verifikasi
-      await user.sendEmailVerification();
+      // Kirim email verifikasi dengan pengaturan khusus
+      await user.sendEmailVerification({
+        url: window.location.origin, // Redirect ke halaman ini setelah verifikasi
+        handleCodeInApp: true
+      });
 
       // Simpan data user di Firestore
       await usersRef.doc(user.uid).set({
@@ -934,64 +952,147 @@
         totalExpense: 0
       });
 
-      showSuccess("Pendaftaran berhasil! Silakan verifikasi email Anda sebelum login.");
+      // Notifikasi sukses dengan detail
+      showSuccess(`
+        <h4>Pendaftaran Berhasil!</h4>
+        <p>Akun Anda telah berhasil dibuat.</p>
+        <p><i class="fas fa-envelope"></i> <strong>Email verifikasi telah dikirim ke ${email}</strong></p>
+        <p class="small-text">Periksa folder spam jika tidak menemukan email</p>
+        <button class="btn btn-outline btn-small" onclick="resendVerificationEmail()">
+          <i class="fas fa-redo"></i> Kirim Ulang Email Verifikasi
+        </button>
+      `);
+
+      // Reset form
       document.getElementById('register-form').reset();
       document.getElementById('admin-code-container').classList.add('hidden');
       document.getElementById('is-admin').checked = false;
 
-      // Logout langsung setelah daftar (biar user gak bisa langsung masuk)
+      // Logout langsung setelah daftar
       await auth.signOut();
+      
     } catch (error) {
-      showError(error.message);
+      let errorMessage = error.message;
+      
+      // Custom error message untuk email sudah terdaftar
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email sudah terdaftar. Gunakan email lain atau reset password.';
+      }
+      
+      showError(errorMessage);
+    } finally {
+      // Reset button state
+      if (registerBtn) {
+        registerBtn.innerHTML = originalText;
+        registerBtn.disabled = false;
+      }
     }
   });
 
-  // Reset password form
+  // Reset password form - Diperbarui dengan notifikasi lebih baik
   document.getElementById('reset-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('reset-email').value;
     
     try {
-      await auth.sendPasswordResetEmail(email);
-      showSuccess("Email reset password telah dikirim!");
-      document.getElementById('reset-form').reset();
-    } catch (error) {
-      showError(error.message);
-    }
-  });
+      // Tampilkan loading state
+      const resetBtn = document.getElementById('reset-btn');
+      const originalText = resetBtn.innerHTML;
+      resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+      resetBtn.disabled = true;
 
-  // Logout button
-  document.getElementById('logout-btn').addEventListener('click', async () => {
-    try {
-      await auth.signOut();
-      showSuccess("Anda telah berhasil logout.");
-    } catch (error) {
-      showError("Gagal logout: " + error.message);
-    }
-  });
-
-  // Auth state listener
-  auth.onAuthStateChanged(async user => {
-    if (user && user.emailVerified) {
-      currentUser = user;
-      await loadUserData();
-    } else {
-      currentUser = null;
-      document.getElementById('dashboard').classList.add('hidden');
-      document.getElementById('auth-container').classList.remove('hidden');
-      document.getElementById('logout-btn').classList.add('hidden');
-      document.getElementById('login-btn').classList.remove('hidden');
-      document.getElementById('user-email').classList.add('hidden');
-      document.getElementById('user-role').classList.add('hidden');
-      
-      document.querySelectorAll('.admin-only').forEach(el => {
-        el.style.display = 'none';
+      await auth.sendPasswordResetEmail(email, {
+        url: window.location.origin + '/login.html', // Redirect ke halaman login setelah reset
+        handleCodeInApp: true
       });
 
-      document.getElementById('login-tab').click();
+      // Notifikasi sukses dengan detail
+      showSuccess(`
+        <h4>Email Reset Password Terkirim!</h4>
+        <p><i class="fas fa-envelope"></i> <strong>Tautan reset telah dikirim ke ${email}</strong></p>
+        <p class="small-text">Link berlaku selama 24 jam. Periksa folder spam jika tidak menemukan email.</p>
+        <button class="btn btn-outline btn-small" onclick="resendResetPasswordEmail('${email}')">
+          <i class="fas fa-redo"></i> Kirim Ulang Email
+        </button>
+      `);
+
+      document.getElementById('reset-form').reset();
+      
+    } catch (error) {
+      let errorMessage = error.message;
+      
+      // Custom error message untuk email tidak terdaftar
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'Email tidak terdaftar dalam sistem.';
+      }
+      
+      showError(errorMessage);
+    } finally {
+      // Reset button state
+      if (resetBtn) {
+        resetBtn.innerHTML = originalText;
+        resetBtn.disabled = false;
+      }
     }
   });
+      // Logout button
+      document.getElementById('logout-btn').addEventListener('click', async () => {
+        try {
+          await auth.signOut();
+          showSuccess("Anda telah berhasil logout.");
+        } catch (error) {
+          showError("Gagal logout: " + error.message);
+        }
+      });
+
+         // ================= FUNGSI TAMBAHAN =================
+// Fungsi untuk kirim ulang email verifikasi
+async function resendVerificationEmail() {
+  try {
+    if (!auth.currentUser) throw new Error('Tidak ada user yang login');
+    
+    await auth.currentUser.sendEmailVerification();
+    showSuccess('Email verifikasi telah dikirim ulang!');
+  } catch (error) {
+    showError('Gagal mengirim ulang email: ' + error.message);
+  }
 }
+
+// Fungsi untuk kirim ulang email reset password
+async function resendResetPasswordEmail(email) {
+  try {
+    if (!email) throw new Error('Email tidak valid');
+    
+    await auth.sendPasswordResetEmail(email);
+    showSuccess('Email reset password telah dikirim ulang!');
+  } catch (error) {
+    showError('Gagal mengirim ulang email: ' + error.message);
+  }
+}
+
+      // Auth state listener
+      auth.onAuthStateChanged(async user => {
+        if (user) {
+          currentUser = user;
+          await loadUserData();
+        } else {
+          currentUser = null;
+          document.getElementById('dashboard').classList.add('hidden');
+          document.getElementById('auth-container').classList.remove('hidden');
+          document.getElementById('logout-btn').classList.add('hidden');
+          document.getElementById('login-btn').classList.remove('hidden');
+          document.getElementById('user-email').classList.add('hidden');
+          document.getElementById('user-role').classList.add('hidden');
+          
+          document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = 'none';
+          });
+
+          document.getElementById('login-tab').click();
+        }
+      });
+    }
+   
 
 
     // ================= USER MANAGEMENT =================
