@@ -1506,6 +1506,15 @@ function initAuthListeners() {
       });
     }
   };
+  // Logout button
+      document.getElementById('logout-btn').addEventListener('click', async () => {
+        try {
+          await auth.signOut();
+          showSuccess("Anda telah berhasil logout.");
+        } catch (error) {
+          showError("Gagal logout: " + error.message);
+        }
+      });
 }
     // ================= USER MANAGEMENT =================
     async function loadUserData() {
