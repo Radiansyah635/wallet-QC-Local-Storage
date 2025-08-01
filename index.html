@@ -879,18 +879,44 @@
 
   // ================= AUTHENTICATION FUNCTIONS =================
 function initAuthListeners() {
+  // Fungsi untuk menampilkan pesan sukses
+  // Durasi diperpanjang menjadi 10 detik
+  function showSuccess(message) {
+    const successMessageDiv = document.getElementById('success-message');
+    successMessageDiv.innerHTML = message;
+    successMessageDiv.classList.remove('hidden');
+    setTimeout(() => {
+      successMessageDiv.classList.add('hidden');
+    }, 10000); // Tampilkan 10 detik
+  }
+
+  // Fungsi untuk menampilkan pesan error
+  // Durasi diperpanjang menjadi 10 detik
+  function showError(message) {
+    const errorMessageDiv = document.getElementById('error-message');
+    errorMessageDiv.innerHTML = message;
+    errorMessageDiv.classList.remove('hidden');
+    setTimeout(() => {
+      errorMessageDiv.classList.add('hidden');
+    }, 10000); // Tampilkan 10 detik
+  }
+
   // ================= LOGIN HANDLER =================
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
     
+    // Pindahkan deklarasi originalText ke sini agar dapat diakses di finally
+    const loginBtn = e.target.querySelector('button[type="submit"]');
+    let originalText = loginBtn ? loginBtn.innerHTML : 'Masuk'; // Default text jika tombol tidak ditemukan
+
     try {
       // Tampilkan loading state
-      const loginBtn = e.target.querySelector('button[type="submit"]');
-      const originalText = loginBtn.innerHTML;
-      loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
-      loginBtn.disabled = true;
+      if (loginBtn) {
+        loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+        loginBtn.disabled = true;
+      }
 
       // Coba login
       const userCredential = await auth.signInWithEmailAndPassword(email, password);
@@ -1025,9 +1051,8 @@ function initAuthListeners() {
       showError(errorMessage);
     } finally {
       // Reset button state
-      const loginBtn = document.querySelector('#login-form button[type="submit"]');
       if (loginBtn) {
-        loginBtn.innerHTML = originalText || 'Masuk';
+        loginBtn.innerHTML = originalText;
         loginBtn.disabled = false;
       }
     }
@@ -1042,6 +1067,10 @@ function initAuthListeners() {
     const isAdmin = document.getElementById('is-admin').checked;
     const adminCode = document.getElementById('admin-code').value;
 
+    // Pindahkan deklarasi originalText ke sini agar dapat diakses di finally
+    const registerBtn = e.target.querySelector('button[type="submit"]');
+    let originalText = registerBtn ? registerBtn.innerHTML : 'Daftar'; // Default text
+
     if (isAdmin && adminCode !== "admin123") {
       showError(`
         <div class="text-center p-4">
@@ -1050,15 +1079,20 @@ function initAuthListeners() {
           <p class="mt-2 text-gray-200">Hubungi administrator untuk mendapatkan kode yang valid.</p>
         </div>
       `);
+      // Pastikan button direset jika ada error sebelum try
+      if (registerBtn) {
+        registerBtn.innerHTML = originalText;
+        registerBtn.disabled = false;
+      }
       return;
     }
 
     try {
       // Tampilkan loading state
-      const registerBtn = e.target.querySelector('button[type="submit"]');
-      const originalText = registerBtn.innerHTML;
-      registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftarkan...';
-      registerBtn.disabled = true;
+      if (registerBtn) {
+        registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftarkan...';
+        registerBtn.disabled = true;
+      }
 
       // 1. Buat user di Firebase Auth
       const userCredential = await auth.createUserWithEmailAndPassword(email, password);
@@ -1121,14 +1155,15 @@ function initAuthListeners() {
       document.getElementById('admin-code-container').classList.add('hidden');
       document.getElementById('is-admin').checked = false;
 
-      // 6. Logout otomatis (biar user verifikasi email dulu)
+      // 6. Logout otomatis setelah notifikasi sukses (10 detik) sudah cukup terbaca
+      // Menunggu 11 detik agar notifikasi (10 detik) punya waktu penuh
       setTimeout(async () => {
         try {
           await auth.signOut();
         } catch (logoutError) {
           console.error("Gagal logout setelah pendaftaran:", logoutError);
         }
-      }, 3000);
+      }, 11000); // Logout setelah 11 detik
 
       // 7. Pastikan email verifikasi terkirim (di background)
       await verificationPromise;
@@ -1183,9 +1218,8 @@ function initAuthListeners() {
       showError(errorMessage);
     } finally {
       // Reset button state
-      const registerBtn = document.querySelector('#register-form button[type="submit"]');
       if (registerBtn) {
-        registerBtn.innerHTML = originalText || 'Daftar';
+        registerBtn.innerHTML = originalText;
         registerBtn.disabled = false;
       }
     }
@@ -1196,12 +1230,16 @@ function initAuthListeners() {
     e.preventDefault();
     const email = document.getElementById('reset-email').value;
     
+    // Pindahkan deklarasi originalText ke sini agar dapat diakses di finally
+    const resetBtn = e.target.querySelector('button[type="submit"]');
+    let originalText = resetBtn ? resetBtn.innerHTML : 'Kirim Link Reset'; // Default text
+
     try {
       // Tampilkan loading state
-      const resetBtn = e.target.querySelector('button[type="submit"]');
-      const originalText = resetBtn.innerHTML;
-      resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-      resetBtn.disabled = true;
+      if (resetBtn) {
+        resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+        resetBtn.disabled = true;
+      }
 
       await auth.sendPasswordResetEmail(email, {
         url: window.location.href + '?from=reset-password',
@@ -1278,9 +1316,8 @@ function initAuthListeners() {
       showError(errorMessage);
     } finally {
       // Reset button state
-      const resetBtn = document.querySelector('#reset-form button[type="submit"]');
       if (resetBtn) {
-        resetBtn.innerHTML = originalText || 'Kirim Link Reset';
+        resetBtn.innerHTML = originalText;
         resetBtn.disabled = false;
       }
     }
@@ -1354,6 +1391,8 @@ function initAuthListeners() {
   // ================= HELPER FUNCTIONS =================
   // Fungsi untuk kirim ulang email verifikasi
   window.resendVerificationEmail = async (email) => {
+    let originalButtonTexts = {}; // Untuk menyimpan teks asli tombol
+
     try {
       let user = auth.currentUser;
       
@@ -1381,8 +1420,9 @@ function initAuthListeners() {
       }
 
       // Tampilkan loading state pada semua tombol kirim ulang
-      const buttons = document.querySelectorAll(`button[onclick*="resendVerificationEmail('${email}')"], button[onclick*="resendVerificationEmail()"]`);
-      buttons.forEach(btn => {
+      const buttons = document.querySelectorAll(`button[onclick*="resendVerificationEmail('${user.email}')"], button[onclick*="resendVerificationEmail()"]`);
+      buttons.forEach((btn, index) => {
+        originalButtonTexts[index] = btn.innerHTML; // Simpan teks asli
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
         btn.disabled = true;
       });
@@ -1411,8 +1451,8 @@ function initAuthListeners() {
     } finally {
       // Reset button state
       const buttons = document.querySelectorAll(`button[onclick*="resendVerificationEmail('${email}')"], button[onclick*="resendVerificationEmail()"]`);
-      buttons.forEach(btn => {
-        btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Kirim Ulang';
+      buttons.forEach((btn, index) => {
+        btn.innerHTML = originalButtonTexts[index] || '<i class="fas fa-paper-plane mr-2"></i> Kirim Ulang'; // Gunakan teks asli
         btn.disabled = false;
       });
     }
@@ -1420,6 +1460,8 @@ function initAuthListeners() {
 
   // Fungsi untuk kirim ulang email reset password
   window.resendResetPasswordEmail = async (email) => {
+    let originalButtonTexts = {}; // Untuk menyimpan teks asli tombol
+
     try {
       if (!email) {
         email = prompt("Masukkan email Anda:");
@@ -1428,7 +1470,8 @@ function initAuthListeners() {
       
       // Tampilkan loading state pada semua tombol kirim ulang
       const buttons = document.querySelectorAll(`button[onclick*="resendResetPasswordEmail('${email}')"], button[onclick*="resendResetPasswordEmail()"]`);
-      buttons.forEach(btn => {
+      buttons.forEach((btn, index) => {
+        originalButtonTexts[index] = btn.innerHTML; // Simpan teks asli
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
         btn.disabled = true;
       });
@@ -1457,14 +1500,13 @@ function initAuthListeners() {
     } finally {
       // Reset button state
       const buttons = document.querySelectorAll(`button[onclick*="resendResetPasswordEmail('${email}')"], button[onclick*="resendResetPasswordEmail()"]`);
-      buttons.forEach(btn => {
-        btn.innerHTML = '<i class="fas fa-redo mr-2"></i> Kirim Ulang';
+      buttons.forEach((btn, index) => {
+        btn.innerHTML = originalButtonTexts[index] || '<i class="fas fa-redo mr-2"></i> Kirim Ulang'; // Gunakan teks asli
         btn.disabled = false;
       });
     }
   };
 }
-
     // ================= USER MANAGEMENT =================
     async function loadUserData() {
       if (!currentUser) return;
