@@ -946,7 +946,7 @@
       // Redirect to login tab after the success message timeout
       setTimeout(() => {
         document.getElementById('login-tab').click();
-      }, 4000); // Wait for 4 seconds (same as success message duration)
+      }, 9000); // Wait for 9 seconds (same as success message duration)
 
     } catch (error) {
       showError(error.message);
@@ -965,7 +965,7 @@
       // Optionally redirect to login after reset email sent
       setTimeout(() => {
         document.getElementById('login-tab').click();
-      }, 4000); // Redirect to login after 4 seconds
+      }, 9000); // Redirect to login after 9 seconds
     } catch (error) {
       showError(error.message);
     }
