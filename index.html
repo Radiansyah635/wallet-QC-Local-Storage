@@ -878,30 +878,162 @@
     }
 
   // ================= AUTHENTICATION FUNCTIONS =================
-   function initAuthListeners() {
-  // Login form
+function initAuthListeners() {
+  // ================= LOGIN HANDLER =================
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
     
     try {
+      // Tampilkan loading state
+      const loginBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = loginBtn.innerHTML;
+      loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+      loginBtn.disabled = true;
+
+      // Coba login
       const userCredential = await auth.signInWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
+      // Periksa verifikasi email
       if (!user.emailVerified) {
-        showError("Email belum diverifikasi. Silakan cek inbox atau folder spam.");
-        await auth.signOut();
+        await auth.signOut(); // Logout user karena belum verifikasi
+        
+        showError(`
+          <div class="text-center p-4">
+            <i class="fas fa-envelope text-4xl text-yellow-500 mb-3"></i>
+            <h4 class="font-bold text-xl">Email Belum Diverifikasi!</h4>
+            <p class="mt-2 text-gray-200">Silakan cek inbox email <strong>${email}</strong> untuk verifikasi.</p>
+            <p class="text-sm text-gray-400 mt-1">Periksa folder spam jika tidak menemukan email.</p>
+            <div class="mt-4 flex justify-center gap-3">
+              <button onclick="resendVerificationEmail('${email}')" 
+                      class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white">
+                <i class="fas fa-paper-plane mr-2"></i> Kirim Ulang Email
+              </button>
+              <button onclick="document.getElementById('login-form').reset()" 
+                      class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white">
+                <i class="fas fa-times mr-2"></i> Tutup
+              </button>
+            </div>
+          </div>
+        `);
         return;
       }
 
-      showSuccess("Login berhasil!");
+      // Periksa apakah data user ada di Firestore
+      const userDoc = await usersRef.doc(user.uid).get();
+      if (!userDoc.exists) {
+        await auth.signOut(); // Logout user karena data tidak lengkap
+        
+        showError(`
+          <div class="text-center p-4">
+            <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-3"></i>
+            <h4 class="font-bold text-xl">Data Pengguna Tidak Lengkap!</h4>
+            <p class="mt-2 text-gray-200">Akun Anda belum terdaftar lengkap di sistem.</p>
+            <button onclick="location.reload()" 
+                    class="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
+              <i class="fas fa-sync-alt mr-2"></i> Muat Ulang Halaman
+            </button>
+          </div>
+        `);
+        return;
+      }
+
+      // Jika semua valid, masuk ke dashboard
+      showSuccess(`
+        <div class="text-center p-4">
+          <i class="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
+          <h4 class="font-bold text-xl">Login Berhasil!</h4>
+          <p class="mt-2 text-gray-200">Selamat datang kembali, ${userDoc.data().name || email}</p>
+          <div class="mt-4">
+            <div class="loading mx-auto"></div>
+            <p class="text-sm text-gray-400">Mengarahkan ke dashboard...</p>
+          </div>
+        </div>
+      `);
+      
+      // Redirect ke dashboard setelah 2 detik
+      setTimeout(() => {
+        currentUser = user;
+        loadUserData();
+      }, 2000);
+
     } catch (error) {
-      showError(error.message);
+      let errorMessage = '';
+      
+      // Handle berbagai jenis error
+      switch(error.code) {
+        case 'auth/user-not-found':
+          errorMessage = `
+            <div class="text-center p-4">
+              <i class="fas fa-user-times text-4xl text-red-500 mb-3"></i>
+              <h4 class="font-bold text-xl">Email Tidak Terdaftar!</h4>
+              <p class="mt-2 text-gray-200">Email <strong>${email}</strong> belum terdaftar.</p>
+              <div class="mt-4 flex justify-center gap-3">
+                <button onclick="document.getElementById('register-tab').click(); document.getElementById('register-email').value = '${email}'" 
+                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white">
+                  <i class="fas fa-user-plus mr-2"></i> Daftar Sekarang
+                </button>
+                <button onclick="document.getElementById('reset-tab').click(); document.getElementById('reset-email').value = '${email}'" 
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
+                  <i class="fas fa-key mr-2"></i> Reset Password
+                </button>
+              </div>
+            </div>
+          `;
+          break;
+          
+        case 'auth/wrong-password':
+          errorMessage = `
+            <div class="text-center p-4">
+              <i class="fas fa-lock text-4xl text-red-500 mb-3"></i>
+              <h4 class="font-bold text-xl">Password Salah!</h4>
+              <p class="mt-2 text-gray-200">Password yang Anda masukkan tidak sesuai.</p>
+              <button onclick="document.getElementById('reset-tab').click(); document.getElementById('reset-email').value = '${email}'" 
+                      class="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
+                <i class="fas fa-key mr-2"></i> Lupa Password?
+              </button>
+            </div>
+          `;
+          break;
+          
+        case 'auth/too-many-requests':
+          errorMessage = `
+            <div class="text-center p-4">
+              <i class="fas fa-shield-alt text-4xl text-red-500 mb-3"></i>
+              <h4 class="font-bold text-xl">Terlalu Banyak Percobaan!</h4>
+              <p class="mt-2 text-gray-200">Akses sementara dibatasi. Coba lagi nanti atau reset password.</p>
+              <button onclick="document.getElementById('reset-tab').click(); document.getElementById('reset-email').value = '${email}'" 
+                      class="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
+                <i class="fas fa-key mr-2"></i> Reset Password
+              </button>
+            </div>
+          `;
+          break;
+          
+        default:
+          errorMessage = `
+            <div class="text-center p-4">
+              <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-3"></i>
+              <h4 class="font-bold text-xl">Gagal Login!</h4>
+              <p class="mt-2 text-gray-200">${error.message || 'Terjadi kesalahan saat proses login'}</p>
+            </div>
+          `;
+      }
+      
+      showError(errorMessage);
+    } finally {
+      // Reset button state
+      const loginBtn = document.querySelector('#login-form button[type="submit"]');
+      if (loginBtn) {
+        loginBtn.innerHTML = originalText || 'Masuk';
+        loginBtn.disabled = false;
+      }
     }
   });
 
-  // Register form
+  // ================= REGISTER HANDLER =================
   document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('register-name').value;
@@ -911,18 +1043,36 @@
     const adminCode = document.getElementById('admin-code').value;
 
     if (isAdmin && adminCode !== "admin123") {
-      showError("Kode admin salah!");
+      showError(`
+        <div class="text-center p-4">
+          <i class="fas fa-lock text-4xl text-red-500 mb-3"></i>
+          <h4 class="font-bold text-xl">Kode Admin Salah!</h4>
+          <p class="mt-2 text-gray-200">Hubungi administrator untuk mendapatkan kode yang valid.</p>
+        </div>
+      `);
       return;
     }
 
     try {
+      // Tampilkan loading state
+      const registerBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = registerBtn.innerHTML;
+      registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftarkan...';
+      registerBtn.disabled = true;
+
+      // 1. Buat user di Firebase Auth
       const userCredential = await auth.createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
-      // Kirim email verifikasi
-      await user.sendEmailVerification();
+      // 2. Kirim email verifikasi (tanpa menunggu)
+      const verificationPromise = user.sendEmailVerification({
+        url: window.location.href + '?from=verify-email',
+        handleCodeInApp: true
+      }).catch(error => {
+        console.error("Gagal mengirim email verifikasi:", error);
+      });
 
-      // Simpan data user di Firestore
+      // 3. Simpan data user di Firestore
       await usersRef.doc(user.uid).set({
         uid: user.uid,
         name: name,
@@ -934,59 +1084,257 @@
         totalExpense: 0
       });
 
-      // Show success message and redirect to login after 4 seconds
-      showSuccess("Pendaftaran berhasil! Silakan verifikasi email cek inbox atau spam.");
-      
-      // Reset form and log out immediately
+      // 4. Tampilkan notifikasi sukses
+      showSuccess(`
+        <div class="text-center p-4">
+          <i class="fas fa-envelope-circle-check text-4xl text-green-500 mb-3"></i>
+          <h4 class="font-bold text-xl">Pendaftaran Berhasil!</h4>
+          <p class="mt-2 text-gray-200">Akun untuk <strong>${name}</strong> telah dibuat.</p>
+          <p class="text-sm text-gray-400 mt-1">Email verifikasi telah dikirim ke ${email}</p>
+          
+          <div class="mt-4 bg-blue-900/20 border border-blue-700 rounded-lg p-3 text-left">
+            <p class="text-sm text-blue-300">
+              <i class="fas fa-info-circle mr-1"></i> Jika tidak menerima email:
+            </p>
+            <ul class="list-disc pl-5 text-sm text-blue-200 mt-1">
+              <li>Periksa folder spam</li>
+              <li>Tunggu beberapa menit</li>
+              <li>Kirim ulang email verifikasi</li>
+            </ul>
+          </div>
+          
+          <div class="mt-4 flex justify-center gap-3">
+            <button onclick="resendVerificationEmail('${email}')" 
+                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white">
+              <i class="fas fa-paper-plane mr-2"></i> Kirim Ulang Email
+            </button>
+            <button onclick="document.getElementById('login-tab').click(); document.getElementById('login-email').value = '${email}'" 
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
+              <i class="fas fa-sign-in-alt mr-2"></i> Ke Halaman Login
+            </button>
+          </div>
+        </div>
+      `);
+
+      // 5. Reset form
       document.getElementById('register-form').reset();
       document.getElementById('admin-code-container').classList.add('hidden');
       document.getElementById('is-admin').checked = false;
-      await auth.signOut();
 
-      // Redirect to login tab after the success message timeout
-      setTimeout(() => {
-        document.getElementById('login-tab').click();
-      }, 9000); // Wait for 9 seconds (same as success message duration)
+      // 6. Logout otomatis (biar user verifikasi email dulu)
+      setTimeout(async () => {
+        try {
+          await auth.signOut();
+        } catch (logoutError) {
+          console.error("Gagal logout setelah pendaftaran:", logoutError);
+        }
+      }, 3000);
+
+      // 7. Pastikan email verifikasi terkirim (di background)
+      await verificationPromise;
 
     } catch (error) {
-      showError(error.message);
+      let errorMessage = '';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = `
+          <div class="text-center p-4">
+            <i class="fas fa-envelope text-4xl text-red-500 mb-3"></i>
+            <h4 class="font-bold text-xl">Email Sudah Terdaftar!</h4>
+            <p class="mt-2 text-gray-200">Email <strong>${email}</strong> sudah digunakan.</p>
+            <div class="mt-4 flex justify-center gap-3">
+              <button onclick="document.getElementById('login-tab').click(); document.getElementById('login-email').value = '${email}'" 
+                      class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white">
+                <i class="fas fa-sign-in-alt mr-2"></i> Login Sekarang
+              </button>
+              <button onclick="document.getElementById('reset-tab').click(); document.getElementById('reset-email').value = '${email}'" 
+                      class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
+                <i class="fas fa-key mr-2"></i> Reset Password
+              </button>
+            </div>
+          </div>
+        `;
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = `
+          <div class="text-center p-4">
+            <i class="fas fa-shield-alt text-4xl text-red-500 mb-3"></i>
+            <h4 class="font-bold text-xl">Password Terlalu Lemah!</h4>
+            <p class="mt-2 text-gray-200">Password harus minimal 6 karakter.</p>
+          </div>
+        `;
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = `
+          <div class="text-center p-4">
+            <i class="fas fa-at text-4xl text-red-500 mb-3"></i>
+            <h4 class="font-bold text-xl">Format Email Tidak Valid!</h4>
+            <p class="mt-2 text-gray-200">Gunakan format email yang benar (contoh: user@domain.com)</p>
+          </div>
+        `;
+      } else {
+        errorMessage = `
+          <div class="text-center p-4">
+            <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-3"></i>
+            <h4 class="font-bold text-xl">Gagal Mendaftar!</h4>
+            <p class="mt-2 text-gray-200">${error.message || 'Terjadi kesalahan saat pendaftaran'}</p>
+          </div>
+        `;
+      }
+      
+      showError(errorMessage);
+    } finally {
+      // Reset button state
+      const registerBtn = document.querySelector('#register-form button[type="submit"]');
+      if (registerBtn) {
+        registerBtn.innerHTML = originalText || 'Daftar';
+        registerBtn.disabled = false;
+      }
     }
   });
 
-  // Reset password form
+  // ================= RESET PASSWORD HANDLER =================
   document.getElementById('reset-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('reset-email').value;
     
     try {
-      await auth.sendPasswordResetEmail(email);
-      showSuccess("Email reset password telah dikirim! Silakan cek inbox atau folder spam Anda."); // Added clarification to check spam
+      // Tampilkan loading state
+      const resetBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = resetBtn.innerHTML;
+      resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+      resetBtn.disabled = true;
+
+      await auth.sendPasswordResetEmail(email, {
+        url: window.location.href + '?from=reset-password',
+        handleCodeInApp: true
+      });
+
+      // Notifikasi sukses dengan detail
+      showSuccess(`
+        <div class="text-center p-4">
+          <i class="fas fa-paper-plane text-4xl text-green-500 mb-3"></i>
+          <h4 class="font-bold text-xl">Email Reset Password Terkirim!</h4>
+          <p class="mt-2 text-gray-200">Tautan reset telah dikirim ke <strong>${email}</strong></p>
+          <p class="text-sm text-gray-400 mt-1">Link berlaku selama 24 jam.</p>
+          
+          <div class="mt-4 bg-blue-900/20 border border-blue-700 rounded-lg p-3 text-left">
+            <p class="text-sm text-blue-300">
+              <i class="fas fa-info-circle mr-1"></i> Jika tidak menerima email:
+            </p>
+            <ul class="list-disc pl-5 text-sm text-blue-200 mt-1">
+              <li>Periksa folder spam</li>
+              <li>Pastikan email yang dimasukkan benar</li>
+              <li>Kirim ulang email reset</li>
+            </ul>
+          </div>
+          
+          <div class="mt-4 flex justify-center gap-3">
+            <button onclick="resendResetPasswordEmail('${email}')" 
+                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white">
+              <i class="fas fa-redo mr-2"></i> Kirim Ulang
+            </button>
+            <button onclick="document.getElementById('login-tab').click(); document.getElementById('login-email').value = '${email}'" 
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
+              <i class="fas fa-sign-in-alt mr-2"></i> Ke Halaman Login
+            </button>
+          </div>
+        </div>
+      `);
+
       document.getElementById('reset-form').reset();
-      // Optionally redirect to login after reset email sent
-      setTimeout(() => {
-        document.getElementById('login-tab').click();
-      }, 9000); // Redirect to login after 9 seconds
+      
     } catch (error) {
-      showError(error.message);
+      let errorMessage = '';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = `
+          <div class="text-center p-4">
+            <i class="fas fa-user-times text-4xl text-red-500 mb-3"></i>
+            <h4 class="font-bold text-xl">Email Tidak Terdaftar!</h4>
+            <p class="mt-2 text-gray-200">Email <strong>${email}</strong> belum terdaftar di sistem.</p>
+            <button onclick="document.getElementById('register-tab').click(); document.getElementById('register-email').value = '${email}'" 
+                    class="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white">
+              <i class="fas fa-user-plus mr-2"></i> Daftar Sekarang
+            </button>
+          </div>
+        `;
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = `
+          <div class="text-center p-4">
+            <i class="fas fa-at text-4xl text-red-500 mb-3"></i>
+            <h4 class="font-bold text-xl">Format Email Tidak Valid!</h4>
+            <p class="mt-2 text-gray-200">Gunakan format email yang benar (contoh: user@domain.com)</p>
+          </div>
+        `;
+      } else {
+        errorMessage = `
+          <div class="text-center p-4">
+            <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-3"></i>
+            <h4 class="font-bold text-xl">Gagal Mengirim Email Reset!</h4>
+            <p class="mt-2 text-gray-200">${error.message || 'Terjadi kesalahan saat mengirim email reset password'}</p>
+          </div>
+        `;
+      }
+      
+      showError(errorMessage);
+    } finally {
+      // Reset button state
+      const resetBtn = document.querySelector('#reset-form button[type="submit"]');
+      if (resetBtn) {
+        resetBtn.innerHTML = originalText || 'Kirim Link Reset';
+        resetBtn.disabled = false;
+      }
     }
   });
 
-  // Logout button
-  document.getElementById('logout-btn').addEventListener('click', async () => {
-    try {
-      await auth.signOut();
-      showSuccess("Anda telah berhasil logout.");
-    } catch (error) {
-      showError("Gagal logout: " + error.message);
-    }
-  });
-
-  // Auth state listener
+  // ================= AUTH STATE LISTENER =================
   auth.onAuthStateChanged(async user => {
-    if (user && user.emailVerified) {
-      currentUser = user;
-      await loadUserData();
+    if (user) {
+      // Periksa verifikasi email dan data Firestore
+      const userDoc = await usersRef.doc(user.uid).get();
+      
+      if (user.emailVerified && userDoc.exists) {
+        currentUser = user;
+        await loadUserData();
+        
+        // Handle redirect setelah verifikasi email/reset password
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('from')) {
+          let message = '';
+          
+          switch(urlParams.get('from')) {
+            case 'verify-email':
+              message = `
+                <div class="text-center p-4">
+                  <i class="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
+                  <h4 class="font-bold text-xl">Email Berhasil Diverifikasi!</h4>
+                  <p class="mt-2 text-gray-200">Akun Anda sekarang aktif. Selamat datang, ${userDoc.data().name || user.email}!</p>
+                </div>
+              `;
+              break;
+              
+            case 'reset-password':
+              message = `
+                <div class="text-center p-4">
+                  <i class="fas fa-key text-4xl text-green-500 mb-3"></i>
+                  <h4 class="font-bold text-xl">Password Berhasil Diubah!</h4>
+                  <p class="mt-2 text-gray-200">Anda telah login dengan password baru.</p>
+                </div>
+              `;
+              break;
+          }
+          
+          if (message) {
+            showSuccess(message);
+            // Hapus parameter URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }
+      } else {
+        // Logout jika email belum verifikasi atau data tidak lengkap
+        await auth.signOut();
+      }
     } else {
+      // User tidak login
       currentUser = null;
       document.getElementById('dashboard').classList.add('hidden');
       document.getElementById('auth-container').classList.remove('hidden');
@@ -994,13 +1342,127 @@
       document.getElementById('login-btn').classList.remove('hidden');
       document.getElementById('user-email').classList.add('hidden');
       document.getElementById('user-role').classList.add('hidden');
+      
       document.querySelectorAll('.admin-only').forEach(el => {
         el.style.display = 'none';
       });
-      // Ensure login tab is active when not logged in or email not verified
-      document.getElementById('login-tab').click(); 
+
+      document.getElementById('login-tab').click();
     }
   });
+
+  // ================= HELPER FUNCTIONS =================
+  // Fungsi untuk kirim ulang email verifikasi
+  window.resendVerificationEmail = async (email) => {
+    try {
+      let user = auth.currentUser;
+      
+      // Jika email diberikan sebagai parameter tapi user belum login
+      if (email && (!user || user.email !== email)) {
+        const methods = await auth.fetchSignInMethodsForEmail(email);
+        if (methods.length > 0) {
+          showError(`
+            <div class="text-center p-4">
+              <i class="fas fa-info-circle text-4xl text-blue-500 mb-3"></i>
+              <h4 class="font-bold text-xl">Silakan Login Terlebih Dahulu</h4>
+              <p class="mt-2 text-gray-200">Akun dengan email ${email} sudah ada.</p>
+              <button onclick="document.getElementById('login-tab').click(); document.getElementById('login-email').value = '${email}'" 
+                      class="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white">
+                <i class="fas fa-sign-in-alt mr-2"></i> Login Sekarang
+              </button>
+            </div>
+          `);
+          return;
+        }
+      }
+
+      if (!user) {
+        throw new Error("Tidak ada user yang login. Silakan login terlebih dahulu.");
+      }
+
+      // Tampilkan loading state pada semua tombol kirim ulang
+      const buttons = document.querySelectorAll(`button[onclick*="resendVerificationEmail('${email}')"], button[onclick*="resendVerificationEmail()"]`);
+      buttons.forEach(btn => {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+        btn.disabled = true;
+      });
+
+      await user.sendEmailVerification({
+        url: window.location.href + '?from=verify-email',
+        handleCodeInApp: true
+      });
+      
+      showSuccess(`
+        <div class="text-center p-4">
+          <i class="fas fa-paper-plane text-4xl text-green-500 mb-3"></i>
+          <h4 class="font-bold text-xl">Email Verifikasi Telah Dikirim Ulang!</h4>
+          <p class="mt-2 text-gray-200">Silakan cek inbox email <strong>${user.email}</strong></p>
+          <p class="text-sm text-gray-400 mt-1">Link verifikasi berlaku selama 24 jam.</p>
+        </div>
+      `);
+    } catch (error) {
+      showError(`
+        <div class="text-center p-4">
+          <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-3"></i>
+          <h4 class="font-bold text-xl">Gagal Mengirim Ulang Email!</h4>
+          <p class="mt-2 text-gray-200">${error.message}</p>
+        </div>
+      `);
+    } finally {
+      // Reset button state
+      const buttons = document.querySelectorAll(`button[onclick*="resendVerificationEmail('${email}')"], button[onclick*="resendVerificationEmail()"]`);
+      buttons.forEach(btn => {
+        btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Kirim Ulang';
+        btn.disabled = false;
+      });
+    }
+  };
+
+  // Fungsi untuk kirim ulang email reset password
+  window.resendResetPasswordEmail = async (email) => {
+    try {
+      if (!email) {
+        email = prompt("Masukkan email Anda:");
+        if (!email) return;
+      }
+      
+      // Tampilkan loading state pada semua tombol kirim ulang
+      const buttons = document.querySelectorAll(`button[onclick*="resendResetPasswordEmail('${email}')"], button[onclick*="resendResetPasswordEmail()"]`);
+      buttons.forEach(btn => {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+        btn.disabled = true;
+      });
+
+      await auth.sendPasswordResetEmail(email, {
+        url: window.location.href + '?from=reset-password',
+        handleCodeInApp: true
+      });
+      
+      showSuccess(`
+        <div class="text-center p-4">
+          <i class="fas fa-paper-plane text-4xl text-green-500 mb-3"></i>
+          <h4 class="font-bold text-xl">Email Reset Password Telah Dikirim Ulang!</h4>
+          <p class="mt-2 text-gray-200">Silakan cek inbox email <strong>${email}</strong></p>
+          <p class="text-sm text-gray-400 mt-1">Link reset berlaku selama 24 jam.</p>
+        </div>
+      `);
+    } catch (error) {
+      showError(`
+        <div class="text-center p-4">
+          <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-3"></i>
+          <h4 class="font-bold text-xl">Gagal Mengirim Ulang Email Reset!</h4>
+          <p class="mt-2 text-gray-200">${error.message}</p>
+        </div>
+      `);
+    } finally {
+      // Reset button state
+      const buttons = document.querySelectorAll(`button[onclick*="resendResetPasswordEmail('${email}')"], button[onclick*="resendResetPasswordEmail()"]`);
+      buttons.forEach(btn => {
+        btn.innerHTML = '<i class="fas fa-redo mr-2"></i> Kirim Ulang';
+        btn.disabled = false;
+      });
+    }
+  };
 }
 
     // ================= USER MANAGEMENT =================
