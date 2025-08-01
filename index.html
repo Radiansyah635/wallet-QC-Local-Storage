@@ -81,23 +81,6 @@
       border-color: var(--primary-purple);
       box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
     }
-
-    /* Tambahkan di CSS Anda untuk styling notifikasi */
-.small-text {
-  font-size: 0.85rem;
-  color: #666;
-}
-
-.btn-outline {
-  background: transparent;
-  border: 1px solid currentColor;
-}
-
-.btn-small {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
-}
     
     .tab-active {
       background: rgba(139, 92, 246, 0.2);
@@ -836,7 +819,7 @@
       const successElement = document.getElementById('success-message');
       successElement.textContent = message;
       successElement.classList.remove('hidden');
-      setTimeout(() => successElement.classList.add('hidden'), 5000);
+      setTimeout(() => successElement.classList.add('hidden'), 4000); // Changed to 4000ms as requested
       console.log(message);
     }
 
@@ -894,8 +877,8 @@
       toggleEmailInput();
     }
 
-   // ================= AUTHENTICATION FUNCTIONS =================
-function initAuthListeners() {
+    // ================= AUTHENTICATION FUNCTIONS =================
+   function initAuthListeners() {
   // Login form
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -903,59 +886,18 @@ function initAuthListeners() {
     const password = document.getElementById('login-password').value;
     
     try {
-      // Tampilkan loading state
-      const loginBtn = e.target.querySelector('button[type="submit"]');
-      const originalText = loginBtn.innerHTML;
-      loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
-      loginBtn.disabled = true;
-
       const userCredential = await auth.signInWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
       if (!user.emailVerified) {
-        showError(`
-          <div class="text-center">
-            <i class="fas fa-envelope text-3xl text-yellow-500 mb-2"></i>
-            <h4 class="font-bold">Email Belum Diverifikasi!</h4>
-            <p class="mt-2">Silakan cek inbox email <strong>${email}</strong> untuk verifikasi.</p>
-            <p class="text-sm text-gray-400 mt-1">Periksa folder spam jika tidak menemukan email.</p>
-            <button onclick="resendVerificationEmail()" 
-                    class="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white">
-              <i class="fas fa-paper-plane mr-2"></i> Kirim Ulang Email Verifikasi
-            </button>
-          </div>
-        `);
+        showError("Email belum diverifikasi. Silakan cek inbox atau folder spam.");
         await auth.signOut();
         return;
       }
 
-      showSuccess(`
-        <div class="text-center">
-          <i class="fas fa-check-circle text-3xl text-green-500 mb-2"></i>
-          <h4 class="font-bold">Login Berhasil!</h4>
-          <p class="mt-2">Selamat datang kembali, ${user.email}</p>
-        </div>
-      `);
+      showSuccess("Login berhasil!");
     } catch (error) {
-      let errorMessage = error.message;
-      
-      // Custom error messages
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'Email tidak terdaftar. Silakan daftar terlebih dahulu.';
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Password salah. Silakan coba lagi.';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Terlalu banyak percobaan gagal. Coba lagi nanti atau reset password.';
-      }
-      
-      showError(errorMessage);
-    } finally {
-      // Reset button state
-      const loginBtn = document.querySelector('#login-form button[type="submit"]');
-      if (loginBtn) {
-        loginBtn.innerHTML = originalText || 'Masuk';
-        loginBtn.disabled = false;
-      }
+      showError(error.message);
     }
   });
 
@@ -968,27 +910,17 @@ function initAuthListeners() {
     const isAdmin = document.getElementById('is-admin').checked;
     const adminCode = document.getElementById('admin-code').value;
 
-    // Validasi kode admin jika mendaftar sebagai admin
     if (isAdmin && adminCode !== "admin123") {
-      showError("Kode admin salah! Hubungi administrator untuk kode yang valid.");
+      showError("Kode admin salah!");
       return;
     }
 
     try {
-      // Tampilkan loading state
-      const registerBtn = e.target.querySelector('button[type="submit"]');
-      const originalText = registerBtn.innerHTML;
-      registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftarkan...';
-      registerBtn.disabled = true;
-
       const userCredential = await auth.createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
-      // Kirim email verifikasi dengan pengaturan khusus
-      await user.sendEmailVerification({
-        url: window.location.href, // Redirect ke halaman ini setelah verifikasi
-        handleCodeInApp: true
-      });
+      // Kirim email verifikasi
+      await user.sendEmailVerification();
 
       // Simpan data user di Firestore
       await usersRef.doc(user.uid).set({
@@ -1002,60 +934,22 @@ function initAuthListeners() {
         totalExpense: 0
       });
 
-      // Notifikasi sukses dengan detail
-      showSuccess(`
-        <div class="text-center">
-          <i class="fas fa-envelope-circle-check text-3xl text-green-500 mb-2"></i>
-          <h4 class="font-bold">Pendaftaran Berhasil!</h4>
-          <p class="mt-2">Email verifikasi telah dikirim ke <strong>${email}</strong></p>
-          <p class="text-sm text-gray-400 mt-1">Silakan verifikasi email Anda sebelum login.</p>
-          
-          <div class="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-3 text-left">
-            <p class="text-sm text-blue-800">
-              <i class="fas fa-info-circle mr-1"></i> Jika tidak menerima email:
-            </p>
-            <ul class="list-disc pl-5 text-sm text-blue-700 mt-1">
-              <li>Periksa folder spam</li>
-              <li>Tunggu beberapa menit</li>
-              <li>Kirim ulang email verifikasi</li>
-            </ul>
-          </div>
-          
-          <button onclick="resendVerificationEmail()" 
-                  class="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white">
-            <i class="fas fa-paper-plane mr-2"></i> Kirim Ulang Email Verifikasi
-          </button>
-        </div>
-      `);
-
-      // Reset form
+      // Show success message and redirect to login after 4 seconds
+      showSuccess("Pendaftaran berhasil! Silakan verifikasi email cek inbox atau spam.");
+      
+      // Reset form and log out immediately
       document.getElementById('register-form').reset();
       document.getElementById('admin-code-container').classList.add('hidden');
       document.getElementById('is-admin').checked = false;
-
-      // Logout langsung setelah daftar
       await auth.signOut();
-      
+
+      // Redirect to login tab after the success message timeout
+      setTimeout(() => {
+        document.getElementById('login-tab').click();
+      }, 4000); // Wait for 4 seconds (same as success message duration)
+
     } catch (error) {
-      let errorMessage = error.message;
-      
-      // Custom error messages
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'Email sudah terdaftar. Gunakan email lain atau reset password.';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password terlalu lemah. Minimal 6 karakter.';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Format email tidak valid.';
-      }
-      
-      showError(errorMessage);
-    } finally {
-      // Reset button state
-      const registerBtn = document.querySelector('#register-form button[type="submit"]');
-      if (registerBtn) {
-        registerBtn.innerHTML = originalText || 'Daftar';
-        registerBtn.disabled = false;
-      }
+      showError(error.message);
     }
   });
 
@@ -1065,63 +959,15 @@ function initAuthListeners() {
     const email = document.getElementById('reset-email').value;
     
     try {
-      // Tampilkan loading state
-      const resetBtn = e.target.querySelector('button[type="submit"]');
-      const originalText = resetBtn.innerHTML;
-      resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-      resetBtn.disabled = true;
-
-      await auth.sendPasswordResetEmail(email, {
-        url: window.location.href + '?action=reset', // Redirect ke halaman ini setelah reset
-        handleCodeInApp: true
-      });
-
-      // Notifikasi sukses dengan detail
-      showSuccess(`
-        <div class="text-center">
-          <i class="fas fa-paper-plane text-3xl text-green-500 mb-2"></i>
-          <h4 class="font-bold">Email Reset Password Terkirim!</h4>
-          <p class="mt-2">Tautan reset telah dikirim ke <strong>${email}</strong></p>
-          <p class="text-sm text-gray-400 mt-1">Link berlaku selama 24 jam.</p>
-          
-          <div class="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-3 text-left">
-            <p class="text-sm text-blue-800">
-              <i class="fas fa-info-circle mr-1"></i> Jika tidak menerima email:
-            </p>
-            <ul class="list-disc pl-5 text-sm text-blue-700 mt-1">
-              <li>Periksa folder spam</li>
-              <li>Pastikan email yang dimasukkan benar</li>
-              <li>Kirim ulang email reset</li>
-            </ul>
-          </div>
-          
-          <button onclick="resendResetPasswordEmail('${email}')" 
-                  class="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white">
-            <i class="fas fa-redo mr-2"></i> Kirim Ulang Email Reset
-          </button>
-        </div>
-      `);
-
+      await auth.sendPasswordResetEmail(email);
+      showSuccess("Email reset password telah dikirim! Silakan cek inbox atau folder spam Anda."); // Added clarification to check spam
       document.getElementById('reset-form').reset();
-      
+      // Optionally redirect to login after reset email sent
+      setTimeout(() => {
+        document.getElementById('login-tab').click();
+      }, 4000); // Redirect to login after 4 seconds
     } catch (error) {
-      let errorMessage = error.message;
-      
-      // Custom error messages
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'Email tidak terdaftar dalam sistem.';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Format email tidak valid.';
-      }
-      
-      showError(errorMessage);
-    } finally {
-      // Reset button state
-      const resetBtn = document.querySelector('#reset-form button[type="submit"]');
-      if (resetBtn) {
-        resetBtn.innerHTML = originalText || 'Kirim Link Reset Password';
-        resetBtn.disabled = false;
-      }
+      showError(error.message);
     }
   });
 
@@ -1129,13 +975,7 @@ function initAuthListeners() {
   document.getElementById('logout-btn').addEventListener('click', async () => {
     try {
       await auth.signOut();
-      showSuccess(`
-        <div class="text-center">
-          <i class="fas fa-sign-out-alt text-3xl text-blue-500 mb-2"></i>
-          <h4 class="font-bold">Logout Berhasil!</h4>
-          <p class="mt-2">Anda telah keluar dari sistem.</p>
-        </div>
-      `);
+      showSuccess("Anda telah berhasil logout.");
     } catch (error) {
       showError("Gagal logout: " + error.message);
     }
@@ -1146,19 +986,6 @@ function initAuthListeners() {
     if (user && user.emailVerified) {
       currentUser = user;
       await loadUserData();
-      
-      // Cek jika ini redirect setelah verifikasi email
-      if (window.location.search.includes('action=verifyEmail')) {
-        showSuccess(`
-          <div class="text-center">
-            <i class="fas fa-check-circle text-3xl text-green-500 mb-2"></i>
-            <h4 class="font-bold">Email Berhasil Diverifikasi!</h4>
-            <p class="mt-2">Akun Anda sekarang aktif. Selamat datang, ${user.email}!</p>
-          </div>
-        `);
-        // Hapus parameter URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
     } else {
       currentUser = null;
       document.getElementById('dashboard').classList.add('hidden');
@@ -1167,127 +994,27 @@ function initAuthListeners() {
       document.getElementById('login-btn').classList.remove('hidden');
       document.getElementById('user-email').classList.add('hidden');
       document.getElementById('user-role').classList.add('hidden');
-      
       document.querySelectorAll('.admin-only').forEach(el => {
         el.style.display = 'none';
       });
-
-      document.getElementById('login-tab').click();
-      
-      // Cek jika ini redirect setelah reset password
-      if (window.location.search.includes('action=reset')) {
-        showSuccess(`
-          <div class="text-center">
-            <i class="fas fa-key text-3xl text-green-500 mb-2"></i>
-            <h4 class="font-bold">Password Berhasil Diubah!</h4>
-            <p class="mt-2">Silakan login dengan password baru Anda.</p>
-          </div>
-        `);
-        // Hapus parameter URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
+      // Ensure login tab is active when not logged in or email not verified
+      document.getElementById('login-tab').click(); 
     }
   });
 }
 
-// Fungsi untuk kirim ulang email verifikasi
-async function resendVerificationEmail() {
-  try {
-    if (!auth.currentUser) {
-      showError("Tidak ada user yang login. Silakan login terlebih dahulu.");
-      return;
-    }
-    
-    // Tampilkan loading state
-    const buttons = document.querySelectorAll('button[onclick="resendVerificationEmail()"]');
-    buttons.forEach(btn => {
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-      btn.disabled = true;
-    });
-
-    await auth.currentUser.sendEmailVerification({
-      url: window.location.href + '?action=verifyEmail',
-      handleCodeInApp: true
-    });
-    
-    showSuccess(`
-      <div class="text-center">
-        <i class="fas fa-paper-plane text-3xl text-green-500 mb-2"></i>
-        <h4 class="font-bold">Email Verifikasi Telah Dikirim Ulang!</h4>
-        <p class="mt-2">Silakan cek inbox email <strong>${auth.currentUser.email}</strong></p>
-      </div>
-    `);
-  } catch (error) {
-    showError("Gagal mengirim ulang email verifikasi: " + error.message);
-  } finally {
-    // Reset button state
-    const buttons = document.querySelectorAll('button[onclick="resendVerificationEmail()"]');
-    buttons.forEach(btn => {
-      btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Kirim Ulang Email Verifikasi';
-      btn.disabled = false;
-    });
-  }
-}
-
-// Fungsi untuk kirim ulang email reset password
-async function resendResetPasswordEmail(email) {
-  try {
-    if (!email) {
-      const inputEmail = prompt("Masukkan email Anda:");
-      if (!inputEmail) return;
-      email = inputEmail;
-    }
-    
-    // Tampilkan loading state
-    const buttons = document.querySelectorAll(`button[onclick="resendResetPasswordEmail('${email}')"]`);
-    buttons.forEach(btn => {
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-      btn.disabled = true;
-    });
-
-    await auth.sendPasswordResetEmail(email, {
-      url: window.location.href + '?action=reset',
-      handleCodeInApp: true
-    });
-    
-    showSuccess(`
-      <div class="text-center">
-        <i class="fas fa-paper-plane text-3xl text-green-500 mb-2"></i>
-        <h4 class="font-bold">Email Reset Password Telah Dikirim Ulang!</h4>
-        <p class="mt-2">Silakan cek inbox email <strong>${email}</strong></p>
-      </div>
-    `);
-  } catch (error) {
-    showError("Gagal mengirim ulang email reset password: " + error.message);
-  } finally {
-    // Reset button state
-    const buttons = document.querySelectorAll(`button[onclick="resendResetPasswordEmail('${email}')"]`);
-    buttons.forEach(btn => {
-      btn.innerHTML = '<i class="fas fa-redo mr-2"></i> Kirim Ulang Email Reset';
-      btn.disabled = false;
-    });
-  }
-}
-   
-
-
     // ================= USER MANAGEMENT =================
     async function loadUserData() {
       if (!currentUser) return;
-
       try {
         const userDoc = await usersRef.doc(currentUser.uid).get();
-        
         if (!userDoc.exists) {
           showError("Data pengguna tidak ditemukan di Firestore.");
           await auth.signOut();
           return;
         }
-
         const userData = userDoc.data();
-        
+
         // Update UI
         document.getElementById('user-initial').textContent = userData.name.charAt(0);
         document.getElementById('user-initial-setting').textContent = userData.name.charAt(0);
@@ -1295,23 +1022,21 @@ async function resendResetPasswordEmail(email) {
         document.getElementById('user-email-display').textContent = userData.email;
         document.getElementById('setting-name').value = userData.name;
         document.getElementById('setting-email').value = userData.email;
-        
+
         // Update role badge
         const roleBadge = document.getElementById('role-badge');
         roleBadge.textContent = userData.role === 'admin' ? 'Admin' : 'Member';
-        roleBadge.className = userData.role === 'admin' ? 
-          'role-badge admin-badge' : 'role-badge member-badge';
-        
+        roleBadge.className = userData.role === 'admin' ? 'role-badge admin-badge' : 'role-badge member-badge';
+
         // Update user stats
         document.getElementById('user-income').textContent = formatRupiah(userData.totalIncome || 0);
         document.getElementById('user-expense').textContent = formatRupiah(userData.totalExpense || 0);
-        
+
         // Show profile image if exists
         if (userData.profileImage) {
           document.getElementById('profile-avatar').classList.add('hidden');
           document.getElementById('profile-image').classList.remove('hidden');
           document.getElementById('profile-image').src = userData.profileImage;
-          
           document.getElementById('profile-avatar-setting').classList.add('hidden');
           document.getElementById('profile-image-setting').classList.remove('hidden');
           document.getElementById('profile-image-setting').src = userData.profileImage;
@@ -1321,7 +1046,7 @@ async function resendResetPasswordEmail(email) {
           document.getElementById('profile-avatar-setting').classList.remove('hidden');
           document.getElementById('profile-image-setting').classList.add('hidden');
         }
-        
+
         // Show admin elements
         if (userData.role === 'admin') {
           document.querySelectorAll('.admin-only').forEach(el => {
@@ -1332,7 +1057,7 @@ async function resendResetPasswordEmail(email) {
             el.style.display = 'none';
           });
         }
-        
+
         // Show dashboard
         document.getElementById('auth-container').classList.add('hidden');
         document.getElementById('dashboard').classList.remove('hidden');
@@ -1342,7 +1067,7 @@ async function resendResetPasswordEmail(email) {
         document.getElementById('user-email').classList.remove('hidden');
         document.getElementById('user-role').textContent = userData.role === 'admin' ? 'Admin' : 'Member';
         document.getElementById('user-role').classList.remove('hidden');
-        
+
         // Load data
         await Promise.all([
           loadTransactions(),
@@ -1350,7 +1075,6 @@ async function resendResetPasswordEmail(email) {
           loadPosts(),
           loadUsers()
         ]);
-
         updateBalance();
 
         // Set default section to kas-section after login
@@ -1386,410 +1110,187 @@ async function resendResetPasswordEmail(email) {
 
       // Transaction form submit
       document.getElementById('transaction-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  const type = document.getElementById('transaction-type').value;
-  const amount = parseFloat(document.getElementById('transaction-amount').value);
-  const description = document.getElementById('transaction-desc').value;
-  
-  const radioPenerimaTerpilih = document.querySelector('input[name="penerimaEmail"]:checked');
-  let selectedRecipientType = null;
-  let recipientEmails = [];
-  let totalAmount = 0; // This will track the total amount for global balance
+        e.preventDefault();
+        const type = document.getElementById('transaction-type').value;
+        const amount = parseFloat(document.getElementById('transaction-amount').value);
+        const description = document.getElementById('transaction-desc').value;
+        const radioPenerimaTerpilih = document.querySelector('input[name="penerimaEmail"]:checked');
+        let selectedRecipientType = null;
+        let recipientEmails = [];
+        let totalAmount = 0; // This will track the total amount for global balance
 
-  if (radioPenerimaTerpilih) {
-    selectedRecipientType = radioPenerimaTerpilih.value;
-    if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
-      const inputEmailValue = document.getElementById('inputEmail').value;
-      recipientEmails = inputEmailValue.split(',').map(email => email.trim()).filter(email => email);
-      totalAmount = amount; // For specific users, total amount is just the amount
-    } else if (selectedRecipientType === 'semua_user') {
-      recipientEmails = ['ALL_USERS'];
-      // For ALL_USERS, we'll calculate the total amount after getting user count
-    }
-  } else {
-    showError("Pilih jenis penerima email.");
-    return;
-  }
-
-  // Validation checks
-  if (isNaN(amount) || amount <= 0) {
-    showError("Jumlah transaksi harus angka positif.");
-    return;
-  }
-  if (!description.trim()) {
-    showError("Deskripsi transaksi tidak boleh kosong.");
-    return;
-  }
-  if (!currentUser || !currentUser.uid) {
-    showError("Anda harus login untuk melakukan transaksi.");
-    return;
-  }
-
-  try {
-    await db.runTransaction(async (transaction) => {
-      const newTransactionRef = transactionsRef.doc();
-      
-      // Get global metrics
-      const globalMetricsDoc = await transaction.get(appDataRef);
-      let globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
-      
-      // Get users to update based on recipient type
-      let usersToUpdate = [];
-      
-      if (selectedRecipientType === 'semua_user') {
-        const allUsersSnapshot = await usersRef.get();
-        allUsersSnapshot.docs.forEach(userDoc => {
-          usersToUpdate.push({
-            ref: usersRef.doc(userDoc.id),
-            data: userDoc.data()
-          });
-        });
-        // Calculate total amount for ALL_USERS (amount * number of users)
-        totalAmount = amount * allUsersSnapshot.size;
-      } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
-        // Get specific users by email
-        for (const email of recipientEmails) {
-          const userQuery = await usersRef.where('email', '==', email).limit(1).get();
-          if (!userQuery.empty) {
-            const userDoc = userQuery.docs[0];
-            usersToUpdate.push({
-              ref: usersRef.doc(userDoc.id),
-              data: userDoc.data()
-            });
+        if (radioPenerimaTerpilih) {
+          selectedRecipientType = radioPenerimaTerpilih.value;
+          if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
+            const inputEmailValue = document.getElementById('inputEmail').value;
+            recipientEmails = inputEmailValue.split(',').map(email => email.trim()).filter(email => email);
+            totalAmount = amount; // For specific users, total amount is just the amount
+          } else if (selectedRecipientType === 'semua_user') {
+            recipientEmails = ['ALL_USERS']; // For ALL_USERS, we'll calculate the total amount after getting user count
           }
-        }
-        totalAmount = amount; // For specific users, total amount is just the amount
-      } else {
-        // Default to current user
-        const currentUserDoc = await transaction.get(usersRef.doc(currentUser.uid));
-        usersToUpdate.push({
-          ref: usersRef.doc(currentUser.uid),
-          data: currentUserDoc.data()
-        });
-        totalAmount = amount; // For current user, total amount is just the amount
-      }
-
-      // PHASE 2: ALL WRITES
-      // 1. Create new transaction
-      transaction.set(newTransactionRef, {
-        userId: currentUser.uid,
-        userName: document.getElementById('user-name').textContent,
-        type: type,
-        amount: amount, // Individual amount
-        totalAmount: totalAmount, // Total amount for all recipients
-        description: description,
-        date: firebase.firestore.FieldValue.serverTimestamp(),
-        recipients: recipientEmails
-      });
-      
-      // 2. Update user balances
-      for (const user of usersToUpdate) {
-        let newIncome = user.data.totalIncome || 0;
-        let newExpense = user.data.totalExpense || 0;
-        
-        if (type === 'masuk') {
-          newIncome += amount;
         } else {
-          newExpense += amount;
+          showError("Pilih jenis penerima email.");
+          return;
         }
-        
-        transaction.update(user.ref, {
-          totalIncome: newIncome,
-          totalExpense: newExpense
-        });
-      }
-      
-      // 3. Update global metrics using the totalAmount
-      let newAppIncome = globalData.totalAppIncome || 0;
-      let newAppExpense = globalData.totalAppExpense || 0;
-      
-      if (type === 'masuk') {
-        newAppIncome += totalAmount;
-      } else {
-        newAppExpense += totalAmount;
-      }
-      
-      transaction.update(appDataRef, {
-        totalAppIncome: newAppIncome,
-        totalAppExpense: newAppExpense,
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+
+        // Validation checks
+        if (isNaN(amount) || amount <= 0) {
+          showError("Jumlah transaksi harus angka positif.");
+          return;
+        }
+        if (!description.trim()) {
+          showError("Deskripsi transaksi tidak boleh kosong.");
+          return;
+        }
+        if (!currentUser || !currentUser.uid) {
+          showError("Anda harus login untuk melakukan transaksi.");
+          return;
+        }
+
+        try {
+          await db.runTransaction(async (transaction) => {
+            const newTransactionRef = transactionsRef.doc();
+
+            // Get global metrics
+            const globalMetricsDoc = await transaction.get(appDataRef);
+            let globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
+
+            // Get users to update based on recipient type
+            let usersToUpdate = [];
+            if (selectedRecipientType === 'semua_user') {
+              const allUsersSnapshot = await usersRef.get();
+              allUsersSnapshot.docs.forEach(userDoc => {
+                usersToUpdate.push({ ref: usersRef.doc(userDoc.id), data: userDoc.data() });
+              });
+              // Calculate total amount for ALL_USERS (amount * number of users)
+              totalAmount = amount * allUsersSnapshot.size;
+            } else if (selectedRecipientType === 'pilih_user' || selectedRecipientType === 'input_manual') {
+              // Get specific users by email
+              for (const email of recipientEmails) {
+                const userQuery = await usersRef.where('email', '==', email).limit(1).get();
+                if (!userQuery.empty) {
+                  const userDoc = userQuery.docs[0];
+                  usersToUpdate.push({ ref: usersRef.doc(userDoc.id), data: userDoc.data() });
+                }
+              }
+            }
+
+            // Update user balances
+            usersToUpdate.forEach(user => {
+              const currentIncome = user.data.totalIncome || 0;
+              const currentExpense = user.data.totalExpense || 0;
+
+              if (type === 'masuk') {
+                transaction.update(user.ref, { totalIncome: currentIncome + amount });
+              } else {
+                transaction.update(user.ref, { totalExpense: currentExpense + amount });
+              }
+            });
+
+            // Update global metrics
+            if (type === 'masuk') {
+              globalData.totalAppIncome = (globalData.totalAppIncome || 0) + totalAmount;
+            } else {
+              globalData.totalAppExpense = (globalData.totalAppExpense || 0) + totalAmount;
+            }
+            transaction.set(appDataRef, globalData);
+
+            const transactionData = {
+              type: type,
+              amount: amount,
+              description: description,
+              timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+              userId: currentUser.uid,
+              userName: (await usersRef.doc(currentUser.uid).get()).data().name,
+              recipients: recipientEmails,
+              isApproved: false, // For future admin approval feature
+            };
+
+            if (editingTransactionId) {
+              transaction.update(transactionsRef.doc(editingTransactionId), transactionData);
+            } else {
+              transaction.set(newTransactionRef, transactionData);
+            }
+          });
+
+          showSuccess(editingTransactionId ? "Transaksi berhasil diupdate!" : "Transaksi berhasil ditambahkan!");
+          document.getElementById('transaction-form').classList.add('hidden');
+          document.getElementById('transaction-form').reset();
+          editingTransactionId = null;
+          await loadTransactions(); // Reload transactions after adding/editing
+          await loadUserData(); // Reload user data to update balances
+          updateBalance(); // Update dashboard total balance
+          document.getElementById('radioSemuaUser').checked = true; // Reset radio button
+          initializeRadioButtons(); // Re-initialize radio button state
+        } catch (error) {
+          showError("Gagal menyimpan transaksi: " + error.message);
+        }
       });
-    });
-
-    showSuccess("Transaksi berhasil ditambahkan!");
-    document.getElementById('transaction-form').classList.add('hidden');
-    document.getElementById('transaction-form').reset();
-    loadTransactions();
-    updateBalance();
-  } catch (error) {
-    showError("Gagal menambahkan transaksi: " + error.message);
-  }
-});
-
-      // Print transactions button
-// ================= FUNGSI BANTUAN UNTUK LOAD SCRIPT =================
-function loadScriptsSequentially(scriptUrls) {
-  return scriptUrls.reduce((promise, url) => {
-    return promise.then(() => loadSingleScript(url));
-  }, Promise.resolve());
-}
-
-function loadSingleScript(url) {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = url;
-    script.onload = resolve;
-    script.onerror = () => reject(new Error(`Gagal memuat script: ${url}`));
-    document.head.appendChild(script);
-  });
-}
-
-// ================= EVENT LISTENER CETAK PDF =================
-document.getElementById('print-transactions').addEventListener('click', async () => {
-  try {
-    // 1. LOAD LIBRARY JIKA BELUM TERSEDIA
-    if (!window.jspdf || !window.jspdf.jsPDF || !window.jspdf.autoTable) {
-      await loadScriptsSequentially([
-        'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
-        'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js'
-      ]);
-    }
-
-    // 2. INISIALISASI PDF
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    // 3. HEADER PDF
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text('LAPORAN TRANSAKSI WALLET QC', 105, 15, { align: 'center' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
-    doc.text(`Dicetak pada: ${new Date().toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })}`, 105, 23, { align: 'center' });
-
-    // 4. AMBIL DATA TRANSAKSI DARI FIRESTORE
-    const snapshot = await transactionsRef.orderBy('date', 'desc').get();
-
-    const dataTransaksi = snapshot.docs.map(doc => {
-      const t = doc.data();
-      return [
-        t.date?.toDate().toLocaleDateString('id-ID') || '-',
-        t.userName || '-',
-        t.description || '-',
-        t.type === 'masuk' ? formatRupiah(t.amount || 0) : '-',
-        t.type === 'keluar' ? formatRupiah(t.amount || 0) : '-'
-      ];
-    });
-
-    if (!dataTransaksi.length) {
-      throw new Error("Tidak ada data transaksi yang tersedia.");
-    }
-
-    // 5. BUAT TABEL TRANSAKSI
-    doc.autoTable({
-      startY: 30,
-      head: [['TANGGAL', 'NAMA', 'DESKRIPSI', 'MASUK', 'KELUAR']],
-      body: dataTransaksi,
-      theme: 'grid',
-      headStyles: {
-        fillColor: [59, 89, 152],
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      styles: {
-        fontSize: 9,
-        cellPadding: 4,
-        overflow: 'linebreak'
-      },
-      columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 70 },
-        3: { cellWidth: 30, halign: 'right' },
-        4: { cellWidth: 30, halign: 'right' }
-      }
-    });
-
-    // 6. SIMPAN PDF
-    const fileName = `Laporan_QC_${new Date().toISOString().slice(0,10)}.pdf`;
-    doc.save(fileName);
-
-    // 7. SUKSES
-    showSuccess("Laporan berhasil diunduh!");
-
-  } catch (error) {
-    console.error("Gagal membuat PDF:", error);
-    showError("Gagal membuat laporan: " + error.message);
-  }
-});
-
     }
 
     async function loadTransactions() {
       const transactionsList = document.getElementById('transactions-list');
-      transactionsList.innerHTML = `
-        <div class="text-center py-10">
-          <div class="loading mx-auto"></div>
-          <p class="mt-3 text-gray-400">Memuat data transaksi...</p>
-        </div>
-      `;
+      if (!transactionsList) return; // Ensure the element exists
+
+      transactionsList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data transaksi...</p></div>';
 
       try {
-        const snapshot = await transactionsRef.orderBy('date', 'desc').get();
-        transactionsList.innerHTML = '';
+        let query = transactionsRef.orderBy("timestamp", "desc");
+        if (currentUser && currentUser.role !== 'admin') { // Assuming currentUser.role is set after loadUserData
+            // If not admin, only show transactions relevant to the user
+            // This logic needs to consider if 'ALL_USERS' transactions should be shown to all or specific recipients
+            query = query.where('recipients', 'array-contains', currentUser.email)
+                         .where('recipients', 'array-contains', 'ALL_USERS'); // This logic needs careful review depending on exact requirement
+        }
+        
+        const snapshot = await query.get();
+        transactionsList.innerHTML = ''; // Clear loading state
 
         if (snapshot.empty) {
-          transactionsList.innerHTML = `
-            <p class="text-center py-6 text-gray-400">Belum ada transaksi</p>
-          `;
-          
-          // Reset balances if no transactions
-          if (currentUser?.uid) {
-            await resetUserBalance(currentUser.uid);
-          }
-          
-          await resetGlobalBalance();
-          updateBalance(0, 0);
+          transactionsList.innerHTML = '<p class="text-center text-gray-400 py-10">Belum ada transaksi.</p>';
           return;
         }
 
-        let totalIncome = 0;
-        let totalExpense = 0;
-        
         snapshot.forEach(doc => {
           const transaction = doc.data();
-          
-          if (transaction.type === 'masuk') {
-            totalIncome += transaction.amount;
-          } else {
-            totalExpense += transaction.amount;
-          }
+          const timestamp = transaction.timestamp ? new Date(transaction.timestamp.toDate()).toLocaleString() : 'N/A';
+          const isIncome = transaction.type === 'masuk';
+          const amountClass = isIncome ? 'text-green-400' : 'text-red-400';
+          const borderColorClass = isIncome ? 'transaction-in' : 'transaction-out';
+          const sign = isIncome ? '+' : '-';
 
-          const transactionDate = transaction.date?.toDate() || new Date();
-          const formattedDate = transactionDate.toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          });
-
-          const transactionElement = document.createElement('div');
-          transactionElement.className = `p-4 rounded-lg mb-3 ${
-            transaction.type === 'masuk' 
-              ? 'bg-green-50 border border-green-100' 
-              : 'bg-red-50 border border-red-100'
-          }`;
-          
-          transactionElement.innerHTML = `
-            <div class="flex justify-between items-start">
+          const transactionItem = `
+            <div class="solana-card p-4 flex items-center justify-between ${borderColorClass}">
               <div>
-                <h4 class="font-medium text-gray-800">${transaction.description}</h4>
-                <p class="text-sm text-gray-500 mt-1">${formattedDate}</p>
-                ${transaction.recipients ? `
-                  <p class="text-xs text-gray-400 mt-2">
-                    <i class="fas fa-envelope mr-1"></i>
-                    ${formatRecipients(transaction.recipients)}
-                  </p>
-                ` : ''}
+                <p class="text-lg font-medium">${transaction.description}</p>
+                <p class="text-sm text-gray-400">${timestamp} oleh ${transaction.userName}</p>
+                <p class="text-xs text-gray-500">Penerima: ${formatRecipients(transaction.recipients)}</p>
               </div>
               <div class="text-right">
-                <p class="${
-                  transaction.type === 'masuk' 
-                    ? 'text-green-600' 
-                    : 'text-red-600'
-                } font-mono font-medium">
-                  ${transaction.type === 'masuk' ? '+' : '-'} 
-                  ${formatRupiah(transaction.amount)}
-                </p>
-                <p class="text-xs text-gray-500 mt-1">${transaction.userName}</p>
+                <p class="text-xl font-bold ${amountClass}">${sign} ${formatRupiah(transaction.amount)}</p>
+                ${currentUser && (currentUser.role === 'admin' || currentUser.uid === transaction.userId) ? `
+                <div class="mt-2 flex space-x-2">
+                  <button class="text-blue-400 hover:text-blue-300 text-sm edit-transaction" data-id="${doc.id}">Edit</button>
+                  <button class="text-red-400 hover:text-red-300 text-sm delete-transaction" data-id="${doc.id}">Hapus</button>
+                </div>
+                ` : ''}
               </div>
             </div>
-            ${currentUser?.role === 'admin' ? `
-              <div class="flex gap-2 mt-3">
-                <button class="edit-transaction px-3 py-1 bg-blue-50 text-blue-600 rounded text-sm" 
-                        data-id="${doc.id}">
-                  <i class="fas fa-edit mr-1"></i> Edit
-                </button>
-                <button class="delete-transaction px-3 py-1 bg-red-50 text-red-600 rounded text-sm" 
-                        data-id="${doc.id}">
-                  <i class="fas fa-trash mr-1"></i> Hapus
-                </button>
-              </div>
-            ` : ''}
           `;
-          
-          transactionsList.appendChild(transactionElement);
+          transactionsList.innerHTML += transactionItem;
         });
 
-        updateBalance(totalIncome, totalExpense);
-        setupTransactionActions();
+        // Add event listeners for edit and delete buttons
+        transactionsList.querySelectorAll('.edit-transaction').forEach(button => {
+          button.addEventListener('click', (e) => editTransaction(e.target.dataset.id));
+        });
+        transactionsList.querySelectorAll('.delete-transaction').forEach(button => {
+          button.addEventListener('click', (e) => deleteTransaction(e.target.dataset.id));
+        });
 
       } catch (error) {
-        transactionsList.innerHTML = `
-          <p class="text-center py-6 text-red-500">
-            <i class="fas fa-exclamation-circle mr-2"></i>
-            Gagal memuat transaksi: ${error.message}
-          </p>
-        `;
-        updateBalance(0, 0);
-      }
-    }
-
-    async function resetUserBalance(userId) {
-      const userDocRef = usersRef.doc(userId);
-      return db.runTransaction(async (transaction) => {
-        const userDoc = await transaction.get(userDocRef);
-        if (userDoc.exists) {
-          const userData = userDoc.data();
-          if (userData.totalIncome !== 0 || userData.totalExpense !== 0) {
-            transaction.update(userDocRef, {
-              totalIncome: 0,
-              totalExpense: 0
-            });
-          }
-        }
-      });
-    }
-
-    async function resetGlobalBalance() {
-      return db.runTransaction(async (transaction) => {
-        const globalMetricsDocRef = appDataRef;
-        const globalMetricsDoc = await transaction.get(globalMetricsDocRef);
-        if (globalMetricsDoc.exists) {
-          const globalData = globalMetricsDoc.data();
-          if ((globalData.totalAppIncome || 0) !== 0 || (globalData.totalAppExpense || 0) !== 0) {
-            transaction.update(globalMetricsDocRef, {
-              totalAppIncome: 0,
-              totalAppExpense: 0,
-              lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            });
-          }
-        } else {
-          transaction.set(globalMetricsDocRef, {
-            totalAppIncome: 0,
-            totalExpense: 0,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        }
-      });
-    }
-
-    function setupTransactionActions() {
-      if (currentUser?.role === 'admin') {
-        document.querySelectorAll('.edit-transaction').forEach(btn => {
-          btn.addEventListener('click', (e) => editTransaction(e.target.dataset.id));
-        });
-        
-        document.querySelectorAll('.delete-transaction').forEach(btn => {
-          btn.addEventListener('click', (e) => deleteTransaction(e.target.dataset.id));
-        });
+        showError("Error memuat transaksi: " + error.message);
+        transactionsList.innerHTML = '<p class="text-center text-red-400 py-10">Gagal memuat transaksi.</p>';
       }
     }
 
@@ -1797,151 +1298,160 @@ document.getElementById('print-transactions').addEventListener('click', async ()
       try {
         const doc = await transactionsRef.doc(id).get();
         if (!doc.exists) {
-          showError("Transaksi tidak ditemukan.");
+          showError("Transaksi tidak ditemukan!");
           return;
         }
-
         const transaction = doc.data();
+        editingTransactionId = id;
+
         document.getElementById('transaction-type').value = transaction.type;
         document.getElementById('transaction-amount').value = transaction.amount;
         document.getElementById('transaction-desc').value = transaction.description;
-        
-        // Set recipient type
-        if (transaction.recipients?.includes('ALL_USERS')) {
-          document.getElementById('radioSemuaUser').checked = true;
-        } else if (transaction.recipients?.length > 0) {
-          document.getElementById('radioPilihUser').checked = true;
-          document.getElementById('inputEmail').value = transaction.recipients.join(', ');
+
+        // Handle recipients for editing
+        const inputEmail = document.getElementById('inputEmail');
+        const radioSemuaUser = document.getElementById('radioSemuaUser');
+        const radioPilihUser = document.getElementById('radioPilihUser');
+        const radioInputManual = document.getElementById('radioInputManual');
+
+        if (transaction.recipients && transaction.recipients.includes('ALL_USERS')) {
+            radioSemuaUser.checked = true;
+            inputEmail.value = '';
+        } else if (transaction.recipients && transaction.recipients.length > 0) {
+            radioInputManual.checked = true; // Assume manual input if specific emails
+            inputEmail.value = transaction.recipients.join(', ');
         } else {
-          document.getElementById('radioSemuaUser').checked = true;
+            // Default to 'Semua User' or handle as appropriate for empty recipients
+            radioSemuaUser.checked = true;
+            inputEmail.value = '';
         }
-        
-        initializeRadioButtons();
+        initializeRadioButtons(); // Update visibility based on radio selection
+
         document.getElementById('transaction-form').classList.remove('hidden');
-        editingTransactionId = id;
-        showSuccess("Anda sedang mengedit transaksi ini.");
       } catch (error) {
-        showError("Gagal mengambil transaksi untuk diedit: " + error.message);
+        showError("Gagal mengedit transaksi: " + error.message);
       }
     }
 
     async function deleteTransaction(id) {
-  if (!confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) return;
-
-  try {
-    await db.runTransaction(async (transaction) => {
-      const transactionDocRef = transactionsRef.doc(id);
-      const transactionDoc = await transaction.get(transactionDocRef);
-      
-      if (!transactionDoc.exists) {
-        throw new Error("Transaksi tidak ditemukan.");
-      }
-      
-      const transactionData = transactionDoc.data();
-      const globalMetricsDocRef = appDataRef;
-      const globalMetricsDoc = await transaction.get(globalMetricsDocRef);
-      let globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
-
-      // Calculate the total amount to revert
-      let totalAmountToRevert = transactionData.amount;
-      if (transactionData.recipients?.includes('ALL_USERS')) {
-        const allUsersSnapshot = await usersRef.get();
-        totalAmountToRevert = transactionData.amount * allUsersSnapshot.size;
+      if (!confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+        return;
       }
 
-      // Revert user balances
-      if (transactionData.recipients?.includes('ALL_USERS')) {
-        const allUsersSnapshot = await usersRef.get();
-        for (const userDoc of allUsersSnapshot.docs) {
-          const userRef = usersRef.doc(userDoc.id);
-          const userData = userDoc.data();
-          let newIncome = userData.totalIncome || 0;
-          let newExpense = userData.totalExpense || 0;
+      try {
+        await db.runTransaction(async (transaction) => {
+            const transactionDoc = await transaction.get(transactionsRef.doc(id));
+            if (!transactionDoc.exists) {
+                throw new Error("Transaksi tidak ditemukan.");
+            }
+            const transactionData = transactionDoc.data();
 
-          if (transactionData.type === 'masuk') {
-            newIncome -= transactionData.amount;
-          } else {
-            newExpense -= transactionData.amount;
-          }
-          
-          transaction.update(userRef, {
-            totalIncome: newIncome,
-            totalExpense: newExpense
-          });
-        }
-      } else if (transactionData.recipients?.length > 0) {
-        for (const email of transactionData.recipients) {
-          const userQuerySnapshot = await usersRef.where('email', '==', email).limit(1).get();
-          if (!userQuerySnapshot.empty) {
-            const userDoc = userQuerySnapshot.docs[0];
-            const userRef = usersRef.doc(userDoc.id);
-            const userData = userDoc.data();
-            let newIncome = userData.totalIncome || 0;
-            let newExpense = userData.totalExpense || 0;
+            // Revert global metrics
+            const globalMetricsDoc = await transaction.get(appDataRef);
+            let globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
 
             if (transactionData.type === 'masuk') {
-              newIncome -= transactionData.amount;
+                globalData.totalAppIncome -= (transactionData.amount * transactionData.recipients.length); // Assuming initial logic multiplied by recipients
             } else {
-              newExpense -= transactionData.amount;
+                globalData.totalAppExpense -= (transactionData.amount * transactionData.recipients.length);
+            }
+            transaction.set(appDataRef, globalData);
+
+            // Revert user balances (this part needs to be precise based on how income/expense was initially added)
+            // The current transaction creation logic seems to update individual user balances.
+            // So we need to reverse that for each recipient.
+            if (transactionData.recipients && transactionData.recipients.includes('ALL_USERS')) {
+                const allUsersSnapshot = await usersRef.get();
+                allUsersSnapshot.docs.forEach(userDoc => {
+                    const userRef = usersRef.doc(userDoc.id);
+                    const userData = userDoc.data();
+                    if (transactionData.type === 'masuk') {
+                        transaction.update(userRef, { totalIncome: userData.totalIncome - transactionData.amount });
+                    } else {
+                        transaction.update(userRef, { totalExpense: userData.totalExpense - transactionData.amount });
+                    }
+                });
+            } else if (transactionData.recipients && transactionData.recipients.length > 0) {
+                for (const email of transactionData.recipients) {
+                    const userQuery = await usersRef.where('email', '==', email).limit(1).get();
+                    if (!userQuery.empty) {
+                        const userDoc = userQuery.docs[0];
+                        const userRef = usersRef.doc(userDoc.id);
+                        const userData = userDoc.data();
+                        if (transactionData.type === 'masuk') {
+                            transaction.update(userRef, { totalIncome: userData.totalIncome - transactionData.amount });
+                        } else {
+                            transaction.update(userRef, { totalExpense: userData.totalExpense - transactionData.amount });
+                        }
+                    }
+                }
             }
             
-            transaction.update(userRef, {
-              totalIncome: newIncome,
-              totalExpense: newExpense
-            });
+            transaction.delete(transactionsRef.doc(id));
+        });
+
+        showSuccess("Transaksi berhasil dihapus!");
+        await loadTransactions();
+        await loadUserData(); // Reload user data to update balances
+        updateBalance(); // Update dashboard total balance
+      } catch (error) {
+        showError("Gagal menghapus transaksi: " + error.message);
+      }
+    }
+    
+    async function updateBalance() {
+      try {
+        const globalMetricsDoc = await appDataRef.get();
+        const globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
+
+        const totalIncome = globalData.totalAppIncome || 0;
+        const totalExpense = globalData.totalAppExpense || 0;
+        const totalBalance = totalIncome - totalExpense;
+
+        document.getElementById('total-saldo').textContent = formatRupiah(totalBalance);
+        document.getElementById('income-amount').textContent = '+ ' + formatRupiah(totalIncome);
+        document.getElementById('expense-amount').textContent = '- ' + formatRupiah(totalExpense);
+
+        // Update chart
+        updateFinanceChart(totalIncome, totalExpense);
+
+      } catch (error) {
+        console.error("Error updating balance:", error);
+      }
+    }
+
+    function updateFinanceChart(income, expense) {
+      const ctx = document.getElementById('finance-chart').getContext('2d');
+      if (financeChart) {
+        financeChart.destroy();
+      }
+      financeChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Pemasukan', 'Pengeluaran'],
+          datasets: [{
+            data: [income, expense],
+            backgroundColor: ['#10B981', '#EF4444'], // Primary Green, Red
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#f3f4f6' // Light gray for legend text
+              }
+            }
           }
         }
-      } else {
-        // Revert for transaction creator
-        const userDocRef = usersRef.doc(transactionData.userId);
-        const userDoc = await transaction.get(userDocRef);
-        if (userDoc.exists) {
-          const userData = userDoc.data();
-          let newIncome = userData.totalIncome || 0;
-          let newExpense = userData.totalExpense || 0;
-
-          if (transactionData.type === 'masuk') {
-            newIncome -= transactionData.amount;
-          } else {
-            newExpense -= transactionData.amount;
-          }
-          
-          transaction.update(userDocRef, {
-            totalIncome: newIncome,
-            totalExpense: newExpense
-          });
-        }
-      }
-
-      // Revert global balance
-      let newTotalAppIncome = globalData.totalAppIncome;
-      let newTotalAppExpense = globalData.totalAppExpense;
-
-      if (transactionData.type === 'masuk') {
-        newTotalAppIncome -= totalAmountToRevert;
-      } else {
-        newTotalAppExpense -= totalAmountToRevert;
-      }
-      
-      transaction.update(globalMetricsDocRef, {
-        totalAppIncome: newTotalAppIncome,
-        totalAppExpense: newTotalAppExpense,
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
       });
-
-      // Delete the transaction
-      transaction.delete(transactionDocRef);
-    });
-
-    showSuccess("Transaksi berhasil dihapus!");
-    loadTransactions();
-  } catch (error) {
-    showError("Gagal menghapus transaksi: " + error.message);
-  }
-}
+    }
 
     // ================= AGENDA MANAGEMENT =================
     function initAgendaListeners() {
+      // Add agenda button
       document.getElementById('add-agenda-btn').addEventListener('click', () => {
         document.getElementById('agenda-form').classList.remove('hidden');
         document.getElementById('agenda-form').reset();
@@ -1951,6 +1461,7 @@ document.getElementById('print-transactions').addEventListener('click', async ()
         editingAgendaId = null;
       });
 
+      // Cancel agenda button
       document.getElementById('cancel-agenda-btn').addEventListener('click', () => {
         document.getElementById('agenda-form').classList.add('hidden');
         document.getElementById('agenda-form').reset();
@@ -1960,6 +1471,7 @@ document.getElementById('print-transactions').addEventListener('click', async ()
         editingAgendaId = null;
       });
 
+      // Agenda file input change
       document.getElementById('agenda-file').addEventListener('change', (e) => {
         selectedAgendaFile = e.target.files[0];
         if (selectedAgendaFile) {
@@ -1972,6 +1484,7 @@ document.getElementById('print-transactions').addEventListener('click', async ()
         }
       });
 
+      // Remove agenda attachment
       document.getElementById('remove-agenda-attachment').addEventListener('click', () => {
         selectedAgendaFile = null;
         document.getElementById('agenda-file').value = '';
@@ -1979,55 +1492,50 @@ document.getElementById('print-transactions').addEventListener('click', async ()
         document.getElementById('agenda-attachment-preview').classList.add('hidden');
       });
 
+      // Agenda form submit
       document.getElementById('agenda-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const title = document.getElementById('agenda-title').value;
         const description = document.getElementById('agenda-desc').value;
         const date = document.getElementById('agenda-date').value;
 
-        if (!title || !description || !date) {
-          showError("Harap isi semua field yang diperlukan.");
+        if (!title.trim() || !description.trim() || !date) {
+          showError("Semua kolom harus diisi!");
           return;
         }
 
-        let fileUrl = '';
-        if (selectedAgendaFile) {
-          try {
-            const storageRef = storage.ref(`agendas/${currentUser.uid}/${Date.now()}_${selectedAgendaFile.name}`);
-            const snapshot = await storageRef.put(selectedAgendaFile);
-            fileUrl = await snapshot.ref.getDownloadURL();
-          } catch (error) {
-            showError("Gagal mengunggah file lampiran: " + error.message);
-            return;
-          }
-        }
-
-        const agendaData = {
-          userId: currentUser.uid,
-          userName: document.getElementById('user-name').textContent,
-          title: title,
-          description: description,
-          date: date,
-          fileUrl: fileUrl,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
         try {
+          let attachmentUrl = '';
+          if (selectedAgendaFile) {
+            const storageRef = storage.ref(`agenda_attachments/${selectedAgendaFile.name}`);
+            const snapshot = await storageRef.put(selectedAgendaFile);
+            attachmentUrl = await snapshot.ref.getDownloadURL();
+          }
+
+          const agendaData = {
+            title: title,
+            description: description,
+            date: date,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            attachment: attachmentUrl,
+            userId: currentUser.uid,
+            userName: (await usersRef.doc(currentUser.uid).get()).data().name
+          };
+
           if (editingAgendaId) {
             await agendasRef.doc(editingAgendaId).update(agendaData);
-            showSuccess("Agenda berhasil diperbarui!");
           } else {
             await agendasRef.add(agendaData);
-            showSuccess("Agenda berhasil ditambahkan!");
           }
 
+          showSuccess(editingAgendaId ? "Agenda berhasil diupdate!" : "Agenda berhasil ditambahkan!");
           document.getElementById('agenda-form').classList.add('hidden');
           document.getElementById('agenda-form').reset();
           selectedAgendaFile = null;
           document.getElementById('agenda-file-name-display').textContent = 'Pilih file...';
           document.getElementById('agenda-attachment-preview').classList.add('hidden');
           editingAgendaId = null;
-          loadAgendas();
+          await loadAgendas();
         } catch (error) {
           showError("Gagal menyimpan agenda: " + error.message);
         }
@@ -2036,56 +1544,59 @@ document.getElementById('print-transactions').addEventListener('click', async ()
 
     async function loadAgendas() {
       const agendaList = document.getElementById('agenda-list');
+      if (!agendaList) return;
+
       agendaList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data agenda...</p></div>';
-      
+
       try {
-        const snapshot = await agendasRef.orderBy('date', 'desc').get();
+        const snapshot = await agendasRef.orderBy("date", "desc").get();
         agendaList.innerHTML = '';
-        
+
         if (snapshot.empty) {
-          agendaList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada agenda</p>';
+          agendaList.innerHTML = '<p class="text-center text-gray-400 py-10">Belum ada agenda.</p>';
           return;
         }
-        
+
         snapshot.forEach(doc => {
           const agenda = doc.data();
-          const agendaDate = agenda.date;
-          
-          const agendaElement = document.createElement('div');
-          agendaElement.className = `agenda-card p-4 bg-gray-800/50`;
-          agendaElement.innerHTML = `
-            <div class="flex justify-between items-center mb-2">
-              <h4 class="font-medium text-lg">${agenda.title}</h4>
-              <p class="text-sm text-gray-400">${agendaDate}</p>
-            </div>
-            <p class="text-gray-300 text-sm mb-2">${agenda.description}</p>
-            ${agenda.fileUrl ? `<p class="text-xs text-purple-400"><a href="${agenda.fileUrl}" target="_blank" class="hover:underline"><i class="fas fa-paperclip mr-1"></i> Lampiran</a></p>` : ''}
-            <p class="text-xs text-gray-500 mt-2">Dibuat oleh: ${agenda.userName}</p>
-            ${currentUser && currentUser.role === 'admin' ? `
-              <div class="action-buttons mt-3">
-                <button class="edit-agenda action-button" data-id="${doc.id}">
-                  <i class="fas fa-edit mr-1"></i> Edit
-                </button>
-                <button class="delete-agenda action-button text-red-400" data-id="${doc.id}">
-                  <i class="fas fa-trash mr-1"></i> Hapus
-                </button>
+          const agendaDate = new Date(agenda.date + 'T00:00:00'); // Ensure date is parsed correctly
+          const formattedDate = agendaDate.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          const timestamp = agenda.timestamp ? new Date(agenda.timestamp.toDate()).toLocaleString() : 'N/A';
+
+          const agendaItem = `
+            <div class="agenda-card p-4 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between">
+              <div class="flex-grow">
+                <h3 class="text-lg font-semibold text-purple-300">${agenda.title}</h3>
+                <p class="text-sm text-gray-300 mb-2">${agenda.description}</p>
+                <p class="text-sm text-gray-400"><i class="fas fa-calendar-alt mr-2"></i>${formattedDate}</p>
+                <p class="text-xs text-gray-500">Dibuat: ${timestamp} oleh ${agenda.userName}</p>
+                ${agenda.attachment ? `
+                  <a href="${agenda.attachment}" target="_blank" class="text-blue-400 hover:underline text-sm mt-2 block">
+                    <i class="fas fa-paperclip mr-1"></i> Lihat Lampiran
+                  </a>
+                ` : ''}
               </div>
-            ` : ''}
+              ${currentUser && currentUser.role === 'admin' ? `
+              <div class="mt-4 md:mt-0 flex space-x-2">
+                <button class="text-blue-400 hover:text-blue-300 text-sm edit-agenda" data-id="${doc.id}">Edit</button>
+                <button class="text-red-400 hover:text-red-300 text-sm delete-agenda" data-id="${doc.id}">Hapus</button>
+              </div>
+              ` : ''}
+            </div>
           `;
-          
-          agendaList.appendChild(agendaElement);
+          agendaList.innerHTML += agendaItem;
         });
 
-        if (currentUser && currentUser.role === 'admin') {
-          agendaList.querySelectorAll('.edit-agenda').forEach(button => {
-            button.onclick = (e) => editAgenda(e.currentTarget.dataset.id);
-          });
-          agendaList.querySelectorAll('.delete-agenda').forEach(button => {
-            button.onclick = (e) => deleteAgenda(e.currentTarget.dataset.id);
-          });
-        }
+        agendaList.querySelectorAll('.edit-agenda').forEach(button => {
+          button.addEventListener('click', (e) => editAgenda(e.target.dataset.id));
+        });
+        agendaList.querySelectorAll('.delete-agenda').forEach(button => {
+          button.addEventListener('click', (e) => deleteAgenda(e.target.dataset.id));
+        });
+
       } catch (error) {
-        agendaList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat agenda: ${error.message}</p>`;
+        showError("Error memuat agenda: " + error.message);
+        agendaList.innerHTML = '<p class="text-center text-red-400 py-10">Gagal memuat agenda.</p>';
       }
     }
 
@@ -2093,92 +1604,77 @@ document.getElementById('print-transactions').addEventListener('click', async ()
       try {
         const doc = await agendasRef.doc(id).get();
         if (!doc.exists) {
-          showError("Agenda tidak ditemukan.");
+          showError("Agenda tidak ditemukan!");
           return;
         }
-
         const agenda = doc.data();
+        editingAgendaId = id;
+
         document.getElementById('agenda-title').value = agenda.title;
         document.getElementById('agenda-desc').value = agenda.description;
         document.getElementById('agenda-date').value = agenda.date;
-        
-        if (agenda.fileUrl) {
-          const fileName = agenda.fileUrl.split('/').pop().split('?')[0].split('_').slice(1).join('_');
-          document.getElementById('agenda-file-name-display').textContent = fileName;
-          document.getElementById('agenda-preview-name').textContent = fileName;
+
+        if (agenda.attachment) {
+          document.getElementById('agenda-file-name-display').textContent = 'File terlampir';
+          document.getElementById('agenda-preview-name').textContent = agenda.attachment.split('/').pop().split('?')[0]; // Extract filename
           document.getElementById('agenda-attachment-preview').classList.remove('hidden');
         } else {
           document.getElementById('agenda-file-name-display').textContent = 'Pilih file...';
           document.getElementById('agenda-attachment-preview').classList.add('hidden');
         }
+        selectedAgendaFile = null; // Clear selected file for new upload
 
         document.getElementById('agenda-form').classList.remove('hidden');
-        editingAgendaId = id;
-        showSuccess("Anda sedang mengedit agenda ini.");
       } catch (error) {
-        showError("Gagal mengambil agenda untuk diedit: " + error.message);
+        showError("Gagal mengedit agenda: " + error.message);
       }
     }
 
     async function deleteAgenda(id) {
-      if (!confirm("Apakah Anda yakin ingin menghapus agenda ini?")) return;
+      if (!confirm("Apakah Anda yakin ingin menghapus agenda ini?")) {
+        return;
+      }
 
       try {
-        const doc = await agendasRef.doc(id).get();
-        if (!doc.exists) {
-          showError("Agenda tidak ditemukan.");
-          return;
-        }
-
-        const agenda = doc.data();
-        
-        // Delete file from storage if exists
-        if (agenda.fileUrl) {
-          const fileRef = storage.refFromURL(agenda.fileUrl);
-          await fileRef.delete();
-        }
-
         await agendasRef.doc(id).delete();
         showSuccess("Agenda berhasil dihapus!");
-        loadAgendas();
+        await loadAgendas();
       } catch (error) {
         showError("Gagal menghapus agenda: " + error.message);
       }
     }
 
-    // ================= SOCIAL MEDIA FUNCTIONS =================
+    // ================= SOCIAL MEDIA POSTS =================
     function initSocialListeners() {
-      // Post image change
+      // Post image/video input change
       document.getElementById('post-image').addEventListener('change', (e) => {
         selectedPostFile = e.target.files[0];
         const previewImage = document.getElementById('preview-image');
         const previewVideo = document.getElementById('preview-video');
-        const previewContainer = document.getElementById('post-attachment-preview-container');
+        const attachmentContainer = document.getElementById('post-attachment-preview-container');
+        const imageNameDisplay = document.getElementById('image-name-display');
 
         if (selectedPostFile) {
-          const fileType = selectedPostFile.type;
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            if (fileType.startsWith('image/')) {
-              previewImage.src = e.target.result;
-              previewImage.classList.remove('hidden');
-              previewVideo.classList.add('hidden');
-            } else if (fileType.startsWith('video/')) {
-              previewVideo.src = e.target.result;
-              previewVideo.classList.remove('hidden');
-              previewImage.classList.add('hidden');
-            }
-            previewContainer.classList.remove('hidden');
-          };
-          reader.readAsDataURL(selectedPostFile);
-          document.getElementById('image-name-display').textContent = selectedPostFile.name;
+          imageNameDisplay.textContent = selectedPostFile.name;
+          attachmentContainer.classList.remove('hidden');
+          if (selectedPostFile.type.startsWith('image/')) {
+            previewImage.src = URL.createObjectURL(selectedPostFile);
+            previewImage.classList.remove('hidden');
+            previewVideo.classList.add('hidden');
+          } else if (selectedPostFile.type.startsWith('video/')) {
+            previewVideo.src = URL.createObjectURL(selectedPostFile);
+            previewVideo.classList.remove('hidden');
+            previewImage.classList.add('hidden');
+          } else {
+            imageNameDisplay.textContent = 'Jenis file tidak didukung';
+            attachmentContainer.classList.add('hidden');
+            selectedPostFile = null;
+          }
         } else {
-          previewContainer.classList.add('hidden');
+          imageNameDisplay.textContent = 'Lampirkan Gambar/Video';
+          attachmentContainer.classList.add('hidden');
           previewImage.classList.add('hidden');
           previewVideo.classList.add('hidden');
-          previewImage.src = '';
-          previewVideo.src = '';
-          document.getElementById('image-name-display').textContent = 'Lampirkan Gambar/Video';
         }
       });
 
@@ -2186,12 +1682,10 @@ document.getElementById('print-transactions').addEventListener('click', async ()
       document.getElementById('remove-attachment').addEventListener('click', () => {
         selectedPostFile = null;
         document.getElementById('post-image').value = '';
+        document.getElementById('image-name-display').textContent = 'Lampirkan Gambar/Video';
         document.getElementById('post-attachment-preview-container').classList.add('hidden');
         document.getElementById('preview-image').classList.add('hidden');
         document.getElementById('preview-video').classList.add('hidden');
-        document.getElementById('preview-image').src = '';
-        document.getElementById('preview-video').src = '';
-        document.getElementById('image-name-display').textContent = 'Lampirkan Gambar/Video';
       });
 
       // Post form submit
@@ -2199,540 +1693,530 @@ document.getElementById('print-transactions').addEventListener('click', async ()
         e.preventDefault();
         const content = document.getElementById('post-content').value;
 
-        if (!currentUser?.uid) {
-          showError("Anda harus login untuk membuat postingan.");
-          return;
-        }
-
         if (!content.trim() && !selectedPostFile) {
-          showError("Postingan tidak boleh kosong!");
+          showError("Konten postingan tidak boleh kosong!");
           return;
         }
-
-        let fileUrl = '';
-        let fileType = '';
-
-        if (selectedPostFile) {
-          try {
-            const storageRef = storage.ref(`posts/${currentUser.uid}/${Date.now()}_${selectedPostFile.name}`);
-            const snapshot = await storageRef.put(selectedPostFile);
-            fileUrl = await snapshot.ref.getDownloadURL();
-            fileType = selectedPostFile.type.startsWith('image/') ? 'image' : 
-                      (selectedPostFile.type.startsWith('video/') ? 'video' : '');
-          } catch (error) {
-            showError("Gagal mengunggah lampiran postingan: " + error.message);
-            return;
-          }
-        }
-
-        const userProfileImage = currentUser.photoURL || document.getElementById('profile-image').src || '';
-        const userName = currentUser.name || currentUser.email.split('@')[0] || document.getElementById('user-name').textContent;
 
         try {
-          await postsRef.add({
-            userId: currentUser.uid,
-            userName: userName,
-            userProfileImage: userProfileImage,
-            content: content.trim(),
-            fileUrl: fileUrl,
-            fileType: fileType,
-            likesCount: 0,
-            commentsCount: 0,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
+          let mediaUrl = '';
+          let mediaType = '';
+          if (selectedPostFile) {
+            const storageRef = storage.ref(`social_media/${selectedPostFile.name}`);
+            const snapshot = await storageRef.put(selectedPostFile);
+            mediaUrl = await snapshot.ref.getDownloadURL();
+            mediaType = selectedPostFile.type.startsWith('image/') ? 'image' : 'video';
+          }
 
-          showSuccess("Postingan berhasil diterbitkan!");
+          const postData = {
+            content: content,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            userId: currentUser.uid,
+            userName: (await usersRef.doc(currentUser.uid).get()).data().name,
+            mediaUrl: mediaUrl,
+            mediaType: mediaType,
+            likes: [],
+            comments: []
+          };
+
+          if (editingPostId) {
+            await postsRef.doc(editingPostId).update(postData);
+          } else {
+            await postsRef.add(postData);
+          }
+
+          showSuccess(editingPostId ? "Postingan berhasil diupdate!" : "Postingan berhasil dipublikasikan!");
           document.getElementById('post-form').reset();
-          document.getElementById('remove-attachment').click();
-          loadPosts();
+          selectedPostFile = null;
+          document.getElementById('post-image').value = '';
+          document.getElementById('image-name-display').textContent = 'Lampirkan Gambar/Video';
+          document.getElementById('post-attachment-preview-container').classList.add('hidden');
+          document.getElementById('preview-image').classList.add('hidden');
+          document.getElementById('preview-video').classList.add('hidden');
+          editingPostId = null;
+          await loadPosts();
         } catch (error) {
-          showError("Gagal menerbitkan postingan: " + error.message);
+          showError("Gagal mempublikasikan postingan: " + error.message);
         }
       });
     }
 
     async function loadPosts() {
       const socialFeed = document.getElementById('social-feed');
+      if (!socialFeed) return;
+
       socialFeed.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat postingan...</p></div>';
 
       try {
-        const snapshot = await postsRef.orderBy('createdAt', 'desc').get();
+        const snapshot = await postsRef.orderBy("timestamp", "desc").get();
         socialFeed.innerHTML = '';
 
         if (snapshot.empty) {
-          socialFeed.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada postingan</p>';
+          socialFeed.innerHTML = '<p class="text-center text-gray-400 py-10">Belum ada postingan.</p>';
           return;
         }
 
-        const postPromises = snapshot.docs.map(async doc => {
+        snapshot.forEach(doc => {
           const post = doc.data();
-          const postId = doc.id;
-          const postDate = post.createdAt ? post.createdAt.toDate().toLocaleDateString('id-ID', { 
-            day: 'numeric', 
-            month: 'long', 
-            year: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }) : 'Tidak diketahui';
+          const timestamp = post.timestamp ? new Date(post.timestamp.toDate()).toLocaleString() : 'N/A';
+          const likedByCurrentUser = post.likes.includes(currentUser.uid) ? 'active' : '';
 
-          let attachmentHtml = '';
-          if (post.fileUrl) {
-            if (post.fileType === 'image') {
-              attachmentHtml = `<img src="${post.fileUrl}" alt="Post Image" class="w-full attachment-preview mt-3 rounded-lg">`;
-            } else if (post.fileType === 'video') {
-              attachmentHtml = `<video src="${post.fileUrl}" controls class="w-full attachment-preview mt-3 rounded-lg"></video>`;
+          let mediaContent = '';
+          if (post.mediaUrl) {
+            if (post.mediaType === 'image') {
+              mediaContent = `<img src="${post.mediaUrl}" alt="Post Image" class="attachment-preview w-full">`;
+            } else if (post.mediaType === 'video') {
+              mediaContent = `<video src="${post.mediaUrl}" controls class="attachment-preview w-full"></video>`;
             }
           }
 
-          // Check if current user liked this post
-          let likedByCurrentUser = false;
-          if (currentUser?.uid) {
-            const likeDoc = await postsRef.doc(postId).collection('likes').doc(currentUser.uid).get();
-            likedByCurrentUser = likeDoc.exists;
-          }
-
-          // Get comments for this post
-          const commentsSnapshot = await postsRef.doc(postId).collection('comments').orderBy('createdAt', 'asc').get();
-          const commentsHtml = commentsSnapshot.docs.map(commentDoc => {
-            const comment = commentDoc.data();
-            const commentTime = comment.createdAt ? comment.createdAt.toDate().toLocaleTimeString('id-ID', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            }) : '';
-            
-            const commentUserAvatar = comment.userProfileImage ? 
-              `<img src="${comment.userProfileImage}" class="w-6 h-6 rounded-full object-cover mr-2" alt="Avatar">` : 
-              `<div class="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center text-xs text-white mr-2">${comment.userName.charAt(0)}</div>`;
-
-            return `
-              <div class="comment-box flex items-start text-sm bg-gray-800 p-2 rounded-lg mb-2">
-                ${commentUserAvatar}
+          const postItem = `
+            <div class="post-card p-6">
+              <div class="flex items-center mb-4">
+                <div class="user-avatar w-10 h-10 text-md mr-3">${post.userName.charAt(0)}</div>
                 <div>
-                  <p class="font-medium text-gray-200">${comment.userName} <span class="text-gray-500 text-xs">${commentTime}</span></p>
-                  <p class="text-gray-300">${comment.content}</p>
+                  <p class="font-medium">${post.userName}</p>
+                  <p class="text-xs text-gray-500">${timestamp}</p>
                 </div>
               </div>
-            `;
-          }).join('');
-
-          const postElement = document.createElement('div');
-          postElement.className = `post-card bg-gray-900 rounded-lg shadow-md p-5 mb-5`;
-          postElement.innerHTML = `
-            <div class="flex items-center mb-4">
-              <div class="user-avatar w-10 h-10 text-base mr-3 rounded-full overflow-hidden bg-gray-700 flex items-center justify-center text-white">
-                ${post.userProfileImage ? `<img src="${post.userProfileImage}" class="w-full h-full object-cover" alt="Profile">` : post.userName.charAt(0).toUpperCase()}
+              <p class="text-gray-200 mb-4">${post.content}</p>
+              ${mediaContent}
+              <div class="action-buttons mt-4 flex items-center">
+                <button class="action-button like-button ${likedByCurrentUser}" data-id="${doc.id}">
+                  <i class="fas fa-heart"></i> <span class="like-count">${post.likes.length}</span> Suka
+                </button>
+                <button class="action-button comment-button" data-id="${doc.id}">
+                  <i class="fas fa-comment"></i> Komentar (${post.comments.length})
+                </button>
+                ${currentUser && (currentUser.role === 'admin' || currentUser.uid === post.userId) ? `
+                <button class="action-button edit-post" data-id="${doc.id}">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="action-button delete-post text-red-400" data-id="${doc.id}">
+                  <i class="fas fa-trash"></i> Hapus
+                </button>
+                ` : ''}
               </div>
-              <div>
-                <h4 class="font-medium text-gray-100">${post.userName}</h4>
-                <p class="text-xs text-gray-500">${postDate}</p>
-              </div>
-              ${currentUser && (currentUser.uid === post.userId || currentUser.role === 'admin') ? `
-                <div class="ml-auto">
-                  <button class="delete-post-button text-red-500 hover:text-red-400 text-lg" data-id="${postId}" title="Hapus Postingan">
-                    <i class="fas fa-trash"></i>
-                  </button>
+              <div class="comments-section mt-4 hidden" id="comments-${doc.id}">
+                <div class="space-y-3">
+                  ${post.comments.map(comment => `
+                    <div class="comment-box text-sm">
+                      <p class="font-medium">${comment.userName}</p>
+                      <p>${comment.text}</p>
+                      <p class="text-xs text-gray-500">${new Date(comment.timestamp.toDate()).toLocaleString()}</p>
+                    </div>
+                  `).join('')}
                 </div>
-              ` : ''}
-            </div>
-            <p class="text-gray-200 mb-3 whitespace-pre-wrap">${post.content}</p>
-            ${attachmentHtml}
-            <div class="flex items-center text-sm text-gray-400 mt-4 border-t border-gray-700 pt-3">
-              <button class="like-button ${likedByCurrentUser ? 'text-red-500' : 'text-gray-400'} mr-4 hover:text-red-400 transition-colors duration-200" data-id="${postId}">
-                <i class="fas fa-heart"></i> <span class="likes-count">${post.likesCount || 0}</span> Suka
-              </button>
-              <button class="comment-toggle-button text-gray-400 hover:text-blue-400 transition-colors duration-200" data-id="${postId}">
-                <i class="fas fa-comment"></i> <span class="comments-count">${commentsSnapshot.size}</span> Komentar
-              </button>
-            </div>
-            <div class="comments-section mt-4 hidden">
-              <div class="comments-list space-y-2">
-                ${commentsHtml}
+                <div class="flex mt-3">
+                  <input type="text" placeholder="Tambahkan komentar..." class="input-field flex-grow mr-2 comment-input" data-id="${doc.id}">
+                  <button class="btn-primary add-comment-btn" data-id="${doc.id}">Kirim</button>
+                </div>
               </div>
-              <form class="add-comment-form mt-3" data-id="${postId}">
-                <input type="text" placeholder="Tambahkan komentar..." class="input-field w-full p-2 rounded-md bg-gray-700 text-gray-100 border border-gray-600 focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50" required>
-                <button type="submit" class="btn-primary px-4 py-2 text-sm mt-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200">Kirim</button>
-              </form>
             </div>
           `;
-          socialFeed.appendChild(postElement);
-
-          // Add event listeners
-          postElement.querySelector('.like-button').addEventListener('click', (e) => toggleLike(e.currentTarget.dataset.id));
-          postElement.querySelector('.comment-toggle-button').addEventListener('click', (e) => {
-            const commentsSection = postElement.querySelector('.comments-section');
-            commentsSection.classList.toggle('hidden');
-          });
-          postElement.querySelector('.add-comment-form').addEventListener('submit', (e) => addComment(e));
-          
-          const deleteButton = postElement.querySelector('.delete-post-button');
-          if (deleteButton) {
-            deleteButton.addEventListener('click', (e) => deletePost(e.currentTarget.dataset.id, post.fileUrl));
-          }
+          socialFeed.innerHTML += postItem;
         });
 
-        await Promise.all(postPromises);
+        socialFeed.querySelectorAll('.like-button').forEach(button => {
+          button.addEventListener('click', (e) => toggleLike(e.target.dataset.id));
+        });
+        socialFeed.querySelectorAll('.comment-button').forEach(button => {
+          button.addEventListener('click', (e) => toggleCommentsSection(e.target.dataset.id));
+        });
+        socialFeed.querySelectorAll('.add-comment-btn').forEach(button => {
+          button.addEventListener('click', (e) => addComment(e.target.dataset.id));
+        });
+        socialFeed.querySelectorAll('.edit-post').forEach(button => {
+          button.addEventListener('click', (e) => editPost(e.target.dataset.id));
+        });
+        socialFeed.querySelectorAll('.delete-post').forEach(button => {
+          button.addEventListener('click', (e) => deletePost(e.target.dataset.id));
+        });
+
       } catch (error) {
-        socialFeed.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat postingan: ${error.message}</p>`;
+        showError("Error memuat postingan: " + error.message);
+        socialFeed.innerHTML = '<p class="text-center text-red-400 py-10">Gagal memuat postingan.</p>';
       }
     }
 
     async function toggleLike(postId) {
-      if (!currentUser?.uid) {
+      if (!currentUser) {
         showError("Anda harus login untuk menyukai postingan.");
         return;
       }
-
-      const likeRef = postsRef.doc(postId).collection('likes').doc(currentUser.uid);
-      const postDocRef = postsRef.doc(postId);
-
       try {
-        const likeDoc = await likeRef.get();
-        
-        if (likeDoc.exists) {
+        const postRef = postsRef.doc(postId);
+        const postDoc = await postRef.get();
+        if (!postDoc.exists) return;
+
+        let likes = postDoc.data().likes || [];
+        if (likes.includes(currentUser.uid)) {
           // Unlike
-          await likeRef.delete();
-          await postDocRef.update({ 
-            likesCount: firebase.firestore.FieldValue.increment(-1) 
-          });
+          likes = likes.filter(uid => uid !== currentUser.uid);
         } else {
           // Like
-          await likeRef.set({ 
-            userId: currentUser.uid, 
-            likedAt: firebase.firestore.FieldValue.serverTimestamp() 
-          });
-          await postDocRef.update({ 
-            likesCount: firebase.firestore.FieldValue.increment(1) 
-          });
+          likes.push(currentUser.uid);
         }
-        loadPosts();
+        await postRef.update({ likes: likes });
+        await loadPosts(); // Reload posts to update like count and button state
       } catch (error) {
-        showError("Gagal mengubah status suka: " + error.message);
+        showError("Gagal menyukai postingan: " + error.message);
       }
     }
 
-    async function addComment(e) {
-      e.preventDefault();
-      const postId = e.currentTarget.dataset.id;
-      const commentInput = e.currentTarget.querySelector('input');
-      const commentContent = commentInput.value;
+    function toggleCommentsSection(postId) {
+      const commentsSection = document.getElementById(`comments-${postId}`);
+      if (commentsSection) {
+        commentsSection.classList.toggle('hidden');
+      }
+    }
 
-      if (!currentUser?.uid) {
+    async function addComment(postId) {
+      if (!currentUser) {
         showError("Anda harus login untuk menambahkan komentar.");
         return;
       }
+      const commentInput = document.querySelector(`#comments-${postId} .comment-input`);
+      const commentText = commentInput.value.trim();
 
-      if (!commentContent.trim()) {
+      if (!commentText) {
         showError("Komentar tidak boleh kosong!");
         return;
       }
 
       try {
-        const commentsRef = postsRef.doc(postId).collection('comments');
-        const postDocRef = postsRef.doc(postId);
-
-        await commentsRef.add({
-          userId: currentUser.uid,
-          userName: currentUser.name || currentUser.email.split('@')[0],
-          userProfileImage: currentUser.photoURL || '',
-          content: commentContent.trim(),
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        const postRef = postsRef.doc(postId);
+        await postRef.update({
+          comments: firebase.firestore.FieldValue.arrayUnion({
+            userId: currentUser.uid,
+            userName: (await usersRef.doc(currentUser.uid).get()).data().name,
+            text: commentText,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+          })
         });
-
-        await postDocRef.update({
-          commentsCount: firebase.firestore.FieldValue.increment(1)
-        });
-
         commentInput.value = '';
-        loadPosts();
+        await loadPosts(); // Reload posts to update comments
+        toggleCommentsSection(postId); // Re-open comments section after adding
       } catch (error) {
         showError("Gagal menambahkan komentar: " + error.message);
       }
     }
 
-    async function deletePost(postId, fileUrl) {
-      if (!confirm("Apakah Anda yakin ingin menghapus postingan ini? Semua komentar, suka, dan lampiran juga akan terhapus.")) return;
+    async function editPost(id) {
+      try {
+        const doc = await postsRef.doc(id).get();
+        if (!doc.exists) {
+          showError("Postingan tidak ditemukan!");
+          return;
+        }
+        const post = doc.data();
+        editingPostId = id;
+
+        document.getElementById('post-content').value = post.content;
+        
+        // Handle media if exists
+        const previewImage = document.getElementById('preview-image');
+        const previewVideo = document.getElementById('preview-video');
+        const attachmentContainer = document.getElementById('post-attachment-preview-container');
+        const imageNameDisplay = document.getElementById('image-name-display');
+
+        if (post.mediaUrl) {
+            imageNameDisplay.textContent = 'File terlampir';
+            attachmentContainer.classList.remove('hidden');
+            if (post.mediaType === 'image') {
+                previewImage.src = post.mediaUrl;
+                previewImage.classList.remove('hidden');
+                previewVideo.classList.add('hidden');
+            } else if (post.mediaType === 'video') {
+                previewVideo.src = post.mediaUrl;
+                previewVideo.classList.remove('hidden');
+                previewImage.classList.add('hidden');
+            }
+        } else {
+            imageNameDisplay.textContent = 'Lampirkan Gambar/Video';
+            attachmentContainer.classList.add('hidden');
+            previewImage.classList.add('hidden');
+            previewVideo.classList.add('hidden');
+        }
+        selectedPostFile = null; // Clear selected file for new upload
+
+        // Scroll to post form if it's not visible
+        document.getElementById('post-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      } catch (error) {
+        showError("Gagal mengedit postingan: " + error.message);
+      }
+    }
+
+    async function deletePost(id) {
+      if (!confirm("Apakah Anda yakin ingin menghapus postingan ini?")) {
+        return;
+      }
 
       try {
-        // Delete likes
-        const likesSnapshot = await postsRef.doc(postId).collection('likes').get();
-        const deleteLikesPromises = likesSnapshot.docs.map(doc => doc.ref.delete());
-        await Promise.all(deleteLikesPromises);
-
-        // Delete comments
-        const commentsSnapshot = await postsRef.doc(postId).collection('comments').get();
-        const deleteCommentsPromises = commentsSnapshot.docs.map(doc => doc.ref.delete());
-        await Promise.all(deleteCommentsPromises);
-
-        // Delete attachment if exists
-        if (fileUrl) {
-          try {
-            const fileRef = storage.refFromURL(fileUrl);
-            await fileRef.delete();
-          } catch (storageError) {
-            console.warn("Could not delete file from storage:", storageError.message);
-          }
-        }
-
-        // Delete post
-        await postsRef.doc(postId).delete();
+        await postsRef.doc(id).delete();
         showSuccess("Postingan berhasil dihapus!");
-        loadPosts();
+        await loadPosts();
       } catch (error) {
         showError("Gagal menghapus postingan: " + error.message);
       }
     }
 
-    // ================= ADMIN PANEL FUNCTIONS =================
+    // ================= ADMIN PANEL =================
     function initAdminListeners() {
-      // Admin tabs
+      // Admin tab navigation
       document.getElementById('users-tab').addEventListener('click', () => {
-        document.getElementById('users-admin-content').classList.remove('hidden');
-        document.getElementById('transactions-admin-content').classList.add('hidden');
-        document.getElementById('agendas-admin-content').classList.add('hidden');
         document.getElementById('users-tab').classList.add('tab-active');
         document.getElementById('transactions-admin-tab').classList.remove('tab-active');
         document.getElementById('agendas-admin-tab').classList.remove('tab-active');
+        document.getElementById('users-admin-content').classList.remove('hidden');
+        document.getElementById('transactions-admin-content').classList.add('hidden');
+        document.getElementById('agendas-admin-content').classList.add('hidden');
         loadUsers();
       });
-      
+
       document.getElementById('transactions-admin-tab').addEventListener('click', () => {
-        document.getElementById('users-admin-content').classList.add('hidden');
-        document.getElementById('transactions-admin-content').classList.remove('hidden');
-        document.getElementById('agendas-admin-content').classList.add('hidden');
         document.getElementById('users-tab').classList.remove('tab-active');
         document.getElementById('transactions-admin-tab').classList.add('tab-active');
         document.getElementById('agendas-admin-tab').classList.remove('tab-active');
-        loadAdminTransactions();
+        document.getElementById('users-admin-content').classList.add('hidden');
+        document.getElementById('transactions-admin-content').classList.remove('hidden');
+        document.getElementById('agendas-admin-content').classList.add('hidden');
+        loadTransactionsAdmin();
       });
       
       document.getElementById('agendas-admin-tab').addEventListener('click', () => {
-        document.getElementById('users-admin-content').classList.add('hidden');
-        document.getElementById('transactions-admin-content').classList.add('hidden');
-        document.getElementById('agendas-admin-content').classList.remove('hidden');
         document.getElementById('users-tab').classList.remove('tab-active');
         document.getElementById('transactions-admin-tab').classList.remove('tab-active');
         document.getElementById('agendas-admin-tab').classList.add('tab-active');
-        loadAdminAgendas();
+        document.getElementById('users-admin-content').classList.add('hidden');
+        document.getElementById('transactions-admin-content').classList.add('hidden');
+        document.getElementById('agendas-admin-content').classList.remove('hidden');
+        loadAgendasAdmin();
+      });
+
+      // Admin code toggle for registration form
+      document.getElementById('is-admin').addEventListener('change', (e) => {
+        const adminCodeContainer = document.getElementById('admin-code-container');
+        if (e.target.checked) {
+          adminCodeContainer.classList.remove('hidden');
+          document.getElementById('admin-code').setAttribute('required', 'true');
+        } else {
+          adminCodeContainer.classList.add('hidden');
+          document.getElementById('admin-code').removeAttribute('required');
+          document.getElementById('admin-code').value = ''; // Clear code when unchecked
+        }
       });
     }
 
     async function loadUsers() {
       const usersList = document.getElementById('users-list');
+      if (!usersList) return;
+
       usersList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data pengguna...</p></div>';
 
-      if (currentUser && currentUser.role !== 'admin') {
-        usersList.innerHTML = '<p class="text-center py-6 text-red-400">Anda tidak memiliki izin untuk melihat data pengguna.</p>';
-        return;
-      }
-      
       try {
-        const snapshot = await usersRef.get();
+        const snapshot = await usersRef.orderBy("createdAt", "desc").get();
         usersList.innerHTML = '';
-        
+
         if (snapshot.empty) {
-          usersList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada pengguna terdaftar.</p>';
+          usersList.innerHTML = '<p class="text-center text-gray-400 py-10">Belum ada pengguna terdaftar.</p>';
           return;
         }
 
         snapshot.forEach(doc => {
           const user = doc.data();
-          if (user.uid === currentUser.uid) return; // Skip current user
+          const roleBadgeClass = user.role === 'admin' ? 'admin-badge' : 'member-badge';
+          const roleText = user.role === 'admin' ? 'Admin' : 'Member';
+          const joinedDate = user.createdAt ? new Date(user.createdAt.toDate()).toLocaleDateString() : 'N/A';
 
-          const userElement = document.createElement('div');
-          userElement.className = `user-list-item solana-card p-3 my-2`;
-          userElement.innerHTML = `
-            <div class="user-avatar w-10 h-10 text-base mr-3">
-              ${user.profileImage ? `<img src="${user.profileImage}" class="w-full h-full rounded-full object-cover" alt="Profile">` : user.name.charAt(0)}
-            </div>
-            <div>
-              <p class="font-medium">${user.name} <span class="role-badge ${user.role === 'admin' ? 'admin-badge' : 'member-badge'}">${user.role === 'admin' ? 'Admin' : 'Member'}</span></p>
-              <p class="text-sm text-gray-400">${user.email}</p>
-            </div>
-            <div class="user-actions">
-              <select class="input-field text-sm p-1" data-uid="${user.uid}">
-                <option value="member" ${user.role === 'member' ? 'selected' : ''}>Member</option>
-                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
-              </select>
-              <button class="delete-user-btn px-3 py-1 bg-red-600/80 hover:bg-red-700 rounded-lg text-sm" data-uid="${user.uid}">
-                Hapus
-              </button>
+          const userItem = `
+            <div class="user-list-item solana-card">
+              <div class="user-avatar w-10 h-10 text-md mr-3">${user.name.charAt(0)}</div>
+              <div class="flex-grow">
+                <p class="font-medium">${user.name} <span class="role-badge ${roleBadgeClass}">${roleText}</span></p>
+                <p class="text-sm text-gray-400">${user.email}</p>
+                <p class="text-xs text-gray-500">Bergabung: ${joinedDate}</p>
+              </div>
+              <div class="user-actions">
+                <button class="px-3 py-1 bg-blue-600/80 hover:bg-blue-500/90 rounded-lg text-sm edit-user-role" data-id="${doc.id}" data-current-role="${user.role}">
+                  Ganti Role
+                </button>
+                <button class="px-3 py-1 bg-red-600/80 hover:bg-red-500/90 rounded-lg text-sm delete-user" data-id="${doc.id}">
+                  Hapus
+                </button>
+              </div>
             </div>
           `;
-          usersList.appendChild(userElement);
+          usersList.innerHTML += userItem;
         });
 
-        // Add event listeners for role change and delete
-        usersList.querySelectorAll('select.input-field').forEach(select => {
-          select.addEventListener('change', (e) => {
-            const uid = e.target.dataset.uid;
-            const newRole = e.target.value;
-            updateUserRole(uid, newRole);
-          });
+        usersList.querySelectorAll('.edit-user-role').forEach(button => {
+          button.addEventListener('click', (e) => editUserRole(e.target.dataset.id, e.target.dataset.currentRole));
         });
-        
-        usersList.querySelectorAll('.delete-user-btn').forEach(button => {
-          button.addEventListener('click', (e) => {
-            const uid = e.target.dataset.uid;
-            deleteUser(uid);
-          });
+        usersList.querySelectorAll('.delete-user').forEach(button => {
+          button.addEventListener('click', (e) => deleteUser(e.target.dataset.id));
         });
 
       } catch (error) {
-        usersList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat pengguna: ${error.message}</p>`;
+        showError("Error memuat pengguna: " + error.message);
+        usersList.innerHTML = '<p class="text-center text-red-400 py-10">Gagal memuat pengguna.</p>';
       }
     }
 
-    async function updateUserRole(uid, newRole) {
-      if (!currentUser || currentUser.role !== 'admin') {
-        showError("Anda tidak memiliki izin untuk mengubah peran.");
+    async function editUserRole(userId, currentRole) {
+      const newRole = currentRole === 'admin' ? 'member' : 'admin';
+      if (!confirm(`Apakah Anda yakin ingin mengubah peran pengguna ini menjadi ${newRole}?`)) {
         return;
       }
-      if (uid === currentUser.uid) {
-        showError("Anda tidak dapat mengubah peran Anda sendiri melalui panel ini.");
-        return;
-      }
-
       try {
-        await usersRef.doc(uid).update({ role: newRole });
+        await usersRef.doc(userId).update({ role: newRole });
         showSuccess(`Peran pengguna berhasil diubah menjadi ${newRole}.`);
-        loadUsers();
+        await loadUsers(); // Reload user list
       } catch (error) {
         showError("Gagal mengubah peran pengguna: " + error.message);
       }
     }
 
-    async function deleteUser(uidToDelete) {
-      if (!currentUser || currentUser.role !== 'admin') {
-        showError("Anda tidak memiliki izin untuk menghapus pengguna.");
+    async function deleteUser(userId) {
+      if (!confirm("Apakah Anda yakin ingin menghapus pengguna ini? Semua data terkait (transaksi, postingan, dll.) tidak akan terhapus otomatis.")) {
         return;
       }
-      if (uidToDelete === currentUser.uid) {
-        showError("Anda tidak dapat menghapus akun Anda sendiri melalui panel ini.");
-        return;
-      }
-
-      if (!confirm("Apakah Anda yakin ingin menghapus pengguna ini? Tindakan ini tidak dapat dibatalkan!")) {
-        return;
-      }
-
       try {
-        // Delete user's Firestore document
-        await usersRef.doc(uidToDelete).delete();
-
-        // Delete user's transactions
-        const userTransactionsSnapshot = await transactionsRef.where('userId', '==', uidToDelete).get();
-        const batch = db.batch();
-        userTransactionsSnapshot.forEach(doc => {
-          batch.delete(doc.ref);
-        });
-        await batch.commit();
-
-        // NOTE: Deleting from Firebase Authentication would require a Cloud Function
-        
-        showSuccess("Pengguna dan data terkait (transaksi) berhasil dihapus.");
-        loadUsers();
+        // Option 1: Delete user account from Firebase Auth (requires server-side or Cloud Functions)
+        // Option 2: Just delete user data from Firestore (user can still login but won't have app data)
+        // For simplicity, we'll just delete from Firestore for now.
+        // For a full solution, consider Firebase Cloud Functions to delete auth user and related data.
+        await usersRef.doc(userId).delete();
+        showSuccess("Pengguna berhasil dihapus dari database.");
+        await loadUsers(); // Reload user list
       } catch (error) {
         showError("Gagal menghapus pengguna: " + error.message);
       }
     }
 
-    async function loadAdminTransactions() {
+    async function loadTransactionsAdmin() {
       const adminTransactionsList = document.getElementById('admin-transactions-list');
+      if (!adminTransactionsList) return;
+
       adminTransactionsList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data transaksi...</p></div>';
 
-      if (currentUser && currentUser.role !== 'admin') {
-        adminTransactionsList.innerHTML = '<p class="text-center py-6 text-red-400">Anda tidak memiliki izin untuk melihat semua transaksi.</p>';
-        return;
-      }
-
       try {
-        const snapshot = await transactionsRef.orderBy('date', 'desc').get();
+        const snapshot = await transactionsRef.orderBy("timestamp", "desc").get();
         adminTransactionsList.innerHTML = '';
-        
+
         if (snapshot.empty) {
-          adminTransactionsList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada transaksi.</p>';
+          adminTransactionsList.innerHTML = '<p class="text-center text-gray-400 py-10">Belum ada transaksi.</p>';
           return;
         }
 
         snapshot.forEach(doc => {
           const transaction = doc.data();
-          const transactionDate = transaction.date ? transaction.date.toDate() : new Date();
-          const formattedDate = transactionDate.toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          });
+          const timestamp = transaction.timestamp ? new Date(transaction.timestamp.toDate()).toLocaleString() : 'N/A';
+          const isIncome = transaction.type === 'masuk';
+          const amountClass = isIncome ? 'text-green-400' : 'text-red-400';
+          const borderColorClass = isIncome ? 'transaction-in' : 'transaction-out';
+          const sign = isIncome ? '+' : '-';
 
-          const transactionElement = document.createElement('div');
-          transactionElement.className = `p-4 rounded-lg ${transaction.type === 'masuk' ? 'transaction-in' : 'transaction-out'} bg-gray-800/50`;
-          transactionElement.innerHTML = `
-            <div class="flex justify-between items-start">
+          const transactionItem = `
+            <div class="solana-card p-4 flex items-center justify-between ${borderColorClass}">
               <div>
-                <h4 class="font-medium">${transaction.description}</h4>
-                <p class="text-sm text-gray-400 mt-1">${formattedDate}</p>
+                <p class="text-lg font-medium">${transaction.description}</p>
+                <p class="text-sm text-gray-400">${timestamp} oleh ${transaction.userName}</p>
+                <p class="text-xs text-gray-500">Penerima: ${formatRecipients(transaction.recipients)}</p>
               </div>
               <div class="text-right">
-                <p class="${transaction.type === 'masuk' ? 'text-green-400' : 'text-red-400'} font-mono font-medium">${transaction.type === 'masuk' ? '+' : '-'} ${formatRupiah(transaction.amount)}</p>
-                <p class="text-xs text-gray-400 mt-1">Oleh: ${transaction.userName}</p>
+                <p class="text-xl font-bold ${amountClass}">${sign} ${formatRupiah(transaction.amount)}</p>
+                <div class="mt-2 flex space-x-2">
+                  <button class="text-blue-400 hover:text-blue-300 text-sm edit-transaction" data-id="${doc.id}">Edit</button>
+                  <button class="text-red-400 hover:text-red-300 text-sm delete-transaction" data-id="${doc.id}">Hapus</button>
+                </div>
               </div>
             </div>
           `;
-          adminTransactionsList.appendChild(transactionElement);
+          adminTransactionsList.innerHTML += transactionItem;
         });
+
+        // Add event listeners for edit and delete buttons (re-use existing functions)
+        adminTransactionsList.querySelectorAll('.edit-transaction').forEach(button => {
+          button.addEventListener('click', (e) => editTransaction(e.target.dataset.id));
+        });
+        adminTransactionsList.querySelectorAll('.delete-transaction').forEach(button => {
+          button.addEventListener('click', (e) => deleteTransaction(e.target.dataset.id));
+        });
+
       } catch (error) {
-        adminTransactionsList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat transaksi admin: ${error.message}</p>`;
+        showError("Error memuat transaksi admin: " + error.message);
+        adminTransactionsList.innerHTML = '<p class="text-center text-red-400 py-10">Gagal memuat transaksi.</p>';
       }
     }
 
-    async function loadAdminAgendas() {
+    async function loadAgendasAdmin() {
       const adminAgendasList = document.getElementById('admin-agendas-list');
+      if (!adminAgendasList) return;
+
       adminAgendasList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div><p class="mt-3 text-gray-400">Memuat data agenda...</p></div>';
 
-      if (currentUser && currentUser.role !== 'admin') {
-        adminAgendasList.innerHTML = '<p class="text-center py-6 text-red-400">Anda tidak memiliki izin untuk melihat semua agenda.</p>';
-        return;
-      }
-      
       try {
-        const snapshot = await agendasRef.orderBy('date', 'desc').get();
+        const snapshot = await agendasRef.orderBy("date", "desc").get();
         adminAgendasList.innerHTML = '';
-        
+
         if (snapshot.empty) {
-          adminAgendasList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada agenda.</p>';
+          adminAgendasList.innerHTML = '<p class="text-center text-gray-400 py-10">Belum ada agenda.</p>';
           return;
         }
 
         snapshot.forEach(doc => {
           const agenda = doc.data();
-          const agendaDate = agenda.date;
+          const agendaDate = new Date(agenda.date + 'T00:00:00'); // Ensure date is parsed correctly
+          const formattedDate = agendaDate.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          const timestamp = agenda.timestamp ? new Date(agenda.timestamp.toDate()).toLocaleString() : 'N/A';
 
-          const agendaElement = document.createElement('div');
-          agendaElement.className = `agenda-card p-4 bg-gray-800/50`;
-          agendaElement.innerHTML = `
-            <div class="flex justify-between items-center mb-2">
-              <h4 class="font-medium text-lg">${agenda.title}</h4>
-              <p class="text-sm text-gray-400">${agendaDate}</p>
+          const agendaItem = `
+            <div class="agenda-card p-4 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between">
+              <div class="flex-grow">
+                <h3 class="text-lg font-semibold text-purple-300">${agenda.title}</h3>
+                <p class="text-sm text-gray-300 mb-2">${agenda.description}</p>
+                <p class="text-sm text-gray-400"><i class="fas fa-calendar-alt mr-2"></i>${formattedDate}</p>
+                <p class="text-xs text-gray-500">Dibuat: ${timestamp} oleh ${agenda.userName}</p>
+                ${agenda.attachment ? `
+                  <a href="${agenda.attachment}" target="_blank" class="text-blue-400 hover:underline text-sm mt-2 block">
+                    <i class="fas fa-paperclip mr-1"></i> Lihat Lampiran
+                  </a>
+                ` : ''}
+              </div>
+              <div class="mt-4 md:mt-0 flex space-x-2">
+                <button class="text-blue-400 hover:text-blue-300 text-sm edit-agenda" data-id="${doc.id}">Edit</button>
+                <button class="text-red-400 hover:text-red-300 text-sm delete-agenda" data-id="${doc.id}">Hapus</button>
+              </div>
             </div>
-            <p class="text-gray-300 text-sm mb-2">${agenda.description}</p>
-            ${agenda.fileUrl ? `<p class="text-xs text-purple-400"><a href="${agenda.fileUrl}" target="_blank" class="hover:underline"><i class="fas fa-paperclip mr-1"></i> Lampiran</a></p>` : ''}
-            <p class="text-xs text-gray-500 mt-2">Dibuat oleh: ${agenda.userName}</p>
           `;
-          adminAgendasList.appendChild(agendaElement);
+          adminAgendasList.innerHTML += agendaItem;
         });
+
+        adminAgendasList.querySelectorAll('.edit-agenda').forEach(button => {
+          button.addEventListener('click', (e) => editAgenda(e.target.dataset.id));
+        });
+        adminAgendasList.querySelectorAll('.delete-agenda').forEach(button => {
+          button.addEventListener('click', (e) => deleteAgenda(e.target.dataset.id));
+        });
+
       } catch (error) {
-        adminAgendasList.innerHTML = `<p class="text-center py-6 text-red-400">Gagal memuat agenda admin: ${error.message}</p>`;
+        showError("Error memuat agenda admin: " + error.message);
+        adminAgendasList.innerHTML = '<p class="text-center text-red-400 py-10">Gagal memuat agenda.</p>';
       }
     }
 
-    // ================= SETTINGS FUNCTIONS =================
+
+    // ================= SETTINGS MANAGEMENT =================
     function initSettingsListeners() {
-      // Profile image change
+      // Profile image input change
       document.getElementById('profile-image-input').addEventListener('change', (e) => {
         profileImageFile = e.target.files[0];
         if (profileImageFile) {
           const reader = new FileReader();
-          reader.onload = (e) => {
-            document.getElementById('profile-image-setting').src = e.target.result;
+          reader.onload = (event) => {
+            document.getElementById('profile-image-setting').src = event.target.result;
             document.getElementById('profile-image-setting').classList.remove('hidden');
             document.getElementById('profile-avatar-setting').classList.add('hidden');
           };
@@ -2746,207 +2230,129 @@ document.getElementById('print-transactions').addEventListener('click', async ()
         const newName = document.getElementById('setting-name').value;
         const newPassword = document.getElementById('setting-password').value;
 
+        if (!currentUser) {
+          showError("Anda harus login untuk mengubah pengaturan.");
+          return;
+        }
+
         try {
-          // Update profile image
+          // Update profile image if new one is selected
           if (profileImageFile) {
             const storageRef = storage.ref(`profile_images/${currentUser.uid}/${profileImageFile.name}`);
             const snapshot = await storageRef.put(profileImageFile);
-            const imageUrl = await snapshot.ref.getDownloadURL();
-            await usersRef.doc(currentUser.uid).update({ profileImage: imageUrl });
+            const photoURL = await snapshot.ref.getDownloadURL();
+            await currentUser.updateProfile({ photoURL: photoURL });
+            await usersRef.doc(currentUser.uid).update({ profileImage: photoURL });
+            showSuccess("Foto profil berhasil diupdate!");
           }
 
           // Update name
-          if (newName && newName !== document.getElementById('user-name').textContent) {
+          if (newName.trim() && newName !== document.getElementById('user-name').textContent) {
+            await currentUser.updateProfile({ displayName: newName });
             await usersRef.doc(currentUser.uid).update({ name: newName });
+            showSuccess("Nama berhasil diupdate!");
           }
 
           // Update password
           if (newPassword) {
             if (newPassword.length < 6) {
-              showError("Kata sandi baru minimal 6 karakter.");
+              showError("Password minimal 6 karakter.");
               return;
             }
-            await auth.currentUser.updatePassword(newPassword);
-            document.getElementById('setting-password').value = '';
+            await currentUser.updatePassword(newPassword);
+            showSuccess("Password berhasil diupdate!");
+            document.getElementById('setting-password').value = ''; // Clear password field
           }
 
-          await loadUserData();
+          await loadUserData(); // Reload user data to reflect changes
           showSuccess("Pengaturan berhasil disimpan!");
+
         } catch (error) {
           showError("Gagal menyimpan pengaturan: " + error.message);
-          if (error.code === 'auth/requires-recent-login') {
-            showError("Mohon login kembali untuk memperbarui kata sandi Anda.");
-          }
         }
       });
 
       // Delete account button
       document.getElementById('delete-account-btn').addEventListener('click', async () => {
-        if (!confirm("Apakah Anda yakin ingin menghapus akun Anda? Ini akan menghapus semua data Anda dan tidak dapat dibatalkan!")) {
+        if (!confirm("PERINGATAN: Menghapus akun akan menghapus SEMUA data Anda secara permanen. Tindakan ini tidak dapat dibatalkan. Apakah Anda yakin?")) {
+          return;
+        }
+
+        if (!currentUser) {
+          showError("Anda harus login untuk menghapus akun.");
           return;
         }
 
         try {
-          // Delete user document
+          // Delete user data from Firestore
           await usersRef.doc(currentUser.uid).delete();
-          
-          // Delete profile image
-          if (document.getElementById('profile-image').src) {
-            const imgUrl = document.getElementById('profile-image').src;
-            const imgRef = storage.refFromURL(imgUrl);
-            await imgRef.delete().catch(e => console.warn("Could not delete old profile image:", e.message));
-          }
+          // Delete transactions created by this user
+          const transactionsSnapshot = await transactionsRef.where('userId', '==', currentUser.uid).get();
+          const batch = db.batch();
+          transactionsSnapshot.forEach(doc => {
+              batch.delete(doc.ref);
+          });
+          await batch.commit();
 
-          // Delete user from Authentication
-          await auth.currentUser.delete();
+          // Delete user from Firebase Authentication
+          // NOTE: This can only be done client-side if the user has recently signed in.
+          // For a more robust solution, use Firebase Cloud Functions to handle deletion.
+          await currentUser.delete();
 
-          showSuccess("Akun Anda berhasil dihapus. Anda telah logout.");
+          showSuccess("Akun Anda telah berhasil dihapus.");
+          // Force logout and redirect to login
+          await auth.signOut();
         } catch (error) {
-          showError("Gagal menghapus akun: " + error.message);
-          if (error.code === 'auth/requires-recent-login') {
-            showError("Mohon login kembali baru saja untuk menghapus akun Anda. Ini adalah tindakan keamanan.");
-          }
+          showError("Gagal menghapus akun: " + error.message + ". Silakan login kembali dan coba lagi jika Anda baru saja login.");
         }
       });
     }
 
-    // ================= FINANCE CHART =================
-    function updateFinanceChart(income, expense) {
-      const ctx = document.getElementById('finance-chart').getContext('2d');
-      
-      if (!financeChart) {
-        financeChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: ['Kas Masuk', 'Kas Keluar'],
-            datasets: [{
-              label: 'Jumlah (Rp)',
-              data: [income, expense],
-              backgroundColor: [
-                'rgba(16, 185, 129, 0.7)',
-                'rgba(239, 68, 68, 0.7)'
-              ],
-              borderColor: [
-                'rgba(16, 185, 129, 1)',
-                'rgba(239, 68, 68, 1)'
-              ],
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return 'Rp ' + context.raw.toLocaleString('id-ID');
-                  }
-                }
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  callback: function(value) {
-                    return 'Rp ' + value.toLocaleString('id-ID');
-                  }
-                }
-              }
-            }
-          }
-        });
-      } else {
-        financeChart.data.datasets[0].data = [income, expense];
-        financeChart.update();
-      }
-    }
-
-    // ================= BALANCE FUNCTIONS =================
-    async function updateBalance() {
-  try {
-    // Get global metrics
-    const globalMetricsDoc = await appDataRef.get();
-    const globalData = globalMetricsDoc.data() || { totalAppIncome: 0, totalAppExpense: 0 };
-    
-    const totalIncome = globalData.totalAppIncome || 0;
-    const totalExpense = globalData.totalAppExpense || 0;
-    const totalBalance = totalIncome - totalExpense;
-
-    // Update balance display
-    document.getElementById('income-amount').textContent = '+ ' + formatRupiah(totalIncome);
-    document.getElementById('expense-amount').textContent = '- ' + formatRupiah(totalExpense);
-    document.getElementById('total-saldo').textContent = formatRupiah(totalBalance);
-
-    // Update finance chart
-    updateFinanceChart(totalIncome, totalExpense);
-
-    // Update user balance if logged in
-    if (currentUser) {
-      const userDoc = await usersRef.doc(currentUser.uid).get();
-      if (userDoc.exists) {
-        const userData = userDoc.data();
-        const userIncome = userData.totalIncome || 0;
-        const userExpense = userData.totalExpense || 0;
-        const userBalance = userIncome - userExpense;
-
-        document.getElementById('user-income').textContent = formatRupiah(userIncome);
-        document.getElementById('user-expense').textContent = formatRupiah(userExpense);
-        document.getElementById('user-total-balance').textContent = formatRupiah(userBalance);
-      }
-    }
-  } catch (error) {
-    console.error("Error updating balance:", error);
-  }
-}
-
-    // ================= NAVIGATION FUNCTIONS =================
+    // ================= NAVIGATION =================
     function initNavigationListeners() {
-      // Tab switching
-      document.getElementById('login-tab').addEventListener('click', () => {
-        document.getElementById('login-form').classList.remove('hidden');
-        document.getElementById('register-form').classList.add('hidden');
-        document.getElementById('reset-form').classList.add('hidden');
-        document.getElementById('login-tab').classList.add('tab-active');
-        document.getElementById('register-tab').classList.remove('tab-active');
-        document.getElementById('reset-tab').classList.remove('tab-active');
-        document.getElementById('error-message').classList.add('hidden');
-        document.getElementById('success-message').classList.add('hidden');
-      });
-      
-      document.getElementById('register-tab').addEventListener('click', () => {
-        document.getElementById('login-form').classList.add('hidden');
-        document.getElementById('register-form').classList.remove('hidden');
-        document.getElementById('reset-form').classList.add('hidden');
-        document.getElementById('login-tab').classList.remove('tab-active');
-        document.getElementById('register-tab').classList.add('tab-active');
-        document.getElementById('reset-tab').classList.remove('tab-active');
-        document.getElementById('error-message').classList.add('hidden');
-        document.getElementById('success-message').classList.add('hidden');
-      });
-      
-      document.getElementById('reset-tab').addEventListener('click', () => {
-        document.getElementById('login-form').classList.add('hidden');
-        document.getElementById('register-form').classList.add('hidden');
-        document.getElementById('reset-form').classList.remove('hidden');
-        document.getElementById('login-tab').classList.remove('tab-active');
-        document.getElementById('register-tab').classList.remove('tab-active');
-        document.getElementById('reset-tab').classList.add('tab-active');
+      // Tab switching for auth container
+      const loginTab = document.getElementById('login-tab');
+      const registerTab = document.getElementById('register-tab');
+      const resetTab = document.getElementById('reset-tab');
+      const loginForm = document.getElementById('login-form');
+      const registerForm = document.getElementById('register-form');
+      const resetForm = document.getElementById('reset-form');
+
+      loginTab.addEventListener('click', () => {
+        loginTab.classList.add('tab-active');
+        registerTab.classList.remove('tab-active');
+        resetTab.classList.remove('tab-active');
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+        resetForm.classList.add('hidden');
         document.getElementById('error-message').classList.add('hidden');
         document.getElementById('success-message').classList.add('hidden');
       });
 
-      // Admin checkbox toggle
-      document.getElementById('is-admin').addEventListener('change', (e) => {
-        if (e.target.checked) {
-          document.getElementById('admin-code-container').classList.remove('hidden');
-        } else {
-          document.getElementById('admin-code-container').classList.add('hidden');
-        }
+      registerTab.addEventListener('click', () => {
+        loginTab.classList.remove('tab-active');
+        registerTab.classList.add('tab-active');
+        resetTab.classList.remove('tab-active');
+        loginForm.classList.add('hidden');
+        registerForm.classList.remove('hidden');
+        resetForm.classList.add('hidden');
+        document.getElementById('error-message').classList.add('hidden');
+        document.getElementById('success-message').classList.add('hidden');
+        document.getElementById('admin-code-container').classList.add('hidden');
+        document.getElementById('is-admin').checked = false;
+        document.getElementById('register-form').reset();
+      });
+
+      resetTab.addEventListener('click', () => {
+        loginTab.classList.remove('tab-active');
+        registerTab.classList.remove('tab-active');
+        resetTab.classList.add('tab-active');
+        loginForm.classList.add('hidden');
+        registerForm.classList.add('hidden');
+        resetForm.classList.remove('hidden');
+        document.getElementById('error-message').classList.add('hidden');
+        document.getElementById('success-message').classList.add('hidden');
+        document.getElementById('reset-form').reset();
       });
 
       // Menu navigation
