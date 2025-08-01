@@ -1111,9 +1111,12 @@ function initAuthListeners() {
         uid: user.uid,
         name: name,
         email: email,
+        lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+        lastUpdate: firebase.firestore.FieldValue.serverTimestamp(),
         role: isAdmin ? "admin" : "member",
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         profileImage: "",
+        saldo:0,
         totalIncome: 0,
         totalExpense: 0
       });
