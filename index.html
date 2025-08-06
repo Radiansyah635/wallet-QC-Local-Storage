@@ -985,6 +985,7 @@
 
     // Di awal tag <script> kamu
     const functions = firebase.functions();
+    const setPinFunction = functions.httpsCallable('setPin');
     const p2pTransferFunction = functions.httpsCallable('p2pTransfer');
 
     // Firestore collections
@@ -2464,7 +2465,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTransferListeners(); // NEW
   // ...
 });
-
+    
     // ================= AGENDA MANAGEMENT =================
     function initAgendaListeners() {
       document.getElementById('add-agenda-btn').addEventListener('click', () => {
