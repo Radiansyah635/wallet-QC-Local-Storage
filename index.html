@@ -4151,26 +4151,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    try {
-        // Hashing PIN di frontend sebelum disimpan ke Firestore
-        const salt = await bcrypt.genSalt(10);
-        const hashedPin = await bcrypt.hash(newPin, salt);
+        try {
+    const salt = bcrypt.genSaltSync(10);
+    const hashedPin = bcrypt.hashSync(newPin, salt);
+    await usersRef.doc(currentUser.uid).update({ pin: hashedPin });
 
-        // Simpan PIN yang sudah di-hash ke Firestore
-        await usersRef.doc(currentUser.uid).update({
-            pin: hashedPin
-        });
+    showSuccess("PIN berhasil disimpan.");
+    document.getElementById('create-transfer-pin-form').classList.add('hidden');
+    document.getElementById('p2p-transfer-form').classList.remove('hidden');
+    loadP2PTransactions();
+} catch (error) {
+    console.error("Error hashing and saving PIN:", error);
+    showError("Gagal menyimpan PIN. Coba lagi.");
+}
 
-        showSuccess("PIN berhasil disimpan.");
-
-        // Tampilkan form transfer setelah berhasil simpan PIN
-        document.getElementById('create-transfer-pin-form').classList.add('hidden');
-        document.getElementById('p2p-transfer-form').classList.remove('hidden');
-        loadP2PTransactions(); // Muat ulang riwayat transaksi
-    } catch (error) {
-        console.error("Error hashing and saving PIN:", error);
-        showError("Gagal menyimpan PIN. Coba lagi.");
-    }
 });
 
       document.getElementById('show-ecommerce').addEventListener('click', () => { // NEW
