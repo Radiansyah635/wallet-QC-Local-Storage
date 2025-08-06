@@ -4133,6 +4133,39 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('kas-section').classList.remove('hidden');
       });
 
+      document.getElementById('show-transfer').addEventListener('click', async () => {
+
+  hideAllSections();
+
+  // Ambil data user dari Firestore
+
+  const userDoc = await usersRef.doc(currentUser.uid).get();
+
+  const userData = userDoc.data();
+        
+  if (!userData.pin) {
+
+    // Belum punya PIN → tampilkan form buat PIN
+
+    document.getElementById('create-transfer-pin-form').classList.remove('hidden');
+
+    document.getElementById('p2p-transfer-form').classList.add('hidden');
+
+  } else {
+
+    // Sudah punya PIN → tampilkan form transfer
+
+    document.getElementById('create-transfer-pin-form').classList.add('hidden');
+
+    document.getElementById('p2p-transfer-form').classList.remove('hidden');
+
+    loadP2PTransactions(); // Load transaksi hanya jika user sudah punya PIN
+
+  }
+    document.getElementById('transfer-section').classList.remove('hidden');
+
+      });
+
       document.getElementById('save-transfer-pin-btn').addEventListener('click', async () => {
     const newPin = document.getElementById('new-transfer-pin').value;
 
