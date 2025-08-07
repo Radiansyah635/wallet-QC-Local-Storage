@@ -2335,14 +2335,6 @@ function initAuthListeners() {
 }
 
 // ================= FUNGSI TRANSFER P2P =================
-  // Inisialisasi auth state listener untuk set currentUser
-auth.onAuthStateChanged(user => {
-  if (user) {
-    currentUser = user;
-  } else {
-    currentUser = null;
-  }
-});
 
 // Fungsi tampil error di form transfer
 function showError(msg) {
