@@ -4143,28 +4143,34 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       // ================= SAVE PIN FUNCTION =================
-    document.getElementById('save-transfer-pin-btn').addEventListener('click', async () => {
-    const newPin = document.getElementById('new-transfer-pin').value;
-
-    if (newPin.length !== 4 || isNaN(newPin)) {
-        showError("PIN harus 4 digit angka.");
+      document.getElementById('save-transfer-pin-btn').addEventListener('click', async () => {
+    if (!currentUser || !currentUser.uid) {
+        showError("Anda harus login terlebih dahulu.");
         return;
     }
 
-        try {
-    const salt = bcrypt.genSaltSync(10);
-    const hashedPin = bcrypt.hashSync(newPin, salt);
-    await usersRef.doc(currentUser.uid).update({ pin: hashedPin });
+    const newPinInput = document.getElementById('new-transfer-pin');
+    const newPin = newPinInput.value.trim();
 
-    showSuccess("PIN berhasil disimpan.");
-    document.getElementById('create-transfer-pin-form').classList.add('hidden');
-    document.getElementById('p2p-transfer-form').classList.remove('hidden');
-    loadP2PTransactions();
-} catch (error) {
-    console.error("Error hashing and saving PIN:", error);
-    showError("Gagal menyimpan PIN. Coba lagi.");
-}
+    if (!/^\d{4}$/.test(newPin)) {
+        showError("PIN harus berupa 4 digit angka.");
+        return;
+    }
 
+    try {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPin = await bcrypt.hash(newPin, salt);
+        await usersRef.doc(currentUser.uid).update({ pin: hashedPin });
+
+        showSuccess("PIN berhasil disimpan.");
+        newPinInput.value = ''; // reset input PIN
+        document.getElementById('create-transfer-pin-form').classList.add('hidden');
+        document.getElementById('p2p-transfer-form').classList.remove('hidden');
+        loadP2PTransactions();
+    } catch (error) {
+        console.error("Error hashing and saving PIN:", error);
+        showError("Gagal menyimpan PIN. Coba lagi.");
+    }
 });
 
       document.getElementById('show-ecommerce').addEventListener('click', () => { // NEW
