@@ -982,6 +982,7 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
     const storage = firebase.storage();
+    const bcrypt = dcodeIO.bcrypt;
 
     // Di awal tag <script> kamu
     const functions = firebase.functions();
@@ -4144,6 +4145,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // ================= SAVE PIN FUNCTION =================
       document.getElementById('save-transfer-pin-btn').addEventListener('click', async () => {
+    const bcrypt = dcodeIO.bcrypt;
+
     if (!currentUser || !currentUser.uid) {
         showError("Anda harus login terlebih dahulu.");
         return;
@@ -4163,7 +4166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         await usersRef.doc(currentUser.uid).update({ pin: hashedPin });
 
         showSuccess("PIN berhasil disimpan.");
-        newPinInput.value = ''; // reset input PIN
+        newPinInput.value = '';
         document.getElementById('create-transfer-pin-form').classList.add('hidden');
         document.getElementById('p2p-transfer-form').classList.remove('hidden');
         loadP2PTransactions();
