@@ -2335,19 +2335,7 @@ function initAuthListeners() {
 }
 
 // ================= FUNGSI TRANSFER P2P =================
-    // --- Referensi Firebase & bcryptjs global ---
-const auth = firebase.auth();
-const db = firebase.firestore();
-const bcrypt = dcodeIO.bcrypt; // bcryptjs diakses dari global dcodeIO.bcrypt
-
-// Referensi koleksi Firestore
-const usersRef = db.collection('users');
-const transactionsRef = db.collection('transactions');
-const notificationsRef = db.collection('notifications');
-
-let currentUser = null; // variabel simpan user yg login
-
-// Inisialisasi auth state listener untuk set currentUser
+  // Inisialisasi auth state listener untuk set currentUser
 auth.onAuthStateChanged(user => {
   if (user) {
     currentUser = user;
