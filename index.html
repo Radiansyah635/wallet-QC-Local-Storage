@@ -2395,6 +2395,44 @@ function initAuthListeners() {
 }
 
      // ================= FUNGSI TRANSFER P2P YANG DIREVISI =================
+    // Jumlah salt rounds untuk bcrypt
+const SALT_ROUNDS = 10;
+
+// Fungsi untuk memeriksa status login dan load data user
+function checkAuthState() {
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      currentUser = user;
+      await loadUserData();
+      setupTransferButton();
+    } else {
+      // Redirect ke halaman login jika belum login
+      window.location.href = '/login.html';
+    }
+  });
+}
+
+// Fungsi untuk memuat data user dari Firestore
+async function loadUserData() {
+  try {
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    if (doc.exists) {
+      userData = doc.data();
+    } else {
+      // Jika belum ada dokumen, buat dokumen baru
+      await db.collection('users').doc(currentUser.uid).set({
+        email: currentUser.email,
+        balance: 0,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      userData = { balance: 0 };
+    }
+  } catch (error) {
+    console.error("Error loading user data:", error);
+    showError("Gagal memuat data pengguna. Silakan coba lagi.");
+  }
+}
+      
  // Fungsi untuk setup tombol transfer
 function setupTransferButton() {
   const transferBtn = document.getElementById('show-transfer');
