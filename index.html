@@ -2395,186 +2395,218 @@ function initAuthListeners() {
 }
 
      // ================= FUNGSI TRANSFER P2P YANG DIREVISI =================
- // ===============================================
-// ENHANCED P2P TRANSFER FUNCTION
+
+// ===============================================
+// ENHANCED P2P TRANSFER FUNCTION (REVISED)
 // ===============================================
 
 async function handleP2PTransfer(e) {
     e.preventDefault();
     
     // UI Elements
-    const form = document.getElementById('p2p-transfer-form');
+    const form = e.target;
     const submitBtn = form.querySelector('button[type="submit"]');
     const errorDisplay = document.getElementById('transfer-error-message');
-    
-    // Reset UI
+    const successDisplay = document.getElementById('transfer-success-message');
+
+    // Reset UI states
     errorDisplay.classList.add('hidden');
-    errorDisplay.textContent = '';
+    successDisplay.classList.add('hidden');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
 
-    // Input Values
-    const recipientEmail = document.getElementById('recipient-email').value.trim().toLowerCase();
-    const amount = parseFloat(document.getElementById('transfer-amount').value);
-    const note = document.getElementById('transfer-note').value.trim();
-    const pin = document.getElementById('transfer-pin').value.trim();
-
     try {
         // ========================
-        // 1. VALIDATION PHASE
+        // 1. INPUT VALIDATION
         // ========================
-        if (!currentUser) throw new Error('Sesi login habis. Silakan login kembali.');
-        if (!/^[\w.-]+@[a-zA-Z_-]+?\.[a-zA-Z]{2,3}$/.test(recipientEmail)) throw new Error('Format email penerima tidak valid');
-        if (isNaN(amount) || amount < 10000 || amount > 10000000) throw new Error('Jumlah transfer harus antara Rp 10.000 - Rp 10.000.000');
-        if (!/^\d{4}$/.test(pin)) throw new Error('PIN harus 4 digit angka');
-        if (recipientEmail === currentUser.email.toLowerCase()) throw new Error('Tidak bisa transfer ke diri sendiri');
+        const recipientEmail = document.getElementById('recipient-email').value.trim().toLowerCase();
+        const amount = parseFloat(document.getElementById('transfer-amount').value);
+        const note = document.getElementById('transfer-note').value.trim().slice(0, 100); // Limit to 100 chars
+        const pin = document.getElementById('transfer-pin').value.trim();
+
+        // Validate inputs
+        if (!currentUser) throw new Error('SESSION_EXPIRED');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) throw new Error('INVALID_EMAIL');
+        if (isNaN(amount) throw new Error('INVALID_AMOUNT');
+        if (amount < 10000 || amount > 10000000) throw new Error('AMOUNT_LIMIT');
+        if (!/^\d{4}$/.test(pin)) throw new Error('INVALID_PIN');
+        if (recipientEmail === currentUser.email.toLowerCase()) throw new Error('SELF_TRANSFER');
 
         // ========================
-        // 2. SECURITY CHECKS
+        // 2. SECURITY VERIFICATION
         // ========================
         const [senderDoc, recipientQuery] = await Promise.all([
             usersRef.doc(currentUser.uid).get(),
             usersRef.where('email', '==', recipientEmail).limit(1).get()
         ]);
 
-        if (!senderDoc.exists) throw new Error('Akun pengirim tidak ditemukan');
-        if (recipientQuery.empty) throw new Error('Penerima tidak terdaftar');
+        if (!senderDoc.exists) throw new Error('SENDER_NOT_FOUND');
+        if (recipientQuery.empty) throw new Error('RECIPIENT_NOT_FOUND');
 
         const senderData = senderDoc.data();
         const recipientDoc = recipientQuery.docs[0];
         const recipientData = recipientDoc.data();
 
-        // Verify PIN with bcrypt
-        if (!senderData.pin) throw new Error('Anda belum setup PIN transaksi');
+        // Verify PIN
+        if (!senderData.pin) throw new Error('PIN_NOT_SET');
         const isPinValid = await bcrypt.compare(pin, senderData.pin);
-        if (!isPinValid) throw new Error('PIN transaksi salah');
+        if (!isPinValid) throw new Error('WRONG_PIN');
 
         // ========================
-        // 3. BALANCE CALCULATION
+        // 3. TRANSACTION PROCESSING
         // ========================
-        const adminFee = Math.max(amount * ADMIN_FEE_PERCENTAGE, 1000); // Minimum fee Rp 1.000
+        const adminFee = Math.max(amount * 0.01, 1000); // 1% or min Rp 1.000
         const totalAmount = amount + adminFee;
 
-        if (senderData.totalBalance < totalAmount) {
-            throw new Error(`Saldo tidak cukup. Dibutuhkan: ${formatRupiah(totalAmount)} (Termasuk biaya admin: ${formatRupiah(adminFee)})`);
+        if (senderData.balance < totalAmount) {
+            throw new Error('INSUFFICIENT_BALANCE');
         }
 
-        // ========================
-        // 4. FIREBASE TRANSACTION
-        // ========================
+        // Generate unique transaction ID
+        const transactionId = db.collection('transactions').doc().id;
+        const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+
         await db.runTransaction(async (transaction) => {
-            // Re-check balance in transaction
-            const freshSender = await transaction.get(usersRef.doc(currentUser.uid));
+            // Re-check balance atomically
+            const freshSender = await transaction.get(senderDoc.ref);
             const freshRecipient = await transaction.get(recipientDoc.ref);
 
-            if (freshSender.data().totalBalance < totalAmount) {
-                throw new Error('Saldo tidak mencukupi saat verifikasi akhir');
+            if (freshSender.data().balance < totalAmount) {
+                throw new Error('BALANCE_CHANGED');
             }
 
             // Update balances
             transaction.update(freshSender.ref, {
-                totalBalance: firebase.firestore.FieldValue.increment(-totalAmount),
-                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                balance: firebase.firestore.FieldValue.increment(-totalAmount),
+                lastTransaction: timestamp
             });
 
             transaction.update(freshRecipient.ref, {
-                totalBalance: firebase.firestore.FieldValue.increment(amount),
-                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                balance: firebase.firestore.FieldValue.increment(amount),
+                lastTransaction: timestamp
             });
 
             // Create transaction records
-            const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-            const transferId = generateUniqueId(); // Custom ID generator
-
-            transaction.set(transactionsRef.doc(transferId), {
-                id: transferId,
-                userId: currentUser.uid,
-                recipientId: recipientDoc.id,
-                type: 'p2p_transfer_out',
-                amount: totalAmount,
-                netAmount: amount,
-                fee: adminFee,
+            const transactionData = {
+                id: transactionId,
+                type: 'p2p_transfer',
                 status: 'completed',
-                description: note || `Transfer ke ${recipientData.name || recipientEmail}`,
-                timestamp: timestamp
-            });
-
-            transaction.set(transactionsRef.doc(), {
-                id: generateUniqueId(),
-                userId: recipientDoc.id,
-                senderId: currentUser.uid,
-                type: 'p2p_transfer_in',
                 amount: amount,
-                fee: 0,
-                status: 'completed',
-                description: `Transfer dari ${senderData.name || currentUser.email}`,
-                timestamp: timestamp
-            });
+                fee: adminFee,
+                total: totalAmount,
+                senderId: currentUser.uid,
+                recipientId: recipientDoc.id,
+                description: note || `Transfer to ${recipientData.name || recipientEmail}`,
+                timestamp: timestamp,
+                metadata: {
+                    senderEmail: currentUser.email,
+                    recipientEmail: recipientEmail,
+                    deviceInfo: navigator.userAgent
+                }
+            };
+
+            transaction.set(db.collection('transactions').doc(transactionId), transactionData);
 
             // Create notification
-            transaction.set(notificationsRef.doc(), {
+            transaction.set(db.collection('notifications').doc(), {
                 userId: recipientDoc.id,
                 type: 'transfer_received',
-                title: 'Transfer Masuk',
-                message: `+${formatRupiah(amount)} dari ${senderData.name || 'Pengguna'}`,
-                isRead: false,
-                metadata: {
-                    transferId: transferId
-                },
+                title: 'Transfer Received',
+                message: `You received ${formatCurrency(amount)} from ${senderData.name || currentUser.email}`,
+                transactionId: transactionId,
+                read: false,
                 timestamp: timestamp
             });
         });
 
         // ========================
-        // 5. SUCCESS HANDLING
+        // 4. SUCCESS HANDLING
         // ========================
-        showSuccessToast(`Transfer ${formatRupiah(amount)} berhasil!`);
+        successDisplay.textContent = `Transfer of ${formatCurrency(amount)} to ${recipientEmail} successful!`;
+        successDisplay.classList.remove('hidden');
         form.reset();
-        
+
         // Update UI
-        await Promise.all([
-            loadUserData(),
-            loadP2PTransactions()
-        ]);
+        await updateUserBalance();
+        await refreshTransactionHistory();
 
     } catch (error) {
         // ========================
-        // ERROR HANDLING
+        // 5. ERROR HANDLING
         // ========================
         console.error('Transfer Error:', error);
         
-        let errorMessage = error.message || 'Gagal melakukan transfer';
-        
-        // Friendly messages for specific errors
-        if (error.code === 'resource-exhausted') {
-            errorMessage = 'Server sibuk. Silakan coba lagi nanti.';
-        } else if (error.code === 'permission-denied') {
-            errorMessage = 'Akses ditolak. Silakan login ulang.';
-        }
-        
-        errorDisplay.textContent = errorMessage;
+        const errorMessages = {
+            'SESSION_EXPIRED': 'Session expired. Please login again.',
+            'INVALID_EMAIL': 'Invalid recipient email format.',
+            'INVALID_AMOUNT': 'Amount must be a valid number.',
+            'AMOUNT_LIMIT': 'Amount must be between Rp 10,000 - Rp 10,000,000.',
+            'INVALID_PIN': 'PIN must be 4 digits.',
+            'SELF_TRANSFER': 'Cannot transfer to yourself.',
+            'SENDER_NOT_FOUND': 'Your account not found.',
+            'RECIPIENT_NOT_FOUND': 'Recipient account not found.',
+            'PIN_NOT_SET': 'Transaction PIN not set. Please set your PIN first.',
+            'WRONG_PIN': 'Incorrect PIN. Please try again.',
+            'INSUFFICIENT_BALANCE': 'Insufficient balance.',
+            'BALANCE_CHANGED': 'Balance changed during transaction. Please try again.',
+            'default': 'Transfer failed. Please try again later.'
+        };
+
+        errorDisplay.textContent = errorMessages[error.message] || errorMessages['default'];
         errorDisplay.classList.remove('hidden');
-        
+
+        // Log failed attempt
+        await db.collection('transfer_attempts').add({
+            userId: currentUser?.uid,
+            error: error.message,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
     } finally {
         // ========================
-        // CLEANUP
+        // 6. CLEANUP
         // ========================
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Konfirmasi Transfer';
+        submitBtn.textContent = 'Confirm Transfer';
     }
 }
 
-// Helper function
-function generateUniqueId() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
+// Helper functions
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(amount);
 }
 
-function showSuccessToast(message) {
-    // Implement your toast notification here
-    alert(message); // Temporary fallback
+async function updateUserBalance() {
+    const balanceDisplay = document.getElementById('user-balance');
+    if (currentUser) {
+        const userDoc = await usersRef.doc(currentUser.uid).get();
+        balanceDisplay.textContent = formatCurrency(userDoc.data().balance || 0);
+    }
+}
+
+async function refreshTransactionHistory() {
+    const historyContainer = document.getElementById('transaction-history');
+    historyContainer.innerHTML = '<div class="loading-spinner"></div>';
+    
+    const query = await transactionsRef
+        .where('senderId', '==', currentUser.uid)
+        .orderBy('timestamp', 'desc')
+        .limit(10)
+        .get();
+
+    historyContainer.innerHTML = query.docs.map(doc => {
+        const data = doc.data();
+        return `
+            <div class="transaction-item">
+                <div>${formatCurrency(data.amount)} to ${data.metadata.recipientEmail}</div>
+                <div>${new Date(data.timestamp?.toDate()).toLocaleString()}</div>
+            </div>
+        `;
+    }).join('');
 }
 
     // ================= AGENDA MANAGEMENT =================
