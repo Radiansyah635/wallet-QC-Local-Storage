@@ -2395,7 +2395,7 @@ function initAuthListeners() {
 }
 
      // ================= FUNGSI TRANSFER P2P YANG DIREVISI =================
-    // Fungsi untuk setup tombol transfer
+ // Fungsi untuk setup tombol transfer
 function setupTransferButton() {
   const transferBtn = document.getElementById('show-transfer');
   transferBtn.addEventListener('click', async () => {
@@ -2440,9 +2440,13 @@ function showCreatePinForm() {
     errorMessage.classList.add('hidden');
     
     try {
-      // Simpan PIN ke Firestore
+      // Hash PIN sebelum disimpan
+      const salt = bcrypt.genSaltSync(SALT_ROUNDS);
+      const hashedPin = bcrypt.hashSync(newPin, salt);
+      
+      // Simpan hashed PIN ke Firestore
       await db.collection('users').doc(currentUser.uid).update({
-        transactionPin: newPin
+        transactionPin: hashedPin
       });
       
       // Tampilkan pesan sukses dan beralih ke form transfer
@@ -2520,18 +2524,18 @@ function showTransferForm() {
       return;
     }
     
-    // Periksa PIN
-    const userDoc = await db.collection('users').doc(currentUser.uid).get();
-    const userPin = userDoc.data().transactionPin;
-    
-    if (pin !== userPin) {
-      errorMessage.textContent = "PIN transaksi tidak valid";
-      errorMessage.classList.remove('hidden');
-      return;
-    }
-    
-    // Periksa apakah email penerima valid
+    // Periksa PIN dengan membandingkan hash
     try {
+      const userDoc = await db.collection('users').doc(currentUser.uid).get();
+      const hashedPin = userDoc.data().transactionPin;
+      
+      if (!bcrypt.compareSync(pin, hashedPin)) {
+        errorMessage.textContent = "PIN transaksi tidak valid";
+        errorMessage.classList.remove('hidden');
+        return;
+      }
+      
+      // Periksa apakah email penerima valid
       const recipientQuery = await db.collection('users').where('email', '==', recipientEmail).get();
       
       if (recipientQuery.empty) {
@@ -2701,7 +2705,11 @@ function showError(message) {
 
 // Jalankan saat halaman dimuat
 document.addEventListener('DOMContentLoaded', () => {
-  checkAuthState();
+  // Load bcryptjs dari CDN
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js';
+  script.onload = checkAuthState;
+  document.head.appendChild(script);
 });;
 
     // ================= AGENDA MANAGEMENT =================
