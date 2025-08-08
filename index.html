@@ -2466,21 +2466,6 @@ async function loadP2PTransactions() {
     }
 }
 
-      // Fungsi untuk memuat bcryptjs
-function loadBCrypt() {
-  return new Promise((resolve, reject) => {
-    if (typeof bcrypt !== 'undefined') {
-      return resolve();
-    }
-    
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js';
-    script.onload = resolve;
-    script.onerror = () => reject(new Error('Gagal memuat library bcrypt'));
-    document.head.appendChild(script);
-  });
-}
-
 // ===============================================
 // 2. FUNGSI UTAMA P2P TRANSFER
 // ===============================================
