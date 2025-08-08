@@ -2395,104 +2395,39 @@ function initAuthListeners() {
 }
 
      // ================= FUNGSI TRANSFER P2P YANG DIREVISI =================
-    // =======================================================
-// 1. Deklarasi Variabel & Konfigurasi Global
-// =======================================================
-let bcryptInstance = null; // Variabel global untuk menyimpan instance bcrypt
-const ADMIN_FEE_PERCENTAGE = 0.01; // Biaya admin 1%
+    // ===============================================
+// 1. UTILITY FUNCTIONS (Fungsi-fungsi Pendukung)
+// ===============================================
+const ADMIN_FEE_PERCENTAGE = 0.01;
 
-// Asumsikan variabel lain (db, usersRef, transactionsRef, notificationsRef, auth)
-// sudah dideklarasikan di file lain atau di bagian atas skrip ini.
-
-// =======================================================
-// 2. UTILITY FUNCTIONS (Fungsi-fungsi Pendukung)
-// =======================================================
-/**
- * Menampilkan pesan error di UI.
- * @param {string} message - Pesan error yang akan ditampilkan.
- */
 function showError(message) {
     const errorDiv = document.getElementById('transfer-error-message');
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.classList.remove('hidden');
-        setTimeout(() => errorDiv.classList.add('hidden'), 5000);
-    }
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+    setTimeout(() => errorDiv.classList.add('hidden'), 5000);
 }
 
-/**
- * Menampilkan pesan sukses.
- * @param {string} message - Pesan sukses yang akan ditampilkan.
- */
 function showSuccess(message) {
-    alert(message); // Bisa diganti dengan UI modal yang lebih baik
+    alert(message); // Ganti dengan UI modal yang lebih baik jika diperlukan
 }
 
-/**
- * Memformat angka menjadi format Rupiah.
- * @param {number} number - Angka yang akan diformat.
- * @returns {string} - Angka dalam format Rupiah.
- */
 function formatRupiah(number) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(number);
 }
 
-/**
- * Menampilkan section tertentu dan menyembunyikan yang lainnya.
- * @param {string} sectionId - ID dari section yang ingin ditampilkan.
- */
 function showSection(sectionId) {
-    const sections = ['transfer-section', 'create-pin-section'];
-    sections.forEach(id => {
-        const section = document.getElementById(id);
-        if (section) {
-            section.classList.add('hidden');
-        }
-    });
-    const targetSection = document.getElementById(sectionId);
-    if (targetSection) {
-        targetSection.classList.remove('hidden');
-    }
+    document.getElementById('transfer-section').classList.add('hidden');
+    document.getElementById('create-pin-section').classList.add('hidden');
+    document.getElementById(sectionId).classList.remove('hidden');
 }
 
-/**
- * Memuat library bcryptjs secara dinamis.
- * @returns {Promise<Object>} - Mengembalikan Promise yang resolve dengan objek bcrypt.
- */
-function loadBCrypt() {
-    return new Promise((resolve, reject) => {
-        // Jika bcrypt sudah ada, langsung resolve
-        if (typeof window.bcrypt !== 'undefined') {
-            return resolve(window.bcrypt);
-        }
-        
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js';
-        script.onload = () => {
-            if (typeof window.bcrypt !== 'undefined') {
-                resolve(window.bcrypt);
-            } else {
-                reject(new Error('bcrypt library failed to initialize despite loading.'));
-            }
-        };
-        script.onerror = () => reject(new Error('Gagal memuat library bcrypt'));
-        document.head.appendChild(script);
-    });
-}
-
-/**
- * Memuat riwayat transaksi P2P untuk pengguna saat ini.
- */
 async function loadP2PTransactions() {
     if (!currentUser) {
-        const listElement = document.getElementById('p2p-transactions-list');
-        if (listElement) listElement.innerHTML = '<p class="text-center text-gray-400">Silakan login untuk melihat riwayat transfer.</p>';
+        document.getElementById('p2p-transactions-list').innerHTML = '<p class="text-center text-gray-400">Silakan login untuk melihat riwayat transfer.</p>';
         return;
     }
 
     const p2pTransactionsList = document.getElementById('p2p-transactions-list');
-    if (!p2pTransactionsList) return;
-
     p2pTransactionsList.innerHTML = `<div class="text-center py-10"><p class="mt-3 text-gray-400">Memuat riwayat transfer...</p></div>`;
 
     try {
@@ -2514,7 +2449,7 @@ async function loadP2PTransactions() {
             const date = transaction.timestamp ? new Date(transaction.timestamp.toDate()).toLocaleString() : 'N/A';
             const typeClass = transaction.type === 'p2p_transfer_in' ? 'transaction-in' : 'transaction-out';
             const amountSign = transaction.type === 'p2p_transfer_in' ? '+' : '-';
-            const amountColor = transaction.type === 'p2p_transfer_in' ? 'text-green-400' : 'text-red-400';
+            const amountColor = transaction.type === 'p2p_transfer-in' ? 'text-green-400' : 'text-red-400';
 
             transactionsHtml += `
                 <div class="solana-card p-4 flex items-center justify-between ${typeClass}">
@@ -2533,28 +2468,21 @@ async function loadP2PTransactions() {
     }
 }
 
-// =======================================================
-// 3. FUNGSI UTAMA P2P TRANSFER
-// =======================================================
+// ===============================================
+// 2. FUNGSI UTAMA P2P TRANSFER
+// ===============================================
 
-/**
- * Menampilkan form transfer atau form pembuatan PIN berdasarkan status user.
- */
 async function showTransferForm() {
     if (!currentUser) {
         showError('Anda harus login untuk melakukan transfer.');
         return;
     }
-
     try {
         const userDoc = await usersRef.doc(currentUser.uid).get();
         const userData = userDoc.data();
-
         if (!userData || !userData.pin) {
-            // Jika PIN belum ada, tampilkan form pembuatan PIN
             showSection('create-pin-section');
         } else {
-            // Jika PIN sudah ada, tampilkan form transfer dan muat riwayat
             showSection('transfer-section');
             await loadP2PTransactions();
         }
@@ -2564,85 +2492,28 @@ async function showTransferForm() {
     }
 }
 
-/**
- * Mengelola status loading tombol transfer.
- * @param {boolean} isLoading - true untuk mode loading, false untuk normal.
- */
 function showTransferLoading(isLoading) {
-    const submitButton = document.getElementById('p2p-transfer-form')?.querySelector('button[type="submit"]');
-    if (submitButton) {
-        submitButton.disabled = isLoading;
-        submitButton.textContent = isLoading ? 'Mengirim...' : 'Konfirmasi Transfer';
-    }
+    const submitButton = document.getElementById('p2p-transfer-form').querySelector('button[type="submit"]');
+    submitButton.disabled = isLoading;
+    submitButton.textContent = isLoading ? 'Mengirim...' : 'Konfirmasi Transfer';
 }
 
-/**
- * Menangani logika pembuatan PIN saat form disubmit.
- * @param {Event} e - Event submit dari form.
- */
-async function handleCreatePin(e) {
-    e.preventDefault();
-    const newPin = document.getElementById('new-pin')?.value;
-    const confirmPin = document.getElementById('confirm-pin')?.value;
-    const pinErrorMessage = document.getElementById('pin-error-message');
-
-    if (pinErrorMessage) pinErrorMessage.classList.add('hidden');
-    
-    if (newPin !== confirmPin) {
-        if (pinErrorMessage) {
-            pinErrorMessage.textContent = 'PIN tidak cocok.';
-            pinErrorMessage.classList.remove('hidden');
-        }
-        return;
-    }
-    if (!/^\d{4}$/.test(newPin)) {
-        if (pinErrorMessage) {
-            pinErrorMessage.textContent = 'PIN harus 4 digit angka.';
-            pinErrorMessage.classList.remove('hidden');
-        }
-        return;
-    }
-    
-    try {
-        // PENTING: Menggunakan bcryptInstance yang sudah dimuat
-        const salt = await bcryptInstance.genSalt(10);
-        const hashedPin = await bcryptInstance.hash(newPin, salt);
-        
-        await usersRef.doc(currentUser.uid).update({ pin: hashedPin });
-
-        showSuccess('PIN berhasil dibuat. Anda sekarang dapat melakukan transfer.');
-        const createPinForm = document.getElementById('create-pin-form');
-        if (createPinForm) createPinForm.reset();
-        
-        await showTransferForm();
-    } catch (error) {
-        showError('Gagal menyimpan PIN. Silakan coba lagi.');
-        console.error("Error saving PIN:", error);
-    }
-}
-
-/**
- * Menangani logika transfer P2P saat form disubmit.
- * @param {Event} e - Event submit dari form.
- */
 async function handleP2PTransfer(e) {
     e.preventDefault();
-    const recipientEmail = document.getElementById('recipient-email')?.value.trim().toLowerCase();
-    const amount = parseFloat(document.getElementById('transfer-amount')?.value);
-    const note = document.getElementById('transfer-note')?.value.trim();
-    const pin = document.getElementById('transfer-pin')?.value.trim();
+    const recipientEmail = document.getElementById('recipient-email').value.trim().toLowerCase();
+    const amount = parseFloat(document.getElementById('transfer-amount').value);
+    const note = document.getElementById('transfer-note').value.trim();
+    const pin = document.getElementById('transfer-pin').value.trim();
     const transferErrorMessage = document.getElementById('transfer-error-message');
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (transferErrorMessage) {
-        transferErrorMessage.classList.add('hidden');
-        transferErrorMessage.textContent = '';
-    }
+    transferErrorMessage.classList.add('hidden');
+    transferErrorMessage.textContent = '';
 
     if (!currentUser) { showError('Anda harus login.'); return; }
-    if (!recipientEmail || !emailRegex.test(recipientEmail)) { showError('Email penerima tidak valid.'); return; }
+    if (!emailRegex.test(recipientEmail)) { showError('Email penerima tidak valid.'); return; }
     if (amount <= 0 || isNaN(amount)) { showError('Jumlah transfer harus lebih dari 0.'); return; }
-    if (!pin || !/^\d{4}$/.test(pin)) { showError('PIN harus 4 digit angka.'); return; }
+    if (!/^\d{4}$/.test(pin)) { showError('PIN harus 4 digit angka.'); return; }
     if (recipientEmail === currentUser.email.toLowerCase()) { showError('Anda tidak bisa transfer ke akun Anda sendiri.'); return; }
 
     try {
@@ -2651,8 +2522,7 @@ async function handleP2PTransfer(e) {
         const senderSnap = await senderDocRef.get();
         const senderData = senderSnap.data();
 
-        // PENTING: Menggunakan bcryptInstance untuk verifikasi
-        const isPinValid = await bcryptInstance.compare(pin, senderData.pin);
+        const isPinValid = await bcrypt.compare(pin, senderData.pin);
         if (!isPinValid) {
             showError('PIN transaksi salah.');
             return;
@@ -2684,7 +2554,6 @@ async function handleP2PTransfer(e) {
             transaction.update(senderDocRef, { totalBalance: senderCurrentData.totalBalance - totalAmountToSend });
             transaction.update(usersRef.doc(recipientId), { totalBalance: (recipientTxDoc.data().totalBalance || 0) + amount });
 
-            // Catat transaksi
             transaction.set(transactionsRef.doc(), {
                 userId: currentUser.uid, type: 'p2p_transfer_out', amount: totalAmountToSend,
                 description: note || `Transfer ke ${recipientData.name || recipientEmail}`,
@@ -2695,20 +2564,18 @@ async function handleP2PTransfer(e) {
                 description: `Transfer dari ${senderData.name || currentUser.email}`,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             });
-            // Catat notifikasi
             transaction.set(notificationsRef.doc(), {
                 userId: recipientId, title: 'Transfer Masuk',
                 message: `Anda menerima transfer ${formatRupiah(amount)} dari ${senderData.name || currentUser.email}.`,
-                read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                read: false,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             });
         });
 
         showSuccess('Transfer berhasil dikirim!');
-        const p2pTransferForm = document.getElementById('p2p-transfer-form');
-        if (p2pTransferForm) p2pTransferForm.reset();
-        
-        await loadUserData(); // Muat ulang data user untuk update saldo di UI
-        await loadP2PTransactions(); // Muat ulang riwayat transaksi
+        document.getElementById('p2p-transfer-form').reset();
+        await loadUserData();
+        await loadP2PTransactions();
 
     } catch (err) {
         console.error('Error saat transfer:', err);
@@ -2718,39 +2585,38 @@ async function handleP2PTransfer(e) {
     }
 }
 
-// =======================================================
-// 4. INIT LISTENER & Auth State
-// =======================================================
-document.addEventListener('DOMContentLoaded', async () => {
+async function handleCreatePin(e) {
+    e.preventDefault();
+    const newPin = document.getElementById('new-pin').value;
+    const confirmPin = document.getElementById('confirm-pin').value;
+    const pinErrorMessage = document.getElementById('pin-error-message');
+
+    pinErrorMessage.classList.add('hidden');
+    
+    if (newPin !== confirmPin) { pinErrorMessage.textContent = 'PIN tidak cocok.'; pinErrorMessage.classList.remove('hidden'); return; }
+    if (!/^\d{4}$/.test(newPin)) { pinErrorMessage.textContent = 'PIN harus 4 digit angka.'; pinErrorMessage.classList.remove('hidden'); return; }
+    
     try {
-        // Langkah 1: Muat library bcrypt terlebih dahulu
-        bcryptInstance = await loadBCrypt();
-        console.log('Library bcrypt berhasil dimuat dan siap digunakan.');
-
-        // Langkah 2: Tunggu status autentikasi Firebase
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                currentUser = user;
-                // Pasang event listener setelah user login
-                document.getElementById('show-transfer')?.addEventListener('click', showTransferForm);
-            } else {
-                currentUser = null;
-                // Opsional: Lakukan sesuatu saat user logout
-            }
-        });
-        
-        // Langkah 3: Pasang event listener untuk form yang TIDAK bergantung pada user login atau bcrypt
-        // Ini memastikan form-form ini selalu berfungsi setelah bcrypt dimuat.
-        const p2pTransferForm = document.getElementById('p2p-transfer-form');
-        if (p2pTransferForm) p2pTransferForm.addEventListener('submit', handleP2PTransfer);
-        
-        const createPinForm = document.getElementById('create-pin-form');
-        if (createPinForm) createPinForm.addEventListener('submit', handleCreatePin);
-
+        const salt = await bcrypt.genSalt(10);
+        const hashedPin = await bcrypt.hash(newPin, salt);
+        await usersRef.doc(currentUser.uid).update({ pin: hashedPin });
+        showSuccess('PIN berhasil dibuat. Anda sekarang dapat melakukan transfer.');
+        document.getElementById('create-pin-form').reset();
+        await showTransferForm(); // Tampilkan form transfer setelah PIN berhasil dibuat
     } catch (error) {
-        console.error('Terjadi kesalahan fatal:', error);
-        alert('Gagal memuat aplikasi. Silakan coba lagi.');
+        showError('Gagal menyimpan PIN. Silakan coba lagi.');
+        console.error("Error saving PIN:", error);
     }
+}
+
+
+// ===============================================
+// 3. INIT LISTENER
+// ===============================================
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('show-transfer').addEventListener('click', showTransferForm);
+    document.getElementById('p2p-transfer-form').addEventListener('submit', handleP2PTransfer);
+    document.getElementById('create-pin-form').addEventListener('submit', handleCreatePin);
 });
 
     // ================= AGENDA MANAGEMENT =================
