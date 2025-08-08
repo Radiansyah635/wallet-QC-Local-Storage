@@ -2319,177 +2319,307 @@ function initAuthListeners() {
 }
 
      // ================= FUNGSI TRANSFER P2P YANG DIREVISI =================
-const ADMIN_FEE_PERCENTAGE = 0.01; // 1% admin fee
-
-function initTransferListeners() {
-    const p2pTransferForm = document.getElementById('p2p-transfer-form');
-    const recipientEmailInput = document.getElementById('recipient-email');
-    const transferAmountInput = document.getElementById('transfer-amount');
-    const transferNoteInput = document.getElementById('transfer-note');
-    const transferPinInput = document.getElementById('transfer-pin');
-    const transferErrorMessage = document.getElementById('transfer-error-message');
-    const submitButton = p2pTransferForm.querySelector('button[type="submit"]');
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Regex untuk validasi email
-
-    // Fungsi untuk mengelola status loading tombol
-    function showLoading(isLoading) {
-        submitButton.disabled = isLoading;
-        submitButton.textContent = isLoading ? 'Mengirim...' : 'Kirim Transfer';
-    }
-
-    p2pTransferForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        transferErrorMessage.classList.add('hidden');
-        transferErrorMessage.textContent = ''; // Kosongkan pesan error
-
-        const recipientEmail = recipientEmailInput.value.trim().toLowerCase(); // Bersihkan & ubah ke lowercase
-        const amount = parseFloat(transferAmountInput.value);
-        const note = transferNoteInput.value.trim();
-        const pin = transferPinInput.value.trim();
-
-        // 1. Validasi Input di Frontend
-        if (!currentUser) {
-            showError('Anda harus login untuk melakukan transfer.');
-            return;
-        }
-
-        if (!emailRegex.test(recipientEmail)) {
-            showError('Email penerima tidak valid.');
-            return;
-        }
-
-        if (amount <= 0 || isNaN(amount)) {
-            showError('Jumlah transfer harus lebih dari 0.');
-            return;
-        }
-
-        if (!/^\d{4}$/.test(pin)) {
-            showError('PIN transaksi harus berupa 4 digit angka.');
-            return;
-        }
-
-        if (recipientEmail === currentUser.email.toLowerCase()) {
-            showError('Anda tidak bisa transfer ke akun Anda sendiri.');
-            return;
-        }
-
-        try {
-            showLoading(true); // Tampilkan status loading
-
-            // 2. Ambil data pengirim
-            const senderDocRef = usersRef.doc(currentUser.uid);
-            const senderSnap = await senderDocRef.get();
-            if (!senderSnap.exists) {
-                showError('Data pengirim tidak ditemukan.');
-                return;
-            }
-            const senderData = senderSnap.data();
-
-            if (!senderData.pin) {
-                showError('PIN transaksi belum dibuat. Silakan buat PIN terlebih dahulu.');
-                return;
-            }
-
-            // 3. Verifikasi PIN
-            const isPinValid = await bcrypt.compare(pin, senderData.pin);
-            if (!isPinValid) {
-                showError('PIN transaksi salah.');
-                return;
-            }
-
-            // 4. Cari penerima
-            const recipientQuery = await usersRef.where('email', '==', recipientEmail).limit(1).get();
-            if (recipientQuery.empty) {
-                showError('Pengguna dengan email tersebut tidak ditemukan.');
-                return;
-            }
-            const recipientDoc = recipientQuery.docs[0];
-            const recipientId = recipientDoc.id;
-            const recipientData = recipientDoc.data();
-
-            const adminFee = amount * ADMIN_FEE_PERCENTAGE;
-            const totalAmountToSend = amount + adminFee;
-
-            // 5. Cek Saldo Awal
-            if (senderData.totalBalance < totalAmountToSend) {
-                showError(`Saldo tidak mencukupi. Anda perlu ${formatRupiah(totalAmountToSend)} (termasuk biaya admin).`);
-                return;
-            }
-
-            // 6. Transaksi Atomic Firestore
-            await db.runTransaction(async (transaction) => {
-                const senderTxDoc = await transaction.get(senderDocRef);
-                const recipientTxDoc = await transaction.get(usersRef.doc(recipientId));
-
-                if (!senderTxDoc.exists || !recipientTxDoc.exists) {
-                    throw new Error('Data pengguna tidak ditemukan saat transaksi.');
-                }
-                
-                const senderCurrentData = senderTxDoc.data();
-                const recipientCurrentData = recipientTxDoc.data();
-
-                // Pengecekan saldo ganda di dalam transaksi
-                if (senderCurrentData.totalBalance < totalAmountToSend) {
-                    throw new Error('Saldo Anda tidak mencukupi saat transaksi dijalankan.');
-                }
-
-                const senderNewBalance = senderCurrentData.totalBalance - totalAmountToSend;
-                const recipientNewBalance = (recipientCurrentData.totalBalance || 0) + amount; // Pastikan saldo penerima tidak null
-
-                // Lakukan pembaruan saldo
-                transaction.update(senderDocRef, { totalBalance: senderNewBalance });
-                transaction.update(usersRef.doc(recipientId), { totalBalance: recipientNewBalance });
-
-                // Catat transaksi pengirim
-                transaction.set(transactionsRef.doc(), {
-                    userId: currentUser.uid,
-                    type: 'p2p_transfer_out',
-                    amount: totalAmountToSend,
-                    description: note || `Transfer ke ${recipientData.name || recipientEmail}`,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                });
-
-                // Catat transaksi penerima
-                transaction.set(transactionsRef.doc(), {
-                    userId: recipientId,
-                    type: 'p2p_transfer_in',
-                    amount: amount,
-                    description: `Transfer dari ${senderData.name || currentUser.email}`,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                });
-
-                // Kirim notifikasi
-                transaction.set(notificationsRef.doc(), {
-                    userId: recipientId,
-                    title: 'Transfer Masuk',
-                    message: `Anda menerima transfer ${formatRupiah(amount)} dari ${senderData.name || currentUser.email}.`,
-                    read: false,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                });
-            });
-
-            // Setelah transaksi berhasil
-            showSuccess('Transfer berhasil dikirim!');
-            p2pTransferForm.reset();
-            transferErrorMessage.classList.add('hidden');
-            
-            // Muat ulang data setelah transaksi selesai
-            await loadUserData();
-            await loadP2PTransactions();
-        } catch (err) {
-            console.error('Error saat transfer:', err);
-            showError(`Gagal melakukan transfer: ${err.message || err}`);
-        } finally {
-            showLoading(false); // Matikan status loading
-        }
-    });
+     // ================= Utilities untuk bcrypt (promise wrapper) =================
+function ensureBcrypt() {
+  if (typeof bcrypt === 'undefined') {
+    throw new Error('bcrypt belum dimuat. Pastikan <script src=".../bcrypt.min.js"> dipanggil sebelum file ini.');
+  }
 }
 
-// Panggil initTransferListeners() di DOMContentLoaded
+function hashPinAsync(pin, saltRounds = 10) {
+  ensureBcrypt();
+  return new Promise((resolve, reject) => {
+    bcrypt.hash(pin, saltRounds, (err, hashed) => {
+      if (err) return reject(err);
+      resolve(hashed);
+    });
+  });
+}
+
+function comparePinAsync(plain, hashed) {
+  ensureBcrypt();
+  return new Promise((resolve, reject) => {
+    bcrypt.compare(plain, hashed, (err, res) => {
+      if (err) return reject(err);
+      resolve(res);
+    });
+  });
+}
+
+// ================= Konstanta & helper kecil =================
+const ADMIN_FEE_PERCENTAGE = 0.01; // 1% admin fee
+const PIN_REGEX = /^\d{4}$/;
+
+function safeGet(elId) {
+  return document.getElementById(elId);
+}
+
+// pastikan fungsi util seperti showError/showSuccess/formatRupiah/loadUserData/loadP2PTransactions/hideAllSections ada di scope
+
+// ================= Inisialisasi listener transfer (dengan guard) =================
+function initTransferListeners() {
+  if (window.__walletInitTransferListeners) return; // guard: tidak dobel
+  window.__walletInitTransferListeners = true;
+
+  const p2pTransferForm = safeGet('p2p-transfer-form');
+  if (!p2pTransferForm) return;
+
+  const recipientEmailInput = safeGet('recipient-email');
+  const transferAmountInput = safeGet('transfer-amount');
+  const transferNoteInput = safeGet('transfer-note');
+  const transferPinInput = safeGet('transfer-pin');
+  const transferErrorMessage = safeGet('transfer-error-message');
+  const submitButton = p2pTransferForm.querySelector('button[type="submit"]');
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function showLoading(isLoading) {
+    if (!submitButton) return;
+    submitButton.disabled = isLoading;
+    submitButton.textContent = isLoading ? 'Mengirim...' : 'Kirim Transfer';
+  }
+
+  p2pTransferForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      transferErrorMessage && transferErrorMessage.classList.add('hidden');
+      transferErrorMessage && (transferErrorMessage.textContent = '');
+
+      const recipientEmail = (recipientEmailInput.value || '').trim().toLowerCase();
+      const amount = parseFloat(transferAmountInput.value);
+      const note = (transferNoteInput.value || '').trim();
+      const pin = (transferPinInput.value || '').trim();
+
+      // Validasi dasar
+      if (!currentUser) {
+        showError('Anda harus login untuk melakukan transfer.');
+        return;
+      }
+      if (!emailRegex.test(recipientEmail)) {
+        showError('Email penerima tidak valid.');
+        return;
+      }
+      if (isNaN(amount) || amount <= 0) {
+        showError('Jumlah transfer harus lebih dari 0.');
+        return;
+      }
+      if (!PIN_REGEX.test(pin)) {
+        showError('PIN transaksi harus berupa 4 digit angka.');
+        return;
+      }
+      if (recipientEmail === (currentUser.email || '').toLowerCase()) {
+        showError('Anda tidak bisa transfer ke akun Anda sendiri.');
+        return;
+      }
+
+      showLoading(true);
+
+      // Ambil data pengirim
+      const senderDocRef = usersRef.doc(currentUser.uid);
+      const senderSnap = await senderDocRef.get();
+      if (!senderSnap.exists) {
+        showError('Data pengirim tidak ditemukan.');
+        return;
+      }
+      const senderData = senderSnap.data();
+
+      if (!senderData.pin) {
+        showError('PIN transaksi belum dibuat. Silakan buat PIN terlebih dahulu.');
+        return;
+      }
+
+      // Verifikasi PIN (gunakan comparePinAsync wrapper)
+      let isPinValid = false;
+      try {
+        isPinValid = await comparePinAsync(pin, senderData.pin);
+      } catch (err) {
+        console.error('Error verify PIN:', err);
+        showError('Terjadi masalah saat memverifikasi PIN. Coba lagi.');
+        return;
+      }
+      if (!isPinValid) {
+        showError('PIN transaksi salah.');
+        return;
+      }
+
+      // Cari penerima
+      const recipientQuery = await usersRef.where('email', '==', recipientEmail).limit(1).get();
+      if (recipientQuery.empty) {
+        showError('Pengguna dengan email tersebut tidak ditemukan.');
+        return;
+      }
+      const recipientDoc = recipientQuery.docs[0];
+      const recipientId = recipientDoc.id;
+      const recipientData = recipientDoc.data();
+
+      const adminFee = amount * ADMIN_FEE_PERCENTAGE;
+      const totalAmountToSend = amount + adminFee;
+
+      // Transaksi atomic di Firestore
+      await db.runTransaction(async (transaction) => {
+        const senderTxDoc = await transaction.get(senderDocRef);
+        const recipientTxDoc = await transaction.get(usersRef.doc(recipientId));
+
+        if (!senderTxDoc.exists || !recipientTxDoc.exists) {
+          throw new Error('Data pengguna tidak ditemukan saat transaksi.');
+        }
+
+        const senderCurrentData = senderTxDoc.data();
+        const recipientCurrentData = recipientTxDoc.data();
+
+        if ((senderCurrentData.totalBalance || 0) < totalAmountToSend) {
+          throw new Error('Saldo Anda tidak mencukupi saat transaksi dijalankan.');
+        }
+
+        const senderNewBalance = (senderCurrentData.totalBalance || 0) - totalAmountToSend;
+        const recipientNewBalance = (recipientCurrentData.totalBalance || 0) + amount;
+
+        transaction.update(senderDocRef, { totalBalance: senderNewBalance });
+        transaction.update(usersRef.doc(recipientId), { totalBalance: recipientNewBalance });
+
+        // catat transaksi pengirim
+        transaction.set(transactionsRef.doc(), {
+          userId: currentUser.uid,
+          type: 'p2p_transfer_out',
+          amount: totalAmountToSend,
+          description: note || `Transfer ke ${recipientData.name || recipientEmail}`,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // catat transaksi penerima
+        transaction.set(transactionsRef.doc(), {
+          userId: recipientId,
+          type: 'p2p_transfer_in',
+          amount: amount,
+          description: `Transfer dari ${senderData.name || currentUser.email}`,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // notifikasi
+        transaction.set(notificationsRef.doc(), {
+          userId: recipientId,
+          title: 'Transfer Masuk',
+          message: `Anda menerima transfer ${formatRupiah(amount)} dari ${senderData.name || currentUser.email}.`,
+          read: false,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+
+      showSuccess('Transfer berhasil dikirim!');
+      p2pTransferForm.reset();
+      transferErrorMessage && transferErrorMessage.classList.add('hidden');
+
+      // reload data
+      await loadUserData();
+      await loadP2PTransactions();
+    } catch (err) {
+      console.error('Error saat transfer:', err);
+      showError(`Gagal melakukan transfer: ${err.message || err}`);
+    } finally {
+      showLoading(false);
+    }
+  });
+}
+
+// ================= Navigation & PIN creation =================
+function initNavigationListeners() {
+  if (window.__walletInitNavigationListeners) return; // guard
+  window.__walletInitNavigationListeners = true;
+
+  const showTransferBtn = safeGet('show-transfer');
+  const saveTransferPinBtn = safeGet('save-transfer-pin-btn');
+
+  if (showTransferBtn) {
+    showTransferBtn.addEventListener('click', async () => {
+      // pastikan user ter-auth
+      if (!currentUser) {
+        showError('Anda harus login untuk mengakses menu ini.');
+        return;
+      }
+
+      hideAllSections();
+
+      try {
+        const userDoc = await usersRef.doc(currentUser.uid).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+
+        if (!userData.pin) {
+          // belum punya PIN → tampilkan form buat PIN
+          safeGet('create-transfer-pin-form') && safeGet('create-transfer-pin-form').classList.remove('hidden');
+          safeGet('p2p-transfer-form') && safeGet('p2p-transfer-form').classList.add('hidden');
+        } else {
+          // sudah punya PIN → tampilkan form transfer
+          safeGet('create-transfer-pin-form') && safeGet('create-transfer-pin-form').classList.add('hidden');
+          safeGet('p2p-transfer-form') && safeGet('p2p-transfer-form').classList.remove('hidden');
+          // load transaksi
+          await loadP2PTransactions();
+        }
+
+        safeGet('transfer-section') && safeGet('transfer-section').classList.remove('hidden');
+      } catch (err) {
+        console.error('Error get user data (show-transfer):', err);
+        showError('Gagal mengambil data pengguna. Coba lagi.');
+      }
+    });
+  }
+
+  if (saveTransferPinBtn) {
+    saveTransferPinBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        if (!currentUser) {
+          showError('Anda harus login untuk membuat PIN.');
+          return;
+        }
+
+        const newPinEl = safeGet('new-transfer-pin');
+        const newPin = newPinEl ? (newPinEl.value || '').trim() : '';
+
+        if (!PIN_REGEX.test(newPin)) {
+          showError('PIN harus 4 digit angka.');
+          return;
+        }
+
+        showLoadingForPinSave(true);
+
+        // hash PIN secara asynchronous
+        const hashedPin = await hashPinAsync(newPin, 10);
+
+        await usersRef.doc(currentUser.uid).update({
+          pin: hashedPin
+        });
+
+        showSuccess('PIN berhasil disimpan.');
+        safeGet('create-transfer-pin-form') && safeGet('create-transfer-pin-form').classList.add('hidden');
+        safeGet('p2p-transfer-form') && safeGet('p2p-transfer-form').classList.remove('hidden');
+      } catch (err) {
+        console.error('Error save PIN:', err);
+        showError('Gagal menyimpan PIN. Coba lagi.');
+      } finally {
+        showLoadingForPinSave(false);
+      }
+    });
+  }
+}
+
+// helper kecil untuk UI loading pada saat simpan PIN
+function showLoadingForPinSave(isLoading) {
+  const btn = safeGet('save-transfer-pin-btn');
+  if (!btn) return;
+  btn.disabled = isLoading;
+  btn.textContent = isLoading ? 'Menyimpan...' : 'Simpan PIN';
+}
+
+// ================= Inisialisasi umum (panggil sekali saat DOM siap) =================
 document.addEventListener('DOMContentLoaded', () => {
+  try {
     initTransferListeners();
+    initNavigationListeners();
+  } catch (err) {
+    console.error('Init listeners error:', err);
+  }
 });
+
 
     // ================= AGENDA MANAGEMENT =================
     function initAgendaListeners() {
@@ -4157,48 +4287,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('show-kas').addEventListener('click', () => {
         hideAllSections();
         document.getElementById('kas-section').classList.remove('hidden');
-      });
-
-        document.getElementById('show-transfer').addEventListener('click', async () => {
-  hideAllSections();
-
-  // Ambil data user dari Firestore
-  const userDoc = await usersRef.doc(currentUser.uid).get();
-  const userData = userDoc.data();
-
-  if (!userData.pin) {
-    // Belum punya PIN → tampilkan form buat PIN
-    document.getElementById('create-transfer-pin-form').classList.remove('hidden');
-    document.getElementById('p2p-transfer-form').classList.add('hidden');
-  } else {
-    // Sudah punya PIN → tampilkan form transfer
-    document.getElementById('create-transfer-pin-form').classList.add('hidden');
-    document.getElementById('p2p-transfer-form').classList.remove('hidden');
-    loadP2PTransactions(); // Load transaksi hanya jika user sudah punya PIN
-  }
-
-    document.getElementById('transfer-section').classList.remove('hidden');
-      });
-
-    document.getElementById('save-transfer-pin-btn').addEventListener('click', async () => {
-    const newPin = document.getElementById('new-transfer-pin').value;
-
-       if (newPin.length !== 4 || isNaN(newPin)) {
-       showError("PIN harus 4 digit angka.");
-       return;
-       }
-
-      const hashedPin = bcrypt.hashSync(newPin, 10);
-
-      await usersRef.doc(currentUser.uid).update({
-      pin: hashedPin
-      });
-
-      showSuccess("PIN berhasil disimpan.");
-
-       // Tampilkan form transfer setelah berhasil simpan PIN
-      document.getElementById('create-transfer-pin-form').classList.add('hidden');
-      document.getElementById('p2p-transfer-form').classList.remove('hidden');
       });
 
       document.getElementById('show-ecommerce').addEventListener('click', () => { // NEW
