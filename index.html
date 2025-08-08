@@ -2427,7 +2427,9 @@ async function handleP2PTransfer(e) {
         // Validate inputs
         if (!currentUser) throw new Error('SESSION_EXPIRED');
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) throw new Error('INVALID_EMAIL');
-        if (isNaN(amount) throw new Error('INVALID_AMOUNT');
+        if (isNaN(amount)) {
+        throw new Error('INVALID_AMOUNT');
+         }
         if (amount < 10000 || amount > 10000000) throw new Error('AMOUNT_LIMIT');
         if (!/^\d{4}$/.test(pin)) throw new Error('INVALID_PIN');
         if (recipientEmail === currentUser.email.toLowerCase()) throw new Error('SELF_TRANSFER');
