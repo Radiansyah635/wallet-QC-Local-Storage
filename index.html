@@ -805,40 +805,90 @@
               </div>
             </form>
           </section>
-          <section id="transfer-section" class="solana-card p-6 hidden">
-            <h2 class="text-xl font-semibold mb-6">Transfer Saldo</h2>
-          
-            <form id="p2p-transfer-form" class="space-y-4 mb-6">
-              <div>
-                <label class="block text-sm mb-2">Email Penerima</label>
-                <input type="email" id="recipient-email" class="input-field" placeholder="email_penerima@contoh.com" required>
-              </div>
-              <div>
-                <label class="block text-sm mb-2">Jumlah (Rp)</label>
-                <input type="number" id="transfer-amount" class="input-field" placeholder="50000" required min="1000">
-              </div>
-              <div>
-                <label class="block text-sm mb-2">Pesan</label>
-                <input type="text" id="transfer-note" class="input-field" placeholder="Untuk pembayaran..." maxlength="100">
-              </div>
-              <div>
-                <label class="block text-sm mb-2">PIN Transaksi</label>
-                <input type="password" id="transfer-pin" class="input-field" placeholder="••••" maxlength="4" required>
-              </div>
-              <div id="transfer-error-message" class="text-red-400 text-sm hidden"></div>
-              <div class="flex justify-end">
-                <button type="submit" class="btn-primary">Kirim Transfer</button>
-              </div>
-            </form>
-          
-            <h3 class="text-lg font-medium mb-4">Riwayat Transfer Saya</h3>
-            <div id="p2p-transactions-list" class="space-y-4 max-h-[400px] overflow-y-auto">
-              <div class="text-center py-10">
-                <div class="loading mx-auto"></div>
-                <p class="mt-3 text-gray-400">Memuat riwayat transfer...</p>
-              </div>
-            </div>
-          </section>
+
+            <section id="transfer-section" class="solana-card p-6 hidden">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-xl font-semibold gradient-text">Transfer Saldo</h2>
+    <button id="show-contacts-btn" class="px-4 py-2 bg-purple-600/80 hover:bg-purple-700 rounded-lg text-sm">
+      <i class="fas fa-address-book mr-2"></i> Kontak Saya
+    </button>
+  </div>
+
+  <form id="p2p-transfer-form" class="space-y-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm mb-2">Email Penerima</label>
+        <div class="relative">
+          <input type="email" id="recipient-email" class="input-field" placeholder="email_penerima@contoh.com" required>
+          <button type="button" id="recipient-history-btn" class="absolute right-3 top-3 text-purple-400 hover:text-purple-300">
+            <i class="fas fa-history"></i>
+          </button>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm mb-2">Jumlah (Rp)</label>
+        <div class="relative">
+          <input type="number" id="transfer-amount" class="input-field pl-10" placeholder="100000" required 
+                 min="10000" max="10000000" step="1000">
+          <span class="absolute left-3 top-3 text-gray-400">Rp</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">Min. Rp 10.000, Max. Rp 10.000.000</p>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm mb-2">Pesan (Opsional)</label>
+      <input type="text" id="transfer-note" class="input-field" placeholder="Untuk pembayaran..." maxlength="100">
+    </div>
+
+    <div>
+      <label class="block text-sm mb-2">PIN Transaksi (4 digit)</label>
+      <input type="password" id="transfer-pin" class="input-field" placeholder="••••" 
+             inputmode="numeric" pattern="\d{4}" maxlength="4" required>
+    </div>
+
+    <div id="transfer-error-message" class="text-red-400 text-sm hidden"></div>
+    <div id="transfer-info-message" class="text-purple-400 text-sm hidden"></div>
+
+    <div class="flex justify-between items-center pt-2">
+      <div>
+        <p class="text-sm text-gray-400">Biaya admin: <span id="transfer-fee">Rp 0</span></p>
+        <p class="text-sm font-medium">Total yang akan didebit: <span id="transfer-total">Rp 0</span></p>
+      </div>
+      <button type="submit" id="submit-transfer-btn" class="btn-primary px-6">
+        <span id="submit-transfer-text">Konfirmasi Transfer</span>
+        <span id="submit-transfer-loader" class="hidden ml-2">
+          <i class="fas fa-spinner fa-spin"></i>
+        </span>
+      </button>
+    </div>
+  </form>
+
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="text-lg font-medium">Riwayat Transfer</h3>
+    <div class="flex space-x-2">
+      <select id="filter-transfer-type" class="input-field text-sm py-1 px-2">
+        <option value="all">Semua</option>
+        <option value="in">Masuk</option>
+        <option value="out">Keluar</option>
+      </select>
+      <input type="text" id="search-transfer" class="input-field text-sm py-1 px-2" placeholder="Cari...">
+    </div>
+  </div>
+
+  <div id="p2p-transactions-list" class="space-y-3 max-h-[500px] overflow-y-auto">
+    <div class="text-center py-10">
+      <div class="loading mx-auto"></div>
+      <p class="mt-3 text-gray-400">Memuat riwayat transfer...</p>
+    </div>
+  </div>
+
+  <div id="load-more-container" class="text-center mt-4 hidden">
+    <button id="load-more-transfers" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg">
+      Muat Lebih Banyak
+    </button>
+  </div>
+</section>
 
           <section id="ecommerce-section" class="solana-card p-6 hidden">
             <h2 class="text-xl font-semibold mb-6">Produk</h2>
@@ -2319,207 +2369,363 @@ function initAuthListeners() {
 }
 
      // ================= FUNGSI TRANSFER P2P YANG DIREVISI =================
-     // ================= Utilities untuk bcrypt (promise wrapper) =================
-function ensureBcrypt() {
-  if (typeof bcrypt === 'undefined') {
-    throw new Error('bcrypt belum dimuat. Pastikan <script src=".../bcrypt.min.js"> dipanggil sebelum file ini.');
-  }
+     // ================= P2P TRANSFER FUNCTIONS =================
+let lastTransferDoc = null;
+const TRANSFER_LIMIT = 10;
+const ADMIN_FEE_PERCENTAGE = 0.01; // 1%
+
+function initTransferModule() {
+  initTransferForm();
+  initTransferHistory();
+  initTransferCalculations();
+  initContactsList();
 }
 
-function hashPinAsync(pin, saltRounds = 10) {
-  ensureBcrypt();
-  return new Promise((resolve, reject) => {
-    bcrypt.hash(pin, saltRounds, (err, hashed) => {
-      if (err) return reject(err);
-      resolve(hashed);
-    });
-  });
-}
+function initTransferForm() {
+  const p2pTransferForm = document.getElementById('p2p-transfer-form');
+  const recipientEmailInput = document.getElementById('recipient-email');
+  const transferAmountInput = document.getElementById('transfer-amount');
+  const transferPinInput = document.getElementById('transfer-pin');
+  const submitBtn = document.getElementById('submit-transfer-btn');
 
-function comparePinAsync(plain, hashed) {
-  ensureBcrypt();
-  return new Promise((resolve, reject) => {
-    bcrypt.compare(plain, hashed, (err, res) => {
-      if (err) return reject(err);
-      resolve(res);
-    });
-  });
-}
+  // Auto-format amount input
+  transferAmountInput.addEventListener('blur', formatAmountInput);
+  
+  // History button for recipient
+  document.getElementById('recipient-history-btn').addEventListener('click', showRecipientHistory);
 
-// ================= Konstanta & helper kecil =================
-const ADMIN_FEE_PERCENTAGE = 0.01; // 1% admin fee
-const PIN_REGEX = /^\d{4}$/;
-
-function safeGet(elId) {
-  return document.getElementById(elId);
-}
-
-// pastikan fungsi util seperti showError/showSuccess/formatRupiah/loadUserData/loadP2PTransactions/hideAllSections ada di scope
-
-// ================= Inisialisasi listener transfer (dengan guard) =================
-function initTransferListeners() {
-  if (window.__walletInitTransferListeners) return; // guard: tidak dobel
-  window.__walletInitTransferListeners = true;
-
-  const p2pTransferForm = safeGet('p2p-transfer-form');
-  if (!p2pTransferForm) return;
-
-  const recipientEmailInput = safeGet('recipient-email');
-  const transferAmountInput = safeGet('transfer-amount');
-  const transferNoteInput = safeGet('transfer-note');
-  const transferPinInput = safeGet('transfer-pin');
-  const transferErrorMessage = safeGet('transfer-error-message');
-  const submitButton = p2pTransferForm.querySelector('button[type="submit"]');
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  function showLoading(isLoading) {
-    if (!submitButton) return;
-    submitButton.disabled = isLoading;
-    submitButton.textContent = isLoading ? 'Mengirim...' : 'Kirim Transfer';
-  }
-
+  // Form submission
   p2pTransferForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    const recipientEmail = recipientEmailInput.value.trim();
+    const amount = parseFloat(transferAmountInput.value.replace(/\./g, ''));
+    const note = document.getElementById('transfer-note').value.trim();
+    const pin = transferPinInput.value;
+
+    // Validate inputs
+    if (!validateTransferInputs(recipientEmail, amount, pin)) {
+      return;
+    }
+
     try {
-      transferErrorMessage && transferErrorMessage.classList.add('hidden');
-      transferErrorMessage && (transferErrorMessage.textContent = '');
-
-      const recipientEmail = (recipientEmailInput.value || '').trim().toLowerCase();
-      const amount = parseFloat(transferAmountInput.value);
-      const note = (transferNoteInput.value || '').trim();
-      const pin = (transferPinInput.value || '').trim();
-
-      // Validasi dasar
-      if (!currentUser) {
-        showError('Anda harus login untuk melakukan transfer.');
-        return;
-      }
-      if (!emailRegex.test(recipientEmail)) {
-        showError('Email penerima tidak valid.');
-        return;
-      }
-      if (isNaN(amount) || amount <= 0) {
-        showError('Jumlah transfer harus lebih dari 0.');
-        return;
-      }
-      if (!PIN_REGEX.test(pin)) {
-        showError('PIN transaksi harus berupa 4 digit angka.');
-        return;
-      }
-      if (recipientEmail === (currentUser.email || '').toLowerCase()) {
-        showError('Anda tidak bisa transfer ke akun Anda sendiri.');
-        return;
-      }
-
-      showLoading(true);
-
-      // Ambil data pengirim
-      const senderDocRef = usersRef.doc(currentUser.uid);
-      const senderSnap = await senderDocRef.get();
-      if (!senderSnap.exists) {
-        showError('Data pengirim tidak ditemukan.');
-        return;
-      }
-      const senderData = senderSnap.data();
-
-      if (!senderData.pin) {
-        showError('PIN transaksi belum dibuat. Silakan buat PIN terlebih dahulu.');
-        return;
-      }
-
-      // Verifikasi PIN (gunakan comparePinAsync wrapper)
-      let isPinValid = false;
-      try {
-        isPinValid = await comparePinAsync(pin, senderData.pin);
-      } catch (err) {
-        console.error('Error verify PIN:', err);
-        showError('Terjadi masalah saat memverifikasi PIN. Coba lagi.');
-        return;
-      }
-      if (!isPinValid) {
-        showError('PIN transaksi salah.');
-        return;
-      }
-
-      // Cari penerima
-      const recipientQuery = await usersRef.where('email', '==', recipientEmail).limit(1).get();
-      if (recipientQuery.empty) {
-        showError('Pengguna dengan email tersebut tidak ditemukan.');
-        return;
-      }
-      const recipientDoc = recipientQuery.docs[0];
-      const recipientId = recipientDoc.id;
-      const recipientData = recipientDoc.data();
-
-      const adminFee = amount * ADMIN_FEE_PERCENTAGE;
-      const totalAmountToSend = amount + adminFee;
-
-      // Transaksi atomic di Firestore
-      await db.runTransaction(async (transaction) => {
-        const senderTxDoc = await transaction.get(senderDocRef);
-        const recipientTxDoc = await transaction.get(usersRef.doc(recipientId));
-
-        if (!senderTxDoc.exists || !recipientTxDoc.exists) {
-          throw new Error('Data pengguna tidak ditemukan saat transaksi.');
-        }
-
-        const senderCurrentData = senderTxDoc.data();
-        const recipientCurrentData = recipientTxDoc.data();
-
-        if ((senderCurrentData.totalBalance || 0) < totalAmountToSend) {
-          throw new Error('Saldo Anda tidak mencukupi saat transaksi dijalankan.');
-        }
-
-        const senderNewBalance = (senderCurrentData.totalBalance || 0) - totalAmountToSend;
-        const recipientNewBalance = (recipientCurrentData.totalBalance || 0) + amount;
-
-        transaction.update(senderDocRef, { totalBalance: senderNewBalance });
-        transaction.update(usersRef.doc(recipientId), { totalBalance: recipientNewBalance });
-
-        // catat transaksi pengirim
-        transaction.set(transactionsRef.doc(), {
-          userId: currentUser.uid,
-          type: 'p2p_transfer_out',
-          amount: totalAmountToSend,
-          description: note || `Transfer ke ${recipientData.name || recipientEmail}`,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        });
-
-        // catat transaksi penerima
-        transaction.set(transactionsRef.doc(), {
-          userId: recipientId,
-          type: 'p2p_transfer_in',
-          amount: amount,
-          description: `Transfer dari ${senderData.name || currentUser.email}`,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        });
-
-        // notifikasi
-        transaction.set(notificationsRef.doc(), {
-          userId: recipientId,
-          title: 'Transfer Masuk',
-          message: `Anda menerima transfer ${formatRupiah(amount)} dari ${senderData.name || currentUser.email}.`,
-          read: false,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        });
-      });
-
-      showSuccess('Transfer berhasil dikirim!');
+      // Show loading state
+      toggleTransferLoading(true);
+      
+      // Process transfer
+      await processP2PTransfer(recipientEmail, amount, note, pin);
+      
+      // Reset form on success
       p2pTransferForm.reset();
-      transferErrorMessage && transferErrorMessage.classList.add('hidden');
-
-      // reload data
-      await loadUserData();
-      await loadP2PTransactions();
-    } catch (err) {
-      console.error('Error saat transfer:', err);
-      showError(`Gagal melakukan transfer: ${err.message || err}`);
+      showSuccess('Transfer berhasil dikirim!');
+      loadP2PTransactions(true); // Refresh history
+      updateUserBalance(); // Refresh balance
+    } catch (error) {
+      showTransferError(error.message);
     } finally {
-      showLoading(false);
+      toggleTransferLoading(false);
     }
   });
 }
+
+function validateTransferInputs(recipientEmail, amount, pin) {
+  const errorEl = document.getElementById('transfer-error-message');
+  errorEl.classList.add('hidden');
+
+  if (!currentUser) {
+    showTransferError('Anda harus login untuk melakukan transfer');
+    return false;
+  }
+
+  if (!recipientEmail || !isValidEmail(recipientEmail)) {
+    showTransferError('Email penerima tidak valid');
+    return false;
+  }
+
+  if (recipientEmail === currentUser.email) {
+    showTransferError('Anda tidak bisa transfer ke diri sendiri');
+    return false;
+  }
+
+  if (isNaN(amount) || amount < 10000 || amount > 10000000) {
+    showTransferError('Jumlah transfer harus antara Rp 10.000 - Rp 10.000.000');
+    return false;
+  }
+
+  if (!pin || pin.length !== 4 || !/^\d+$/.test(pin)) {
+    showTransferError('PIN harus 4 digit angka');
+    return false;
+  }
+
+  return true;
+}
+
+async function processP2PTransfer(recipientEmail, amount, note, pin) {
+  // Calculate fee and total
+  const fee = Math.round(amount * ADMIN_FEE_PERCENTAGE);
+  const totalAmount = amount + fee;
+
+  // Verify PIN via Cloud Function (recommended)
+  // This is just a mock, in production call a Cloud Function
+  const isPinValid = await verifyUserPin(currentUser.uid, pin);
+  if (!isPinValid) {
+    throw new Error('PIN transaksi salah');
+  }
+
+  // Get recipient data
+  const recipientQuery = await usersRef.where('email', '==', recipientEmail).limit(1).get();
+  if (recipientQuery.empty) {
+    throw new Error('Penerima tidak ditemukan');
+  }
+  const recipientData = recipientQuery.docs[0].data();
+  const recipientId = recipientQuery.docs[0].id;
+
+  // Process transfer in transaction
+  await db.runTransaction(async (transaction) => {
+    const senderRef = usersRef.doc(currentUser.uid);
+    const recipientRef = usersRef.doc(recipientId);
+    
+    // Get current balances
+    const senderDoc = await transaction.get(senderRef);
+    const recipientDoc = await transaction.get(recipientRef);
+    
+    const senderBalance = senderDoc.data().totalBalance || 0;
+    const recipientBalance = recipientDoc.data().totalBalance || 0;
+
+    // Check balance
+    if (senderBalance < totalAmount) {
+      throw new Error(`Saldo tidak mencukupi. Dibutuhkan ${formatRupiah(totalAmount)}`);
+    }
+
+    // Update balances
+    transaction.update(senderRef, {
+      totalBalance: senderBalance - totalAmount,
+      lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    transaction.update(recipientRef, {
+      totalBalance: recipientBalance + amount,
+      lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Record transactions
+    const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+    
+    // Sender transaction
+    const senderTxRef = transactionsRef.doc();
+    transaction.set(senderTxRef, {
+      type: 'transfer_out',
+      amount: totalAmount,
+      netAmount: amount,
+      fee: fee,
+      recipientId: recipientId,
+      recipientEmail: recipientEmail,
+      recipientName: recipientData.name,
+      note: note,
+      status: 'completed',
+      timestamp: timestamp,
+      userId: currentUser.uid
+    });
+
+    // Recipient transaction
+    const recipientTxRef = transactionsRef.doc();
+    transaction.set(recipientTxRef, {
+      type: 'transfer_in',
+      amount: amount,
+      senderId: currentUser.uid,
+      senderEmail: currentUser.email,
+      senderName: senderDoc.data().name,
+      note: note,
+      status: 'completed',
+      timestamp: timestamp,
+      userId: recipientId
+    });
+
+    // Add to contacts if not exists
+    await addToContacts(recipientId, recipientEmail, recipientData.name);
+  });
+
+  // Send notifications
+  await sendTransferNotification(recipientId, amount);
+}
+
+function initTransferHistory() {
+  // Load initial history
+  loadP2PTransactions();
+  
+  // Setup filter and search
+  document.getElementById('filter-transfer-type').addEventListener('change', () => {
+    loadP2PTransactions(true);
+  });
+  
+  document.getElementById('search-transfer').addEventListener('input', debounce(() => {
+    loadP2PTransactions(true);
+  }, 300));
+
+  // Load more button
+  document.getElementById('load-more-transfers').addEventListener('click', () => {
+    loadP2PTransactions();
+  });
+}
+
+async function loadP2PTransactions(refresh = false) {
+  const transactionsList = document.getElementById('p2p-transactions-list');
+  const loadMoreBtn = document.getElementById('load-more-container');
+  
+  if (refresh) {
+    lastTransferDoc = null;
+    transactionsList.innerHTML = '<div class="text-center py-10"><div class="loading mx-auto"></div></div>';
+  }
+
+  try {
+    let query = transactionsRef
+      .where('userId', '==', currentUser.uid)
+      .where('type', 'in', ['transfer_out', 'transfer_in'])
+      .orderBy('timestamp', 'desc')
+      .limit(TRANSFER_LIMIT);
+
+    // Apply filters
+    const filterType = document.getElementById('filter-transfer-type').value;
+    if (filterType !== 'all') {
+      query = query.where('type', '==', filterType === 'in' ? 'transfer_in' : 'transfer_out');
+    }
+
+    // Apply search
+    const searchTerm = document.getElementById('search-transfer').value.trim();
+    if (searchTerm) {
+      // Note: Firestore doesn't support full-text search, this is basic filtering
+      // Consider using Algolia or similar for better search
+    }
+
+    // Pagination
+    if (lastTransferDoc && !refresh) {
+      query = query.startAfter(lastTransferDoc);
+    }
+
+    const snapshot = await query.get();
+    
+    if (snapshot.empty) {
+      if (refresh) {
+        transactionsList.innerHTML = '<p class="text-center py-6 text-gray-400">Belum ada riwayat transfer</p>';
+      }
+      loadMoreBtn.classList.add('hidden');
+      return;
+    }
+
+    // Process results
+    lastTransferDoc = snapshot.docs[snapshot.docs.length - 1];
+    
+    if (refresh) {
+      transactionsList.innerHTML = '';
+    }
+
+    snapshot.forEach(doc => {
+      const tx = doc.data();
+      transactionsList.appendChild(createTransactionElement(tx));
+    });
+
+    // Show/hide load more button
+    loadMoreBtn.classList.toggle('hidden', snapshot.size < TRANSFER_LIMIT);
+  } catch (error) {
+    console.error("Error loading transfers:", error);
+    transactionsList.innerHTML = '<p class="text-center py-6 text-red-400">Gagal memuat riwayat transfer</p>';
+    loadMoreBtn.classList.add('hidden');
+  }
+}
+
+function createTransactionElement(tx) {
+  const isIncoming = tx.type === 'transfer_in';
+  const date = tx.timestamp?.toDate() || new Date();
+  const formattedDate = date.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const element = document.createElement('div');
+  element.className = `solana-card p-4 ${isIncoming ? 'transaction-in' : 'transaction-out'}`;
+  element.innerHTML = `
+    <div class="flex justify-between items-start">
+      <div>
+        <h4 class="font-medium">${isIncoming ? tx.senderName : tx.recipientName}</h4>
+        <p class="text-sm text-gray-400">${formattedDate}</p>
+        ${tx.note ? `<p class="text-sm text-gray-300 mt-1">"${tx.note}"</p>` : ''}
+      </div>
+      <div class="text-right">
+        <p class="${isIncoming ? 'text-green-400' : 'text-red-400'} font-bold">
+          ${isIncoming ? '+' : '-'} ${formatRupiah(tx.amount)}
+        </p>
+        ${!isIncoming ? `<p class="text-xs text-gray-400">Biaya: ${formatRupiah(tx.fee || 0)}</p>` : ''}
+      </div>
+    </div>
+    <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-700/50">
+      <span class="text-xs ${isIncoming ? 'text-green-400' : 'text-red-400'}">
+        ${isIncoming ? 'Transfer Masuk' : 'Transfer Keluar'}
+      </span>
+      <button class="text-xs text-purple-400 hover:text-purple-300" 
+              onclick="showTransferDetail('${tx.type}', '${isIncoming ? tx.senderId : tx.recipientId}')">
+        <i class="fas fa-info-circle mr-1"></i> Detail
+      </button>
+    </div>
+  `;
+  return element;
+}
+
+// ================= HELPER FUNCTIONS =================
+function initTransferCalculations() {
+  const amountInput = document.getElementById('transfer-amount');
+  amountInput.addEventListener('input', updateTransferCalculation);
+}
+
+function updateTransferCalculation() {
+  const amount = parseFloat(document.getElementById('transfer-amount').value.replace(/\./g, '')) || 0;
+  const fee = Math.round(amount * ADMIN_FEE_PERCENTAGE);
+  const total = amount + fee;
+
+  document.getElementById('transfer-fee').textContent = formatRupiah(fee);
+  document.getElementById('transfer-total').textContent = formatRupiah(total);
+}
+
+function formatAmountInput(e) {
+  const input = e.target;
+  let value = input.value.replace(/[^\d]/g, '');
+  
+  if (value) {
+    value = parseInt(value, 10).toLocaleString('id-ID');
+    input.value = value;
+    updateTransferCalculation();
+  }
+}
+
+function toggleTransferLoading(isLoading) {
+  const btn = document.getElementById('submit-transfer-btn');
+  const text = document.getElementById('submit-transfer-text');
+  const loader = document.getElementById('submit-transfer-loader');
+  
+  btn.disabled = isLoading;
+  text.classList.toggle('hidden', isLoading);
+  loader.classList.toggle('hidden', !isLoading);
+}
+
+function showTransferError(message) {
+  const errorEl = document.getElementById('transfer-error-message');
+  errorEl.textContent = message;
+  errorEl.classList.remove('hidden');
+  
+  // Auto hide after 5 seconds
+  setTimeout(() => {
+    errorEl.classList.add('hidden');
+  }, 5000);
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('transfer-section')) {
+    initTransferModule();
+  }
+});
 
 // ================= Navigation & PIN creation =================
 function initNavigationListeners() {
