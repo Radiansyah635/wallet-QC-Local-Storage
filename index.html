@@ -2622,14 +2622,38 @@ async function handleCreatePin(e) {
     }
 }
 
-
-// ===============================================
 // 3. INIT LISTENER
 // ===============================================
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('show-transfer').addEventListener('click', showTransferForm);
-    document.getElementById('p2p-transfer-form').addEventListener('submit', handleP2PTransfer);
-    document.getElementById('create-pin-form').addEventListener('submit', handleCreatePin);
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // PENTING: Panggil fungsi loadBCrypt() dan tunggu hingga selesai
+        await loadBCrypt();
+        console.log('Library bcrypt berhasil dimuat.');
+
+        // Kemudian, pasang semua event listener
+        // Setelah bcrypt dimuat, fungsi handleCreatePin dan handleP2PTransfer
+        // yang menggunakan bcrypt sekarang sudah aman untuk dipanggil.
+        
+        document.getElementById('show-transfer').addEventListener('click', showTransferForm);
+        document.getElementById('p2p-transfer-form').addEventListener('submit', handleP2PTransfer);
+        document.getElementById('create-pin-form').addEventListener('submit', handleCreatePin);
+
+        // Contoh: Pemasangan listener untuk Auth
+        // Pastikan variabel 'auth' dan 'currentUser' sudah dideklarasikan di scope global
+        // auth.onAuthStateChanged(user => {
+        //     if (user) {
+        //         currentUser = user;
+        //         // Bisa memanggil fungsi lain yang butuh user login di sini
+        //     } else {
+        //         currentUser = null;
+        //     }
+        // });
+
+    } catch (error) {
+        // Tangani error jika gagal memuat bcrypt
+        console.error('Gagal memuat library bcrypt:', error);
+        // Tampilkan pesan error di UI jika diperlukan
+    }
 });
 
     // ================= AGENDA MANAGEMENT =================
