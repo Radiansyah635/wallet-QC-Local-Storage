@@ -2395,7 +2395,6 @@ function initAuthListeners() {
 }
 
      // ================= FUNGSI TRANSFER P2P YANG DIREVISI =================
-        <!-- Pastikan bcryptjs di-load sebelum script -->
 const ADMIN_FEE_PERCENTAGE = 0.01; // 1% biaya admin
 
 // ======== FORM BUAT PIN ========
@@ -2415,6 +2414,7 @@ document.getElementById('create-pin-form').addEventListener('submit', async (e) 
     }
 
     try {
+        const bcrypt = window.dcodeIO.bcrypt; // ✅ Panggil bcrypt dari dcodeIO
         const salt = bcrypt.genSaltSync(10);
         const hashedPin = bcrypt.hashSync(newPin, salt);
 
@@ -2462,6 +2462,7 @@ document.getElementById('p2p-transfer-form').addEventListener('submit', async (e
     if (recipientEmail === currentUser.email) { showError('Anda tidak bisa transfer ke akun sendiri.'); return; }
 
     try {
+        const bcrypt = window.dcodeIO.bcrypt; // ✅ Gunakan bcrypt dari window
         const senderDocRef = usersRef.doc(currentUser.uid);
         const senderSnap = await senderDocRef.get();
         const senderData = senderSnap.data();
